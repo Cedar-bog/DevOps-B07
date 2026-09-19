@@ -1,0 +1,160 @@
+{
+  "$comment": "E2-B07-004 MD 报告消费约束。本文件为自描述的复合参考样例：只声明 B 侧（MDFixer）对 MD 报告（ERROR_REPORT）中 MISSING 记录的消费约束——必填字段、commit 匹配、位置满足 REPAIR 定位需求，以及 artifact:// URI 读取方式（遵循 003 约定）。完整 ERROR_REPORT 结构由 A07 定义，本文件不规定 A 侧检测器的输出格式，仅说明 B 侧必须能读取到什么。",
+  "schema_version": "1.0",
+  "description": "MD 报告消费约束（B 消费侧视图）",
+  "scope": {
+    "$comment": "本文件仅声明 B 侧消费约束，供 A07 对齐其 ERROR_REPORT 产物格式；具体字段命名与必填性需经 A07 确认，见 open_items。",
+    "side": "B07 / MDFixer",
+    "role": "消费方：读取 A07 产生的 ERROR_REPORT 产物，定位缺失依赖并生成修复补丁。",
+    "not_defined_here": "ERROR_REPORT 的完整结构、报告文件本身应包含的其余字段（证据、图等）由 A07 定义。"
+  },
+  "consumption_constraints": {
+    "finding_types_consumed": {
+      "$comment": "REPAIR 只消费 MISSING 类型发现。REDUNDANT（声明但未使用）不属于修复范围，应被忽略而非处理。",
+      "accepted": ["MISSING"],
+      "ignored": ["REDUNDANT"]
+    },
+    "required_fields": {
+      "$comment": "每条 MISSING 记录必须携带以下字段，缺失任一字段即视为不可消费，REPAIR 应拒绝该报告并记录原因。",
+      "fields": ["type", "target", "dependency", "commit", "position"],
+      "definitions": {
+        "type": {
+          "const": "MISSING",
+          "description": "发现类型，固定为 MISSING。"
+        },
+        "target": {
+          "type": "string",
+          "description": "存在缺失依赖的构建目标，如 \"main.o\"、\"clib\"。REPAIR 依据该字段在 Makefile 中定位对应声明。"
+        },
+        "dependency": {
+          "type": "string",
+          "description": "实际需要但声明缺失的依赖文件或宏，如 \"config.h\"。REPAIR 将其追加到目标声明的依赖列表。"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "本次完整提交 SHA。报告必须属于当前源码版本。"
+        },
+        "position": {
+          "$comment": "位置信息，必须满足 REPAIR 定位需求：使 MDFixer 能定位到目标在 Makefile 中的声明（含宏展开后的行号），否则无法生成修复。",
+          "type": "object",
+          "required": ["file", "line"],
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "声明所在的 Makefile 路径，相对仓库根目录，如 \"Makefile\" 或 \"src/Makefile\"。"
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "目标声明的行号。目标由宏（如 BINS）表示时，指宏展开后对应声明的行。"
+            },
+            "declaration": {
+              "type": "string",
+              "description": "可选。声明文本或宏引用，辅助宏展开与声明风格识别（style-aware fixing）。"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "commit_matching": {
+      "$comment": "报告消费前的版本校验：报告的 commit 必须与 REPAIR 任务输入 input.repository.commit 完全一致。不一致说明报告不属当前源码版本，拒绝该报告并记录原因。",
+      "rule": "error_report.findings[].commit == input.repository.commit",
+      "on_mismatch": "REJECT"
+    },
+    "detector": {
+      "$comment": "可选但推荐。发现来源标识，用于追溯与人工样本区分。人工样本必须显式标注。",
+      "enum": ["BUILDCHECKER", "ECHECKER", "INSTRUCTOR_ORACLE"],
+      "note": "枚举命名需经 A07 确认。"
+    },
+    "evidence": {
+      "$comment": "可选。进程、文件与声明位置证据，由 A07 决定是否在完整报告中提供；B 侧不强依赖。",
+      "provided_by": "A07"
+    }
+  },
+  "uri_reading": {
+    "$comment": "URI 读取方式遵循 E2-B07-003 产物访问样例（docs/contracts/examples/artifact.json）与 ADR 012：MD 报告作为 ERROR_REPORT 产物通过 artifact:// URI 引用交接。",
+    "artifact_type": "ERROR_REPORT",
+    "media_type": "application/json",
+    "reading": {
+      "uri_scheme": "以 artifact:// 前缀标识，为平台内部引用，不是任意 URL。",
+      "resolution": "解析器或实际下载接口由平台定义，见 ADR 012。",
+      "producer_job_id": "消费时校验产物由检测类任务（FULL_CHECK / INCREMENTAL_CHECK）生产，来源可追溯。",
+      "sha256": "跨网络/跨组传递时核验完整性，不一致则拒绝该报告。"
+    }
+  },
+  "examples": {
+    "$comment": "以下实例展示 B 侧消费所需的 MISSING 记录与报告视图。完整 ERROR_REPORT 文件结构以 A07 定义为准，这里仅保证 B 侧必读字段齐备。",
+    "finding": {
+      "$comment": "一条满足必填约束的 MISSING 记录。",
+      "type": "MISSING",
+      "target": "clib",
+      "dependency": "src/common/clib-settings.h",
+      "commit": "0123456789abcdef0123456789abcdef01234567",
+      "position": {
+        "file": "Makefile",
+        "line": 5,
+        "declaration": "$(BINS): $(SRC)"
+      },
+      "detector": "ECHECKER"
+    },
+    "error_report": {
+      "$comment": "B 消费侧视图：REPAIR 读取 artifact:// 指向的 ERROR_REPORT 内容，仅遍历 findings 中 type == MISSING 的记录；position 必须指向目标声明，用于定位与修复。REDUNDANT 记录被忽略。",
+      "schema_version": "1.0",
+      "repository": {
+        "url": "https://github.com/example/clib",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "findings": [
+        {
+          "type": "MISSING",
+          "target": "clib",
+          "dependency": "src/common/clib-settings.h",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "position": {
+            "file": "Makefile",
+            "line": 5,
+            "declaration": "$(BINS): $(SRC)"
+          },
+          "detector": "ECHECKER"
+        },
+        {
+          "type": "MISSING",
+          "target": "src/fzy.o",
+          "dependency": "src/fzy.h",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "position": {
+            "file": "Makefile",
+            "line": 42,
+            "declaration": "src/fzy.o: src/fzy.c"
+          },
+          "detector": "BUILDCHECKER"
+        },
+        {
+          "type": "REDUNDANT",
+          "target": "clib",
+          "dependency": "src/legacy.c",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "detector": "ECHECKER"
+        }
+      ]
+    },
+    "artifact_reference": {
+      "$comment": "ERROR_REPORT 产物的引用记录（与 E2-B07-003 一致，可直接进入 Job 的 output.artifacts）。",
+      "artifact_id": "full01-error-report",
+      "type": "ERROR_REPORT",
+      "uri": "artifact://pair01/full01/error_report.json",
+      "media_type": "application/json",
+      "producer_job_id": "job-full01",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  },
+  "open_items": [
+    "完整 ERROR_REPORT 结构由 A07 定义，本文件仅声明 B 消费侧约束",
+    "position 字段命名与必填性需 A07 配合确认（B 侧至少需要能定位到 Makefile 声明位置）",
+    "detector 枚举命名（BUILDCHECKER/ECHECKER/INSTRUCTOR_ORACLE）需经 A07 确认",
+    "REDUNDANT 记录的消费策略（忽略）需经 A07 确认"
+  ]
+}
