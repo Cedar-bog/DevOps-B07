@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devops.nju.edu.cn/b07/contracts/task.schema.json",
+  "title": "DevOps-B07 Unified Task Model",
+  "description": "统一任务模型：用同一份 Schema 表达 DRAFT、FULL_CHECK、INCREMENTAL_CHECK、REPAIR 四类耗时任务。公共字段由 B07 定义；FULL_CHECK 与 INCREMENTAL_CHECK 的具体输入字段由 A07 定义，B 侧仅提供占位与公共约束。",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "job_id",
+    "trace_id",
+    "job_type",
+    "status",
+    "execution",
+    "input",
+    "output",
+    "error"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "description": "契约版本。共享 Schema 变更须同步版本号，见 ADR/002 版本约定。"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^job-[a-z0-9-]+$",
+      "description": "任务编号，由服务端生成，不随请求传入。"
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^trace-[a-z0-9-]+$",
+      "description": "同一次平台流程内所有任务共享的串联标识；DRAFT -> FULL_CHECK / INCREMENTAL_CHECK -> REPAIR 全链路携带同一 trace_id。"
+    },
+    "job_type": {
+      "enum": ["DRAFT", "FULL_CHECK", "INCREMENTAL_CHECK", "REPAIR"],
+      "description": "任务类型：DRAFT 生成可构建环境；FULL_CHECK 全量依赖检测（A07）；INCREMENTAL_CHECK 跨提交增量检测（A07）；REPAIR 修复缺失依赖。"
+    },
+    "status": {
+      "enum": ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
+      "description": "任务状态。SUCCEEDED 也可能报告 MD/RD 发现（检测正常完成但发现缺失/冗余依赖）。状态枚举命名需经 A07 确认。"
+    },
+    "execution": {
+      "type": "object",
+      "required": ["created_at"],
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "queued_at": { "type": "string", "format": "date-time" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": "string", "format": "date-time" },
+        "attempts": { "type": "integer", "minimum": 1 },
+        "runner": { "type": "string", "description": "实际执行环境/工作节点标识。" }
+      },
+      "additionalProperties": false
+    },
+    "input": {
+      "type": "object",
+      "description": "任务输入。具体结构由 job_type 决定，见 allOf 条件约束。"
+    },
+    "output": {
+      "type": ["object", "null"],
+      "description": "任务输出与产物引用。未完成或失败时可为空。具体结构由 job_type 决定。"
+    },
+    "error": {
+      "type": ["object", "null"],
+      "description": "系统执行错误。发现 MD/RD 属正常分析结果，写入 output 而非此处。",
+      "properties": {
+        "code": {
+          "enum": ["ENV_3002", "EXEC_4002", "ANALYSIS_5001"],
+          "description": "ENV_3002 镜像构建失败；EXEC_4002 任务超时；ANALYSIS_5001 分析器失败。命名需经 A07 确认。"
+        },
+        "message": { "type": "string" },
+        "details": { "type": ["object", "null"] }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "DRAFT：生成可构建环境（B07 定义输入输出）。",
+      "if": { "properties": { "job_type": { "const": "DRAFT" } }, "required": ["job_type"] },
+      "then": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "required": ["repository", "build", "verify", "max_iterations", "time_limit", "idempotency_key"],
+            "properties": {
+              "repository": { "$ref": "#/$defs/repository" },
+              "build": {
+                "type": "object",
+                "required": ["command"],
+                "properties": {
+                  "command": { "type": "string", "minLength": 1 },
+                  "workdir": { "type": "string" }
+                },
+                "additionalProperties": false
+              },
+              "verify": {
+                "type": "object",
+                "required": ["command"],
+                "properties": { "command": { "type": "string", "minLength": 1 } },
+                "additionalProperties": false
+              },
+              "max_iterations": { "type": "integer", "minimum": 1 },
+              "time_limit": { "type": "integer", "minimum": 1, "description": "秒。" },
+              "idempotency_key": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          },
+          "output": {
+            "type": ["object", "null"],
+            "required": ["dockerfile", "image_ref", "rounds", "final_build", "final_verify"],
+            "properties": {
+              "dockerfile": { "type": "string", "description": "生成的 Dockerfile 文本。" },
+              "image_ref": { "type": "string", "description": "镜像引用，如 name:tag。" },
+              "rounds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["iteration", "log", "changes", "rationale"],
+                  "properties": {
+                    "iteration": { "type": "integer", "minimum": 1 },
+                    "log": { "type": "string", "description": "本轮构建日志。" },
+                    "changes": { "type": "string", "description": "本轮对 Dockerfile 的修改。" },
+                    "rationale": { "type": "string", "description": "本轮修改的选择理由。" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "final_build": { "type": "string", "description": "最终构建结果。" },
+              "final_verify": { "type": "string", "description": "最终验证结果。" }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "$comment": "FULL_CHECK：全量依赖检测。具体输入字段由 A07 定义，B 侧仅提供公共约束与占位。",
+      "if": { "properties": { "job_type": { "const": "FULL_CHECK" } }, "required": ["job_type"] },
+      "then": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "required": ["repository", "commit", "defined_by"],
+            "properties": {
+              "repository": { "$ref": "#/$defs/repository" },
+              "commit": { "$ref": "#/$defs/commit" },
+              "defined_by": {
+                "$comment": "具体输入字段（如 configuration_id、clean build 命令、项目根目录等）由 A07 定义，见 A07 契约。",
+                "const": "A07"
+              }
+            },
+            "additionalProperties": true
+          },
+          "output": {
+            "anyOf": [
+              { "$ref": "#/$defs/artifact_set" },
+              { "type": "null" }
+            ],
+            "description": "输出为产物引用：实际依赖图、声明依赖图、MD/RD 报告（artifact:// URI）。"
+          }
+        }
+      }
+    },
+    {
+      "$comment": "INCREMENTAL_CHECK：跨提交增量检测。具体输入字段由 A07 定义；B 侧保留 base_commit 与 baseline 必填占位。",
+      "if": { "properties": { "job_type": { "const": "INCREMENTAL_CHECK" } }, "required": ["job_type"] },
+      "then": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "required": ["repository", "commit", "base_commit", "baseline", "defined_by"],
+            "properties": {
+              "repository": { "$ref": "#/$defs/repository" },
+              "commit": { "$ref": "#/$defs/commit", "description": "C1 的完整 SHA（新提交）。" },
+              "base_commit": { "$ref": "#/$defs/commit", "description": "C0 的完整 SHA（基线提交）。" },
+              "baseline": {
+                "type": "object",
+                "required": ["actual_graph_uri", "commit", "configuration_id"],
+                "properties": {
+                  "actual_graph_uri": { "$ref": "#/$defs/artifact_uri" },
+                  "commit": { "$ref": "#/$defs/commit" },
+                  "configuration_id": { "type": "string", "minLength": 1 }
+                },
+                "additionalProperties": true,
+                "description": "增量检测必须携带的历史基线（删除本字段应被拒绝）。"
+              },
+              "defined_by": { "const": "A07" }
+            },
+            "additionalProperties": true
+          },
+          "output": {
+            "anyOf": [
+              { "$ref": "#/$defs/artifact_set" },
+              { "type": "null" }
+            ],
+            "description": "输出为产物引用：当前发现、新增/消除的发现、更新后的依赖图。"
+          }
+        }
+      }
+    },
+    {
+      "$comment": "REPAIR：修复缺失依赖（B07 定义输入输出）。只消费 MISSING 类型。",
+      "if": { "properties": { "job_type": { "const": "REPAIR" } }, "required": ["job_type"] },
+      "then": {
+        "properties": {
+          "input": {
+            "type": "object",
+            "required": ["repository", "commit", "md_report_uri", "makefile", "env", "verify", "idempotency_key"],
+            "properties": {
+              "repository": { "$ref": "#/$defs/repository" },
+              "commit": { "$ref": "#/$defs/commit" },
+              "md_report_uri": {
+                "$ref": "#/$defs/artifact_uri",
+                "description": "MD 报告 URI，格式遵循 004 约定；只消费 MISSING 类型。"
+              },
+              "makefile": { "type": "string", "description": "Makefile 文本或路径。" },
+              "env": {
+                "type": "object",
+                "required": ["build", "verify"],
+                "properties": {
+                  "build": { "type": "string", "minLength": 1 },
+                  "verify": { "type": "string", "minLength": 1 }
+                },
+                "additionalProperties": false
+              },
+              "verify": { "type": "string", "minLength": 1, "description": "构建与验证命令。" },
+              "idempotency_key": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          },
+          "output": {
+            "type": ["object", "null"],
+            "required": ["git_patch", "style_description", "recheck", "rejected_candidates"],
+            "properties": {
+              "git_patch": { "type": "string", "description": "生成的 Git Patch。" },
+              "style_description": { "type": "string", "description": "声明风格说明。" },
+              "recheck": {
+                "type": "object",
+                "required": ["build", "test", "detection"],
+                "properties": {
+                  "build": { "type": "string" },
+                  "test": { "type": "string" },
+                  "detection": { "type": "string" }
+                },
+                "additionalProperties": false
+              },
+              "rejected_candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["patch", "reason"],
+                  "properties": {
+                    "patch": { "type": "string" },
+                    "reason": { "type": "string", "description": "拒绝该候选的原因。" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "repository": {
+      "type": "object",
+      "required": ["url", "commit"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "仓库地址，必须为 http(s) URL。"
+        },
+        "commit": { "$ref": "#/$defs/commit" }
+      },
+      "additionalProperties": false
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "完整提交 SHA（40 位十六进制）。"
+    },
+    "artifact_uri": {
+      "type": "string",
+      "pattern": "^artifact://",
+      "description": "产物 URI，以 artifact:// 前缀标识，读取方式见 ADR 012。"
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["artifact_id", "type", "uri", "media_type", "producer_job_id"],
+      "properties": {
+        "artifact_id": { "type": "string" },
+        "type": { "type": "string", "description": "如 ACTUAL_GRAPH / DECLARED_GRAPH / ERROR_REPORT。" },
+        "uri": { "$ref": "#/$defs/artifact_uri" },
+        "media_type": { "type": "string", "description": "如 application/json。" },
+        "producer_job_id": { "$ref": "#/$defs/job_id" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "完整性核验用，可选。" }
+      },
+      "additionalProperties": false
+    },
+    "artifact_set": {
+      "type": "object",
+      "required": ["artifacts"],
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/artifact" },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^job-[a-z0-9-]+$"
+    }
+  }
+}
