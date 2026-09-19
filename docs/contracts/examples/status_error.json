@@ -1,0 +1,285 @@
+{
+  "$comment": "E2-B07-002 状态与错误码约定。本文件为自描述的复合参考样例：定义任务状态枚举、系统错误码，并用完整 Job 实例演示『发现（MD/RD）』与『系统执行失败』的语义分离。所有实例均满足 task.schema.json 公共字段约束。",
+  "schema_version": "1.0",
+  "description": "状态与错误码约定",
+  "status": {
+    "enum": [
+      "QUEUED",
+      "RUNNING",
+      "SUCCEEDED",
+      "FAILED",
+      "TIMED_OUT",
+      "CANCELLED"
+    ],
+    "definitions": {
+      "QUEUED": "任务已接受，等待后台执行。此时 output 为 null。",
+      "RUNNING": "后台执行中。查询返回输入摘要而非大日志。",
+      "SUCCEEDED": "任务正常完成，结果可用。检测类任务即使发现 MD/RD 仍为 SUCCEEDED——发现是正常分析结果，写入 output 中的 ERROR_REPORT 产物，job.error 保持 null。",
+      "FAILED": "系统执行失败，原因写入 job.error（错误码 ENV_3002 / EXEC_4002 / ANALYSIS_5001）。",
+      "TIMED_OUT": "执行超时，job.error.code 为 EXEC_4002。属系统执行失败，与检测到 MD 无关。",
+      "CANCELLED": "任务被取消，output 可为 null。"
+    },
+    "transition": {
+      "$comment": "QUEUED 队列态可被取消；RUNNING 之后进入任一终态。",
+      "initial": "QUEUED",
+      "next": {
+        "QUEUED": [
+          "RUNNING",
+          "CANCELLED"
+        ],
+        "RUNNING": [
+          "SUCCEEDED",
+          "FAILED",
+          "TIMED_OUT",
+          "CANCELLED"
+        ]
+      },
+      "terminal": [
+        "SUCCEEDED",
+        "FAILED",
+        "TIMED_OUT",
+        "CANCELLED"
+      ]
+    }
+  },
+  "error_codes": {
+    "$comment": "系统执行错误，写入 job.error。与检测发现（MD/RD，写入 output 的 ERROR_REPORT）语义分开。",
+    "ENV_3002": {
+      "summary": "镜像构建失败",
+      "where": "job.error",
+      "message": "docker build failed: <摘要>"
+    },
+    "EXEC_4002": {
+      "summary": "任务超时",
+      "where": "job.error",
+      "message": "job timed out after <秒>s"
+    },
+    "ANALYSIS_5001": {
+      "summary": "分析器失败",
+      "where": "job.error",
+      "message": "analyzer failed: <摘要>"
+    }
+  },
+  "examples": [
+    {
+      "$comment": "QUEUED：创建后立即返回，job_id 由服务端生成，output/error 为 null。",
+      "schema_version": "1.0",
+      "job_id": "job-full01",
+      "trace_id": "trace-a7b9c1",
+      "job_type": "FULL_CHECK",
+      "status": "QUEUED",
+      "execution": {
+        "created_at": "2026-09-10T10:00:00Z"
+      },
+      "input": {
+        "repository": {
+          "url": "https://github.com/example/clib",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
+        },
+        "defined_by": "A07",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "output": null,
+      "error": null
+    },
+    {
+      "$comment": "RUNNING：查询返回状态与输入摘要。",
+      "schema_version": "1.0",
+      "job_id": "job-full01",
+      "trace_id": "trace-a7b9c1",
+      "job_type": "FULL_CHECK",
+      "status": "RUNNING",
+      "execution": {
+        "created_at": "2026-09-10T10:00:00Z",
+        "queued_at": "2026-09-10T10:00:01Z",
+        "started_at": "2026-09-10T10:00:05Z"
+      },
+      "input": {
+        "repository": {
+          "url": "https://github.com/example/clib",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
+        },
+        "defined_by": "A07",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "output": null,
+      "error": null
+    },
+    {
+      "$comment": "SUCCEEDED 且报告 MD/RD：检测正常完成即为成功，发现写入 output 的 ERROR_REPORT 产物，job.error 为 null。这是『发现』与『系统执行失败』分离的关键示例。",
+      "schema_version": "1.0",
+      "job_id": "job-full01",
+      "trace_id": "trace-a7b9c1",
+      "job_type": "FULL_CHECK",
+      "status": "SUCCEEDED",
+      "execution": {
+        "created_at": "2026-09-10T10:00:00Z",
+        "queued_at": "2026-09-10T10:00:01Z",
+        "started_at": "2026-09-10T10:00:05Z",
+        "finished_at": "2026-09-10T10:03:12Z"
+      },
+      "input": {
+        "repository": {
+          "url": "https://github.com/example/clib",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
+        },
+        "defined_by": "A07",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "artifact_id": "full01-error-report",
+            "type": "ERROR_REPORT",
+            "uri": "artifact://pair01/full01/error_report.json",
+            "media_type": "application/json",
+            "producer_job_id": "job-full01",
+            "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "$comment": "FAILED / ENV_3002：DRAFT 镜像构建失败，属系统执行错误，写入 job.error。",
+      "schema_version": "1.0",
+      "job_id": "job-draft02",
+      "trace_id": "trace-a7b9c1",
+      "job_type": "DRAFT",
+      "status": "FAILED",
+      "execution": {
+        "created_at": "2026-09-10T10:05:00Z",
+        "queued_at": "2026-09-10T10:05:01Z",
+        "started_at": "2026-09-10T10:05:02Z",
+        "finished_at": "2026-09-10T10:05:40Z"
+      },
+      "input": {
+        "repository": {
+          "url": "https://github.com/example/clib",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
+        },
+        "build": {
+          "command": "make",
+          "workdir": "/app"
+        },
+        "verify": {
+          "command": "make test"
+        },
+        "max_iterations": 10,
+        "time_limit": 1800,
+        "idempotency_key": "draft-clib-01"
+      },
+      "output": null,
+      "error": {
+        "code": "ENV_3002",
+        "message": "docker build failed: package libssl-dev not found in apt sources",
+        "details": {
+          "image": "ubuntu:22.04",
+          "step": 4
+        }
+      }
+    },
+    {
+      "$comment": "TIMED_OUT / EXEC_4002：执行超时。",
+      "schema_version": "1.0",
+      "job_id": "job-repair03",
+      "trace_id": "trace-a7b9c1",
+      "job_type": "REPAIR",
+      "status": "TIMED_OUT",
+      "execution": {
+        "created_at": "2026-09-10T10:10:00Z",
+        "queued_at": "2026-09-10T10:10:01Z",
+        "started_at": "2026-09-10T10:10:02Z",
+        "finished_at": "2026-09-10T10:40:02Z"
+      },
+      "input": {
+        "repository": {
+          "url": "https://github.com/example/clib",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
+        },
+        "md_report_uri": "artifact://pair01/full01/error_report.json",
+        "makefile": "Makefile",
+        "env": {
+          "build": "make",
+          "verify": "make test"
+        },
+        "verify": "make test",
+        "idempotency_key": "repair-clib-01",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "output": null,
+      "error": {
+        "code": "EXEC_4002",
+        "message": "job timed out after 1800s",
+        "details": {
+          "time_limit": 1800
+        }
+      }
+    },
+    {
+      "$comment": "FAILED / ANALYSIS_5001：分析器失败（如工具异常），区别于检测到 MD。",
+      "schema_version": "1.0",
+      "job_id": "job-incr04",
+      "trace_id": "trace-a7b9c1",
+      "job_type": "INCREMENTAL_CHECK",
+      "status": "FAILED",
+      "execution": {
+        "created_at": "2026-09-10T10:15:00Z",
+        "queued_at": "2026-09-10T10:15:01Z",
+        "started_at": "2026-09-10T10:15:02Z",
+        "finished_at": "2026-09-10T10:15:30Z"
+      },
+      "input": {
+        "repository": {
+          "url": "https://github.com/example/clib",
+          "commit": "1234567890abcdef1234567890abcdef12345678"
+        },
+        "base_commit": "0123456789abcdef0123456789abcdef01234567",
+        "baseline": {
+          "actual_graph_uri": "artifact://pair01/full01/actual.json",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "configuration_id": "cc-MODE0"
+        },
+        "defined_by": "A07",
+        "commit": "1234567890abcdef1234567890abcdef12345678"
+      },
+      "output": null,
+      "error": {
+        "code": "ANALYSIS_5001",
+        "message": "analyzer failed: cannot parse Makefile at line 12",
+        "details": {
+          "file": "Makefile",
+          "line": 12
+        }
+      }
+    },
+    {
+      "$comment": "CANCELLED：任务被取消。",
+      "schema_version": "1.0",
+      "job_id": "job-full05",
+      "trace_id": "trace-a7b9c1",
+      "job_type": "FULL_CHECK",
+      "status": "CANCELLED",
+      "execution": {
+        "created_at": "2026-09-10T10:20:00Z",
+        "queued_at": "2026-09-10T10:20:01Z",
+        "started_at": "2026-09-10T10:20:02Z",
+        "finished_at": "2026-09-10T10:20:10Z"
+      },
+      "input": {
+        "repository": {
+          "url": "https://github.com/example/clib",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
+        },
+        "defined_by": "A07",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "output": null,
+      "error": null
+    }
+  ],
+  "open_items": [
+    "状态枚举（QUEUED/RUNNING/SUCCEEDED/FAILED/TIMED_OUT/CANCELLED）命名需经 A07 确认",
+    "错误码（ENV_3002/EXEC_4002/ANALYSIS_5001）命名与语义需经 A07 确认"
+  ]
+}
