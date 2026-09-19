@@ -68,6 +68,6 @@
   "open_items": [
     "artifact:// 命名与解析机制需经 A07 确认",
     "实际下载接口/解析器由平台与 A07 定义",
-    "ADR 012（adr/0002-artifact-passing.md）待完成，记录下游解析约定"
+    "ADR 012（adr/0002-artifact-passing.md）已完成，记录下游解析约定"
   ]
 }
