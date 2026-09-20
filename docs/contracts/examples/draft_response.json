@@ -1,0 +1,58 @@
+{
+  "$comment": "E2-B07-006 DRAFT 响应样例。本文件为自描述的复合参考样例：内嵌 response 为服务端返回的完整 DRAFT Job，job_id/trace_id 由服务端生成。任务受理后经 GET /v1/jobs/{job_id} 查询得到结果；output 含 Dockerfile、镜像引用、每轮日志/修改/选择理由、最终构建与验证结果。校验针对完整 task.schema.json。",
+  "schema_version": "1.0",
+  "description": "DRAFT 响应样例",
+  "job_type": "DRAFT",
+  "method": "GET /v1/jobs/{job_id}",
+  "response": {
+    "schema_version": "1.0",
+    "job_id": "job-draft01",
+    "trace_id": "trace-a7b9c1",
+    "job_type": "DRAFT",
+    "status": "SUCCEEDED",
+    "execution": {
+      "created_at": "2026-09-10T10:00:00Z",
+      "queued_at": "2026-09-10T10:00:01Z",
+      "started_at": "2026-09-10T10:00:05Z",
+      "finished_at": "2026-09-10T10:03:12Z",
+      "attempts": 2,
+      "runner": "runner-01"
+    },
+    "input": {
+      "repository": {
+        "url": "https://github.com/example/clib",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "build": { "command": "make", "workdir": "/app" },
+      "verify": { "command": "make test" },
+      "max_iterations": 10,
+      "time_limit": 1800,
+      "idempotency_key": "draft-clib-01"
+    },
+    "output": {
+      "dockerfile": "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y build-essential\nWORKDIR /app\nCOPY . .\nRUN make",
+      "image_ref": "b07/clib:generated",
+      "rounds": [
+        {
+          "iteration": 1,
+          "log": "[round 1] docker build failed: /bin/sh: 1: make: not found",
+          "changes": "add build-essential to apt-get install",
+          "rationale": "构建镜像缺少 make 工具链；依据首轮日志补全编译依赖后重试"
+        },
+        {
+          "iteration": 2,
+          "log": "[round 2] docker build succeeded; make test: 12 passed, 0 failed",
+          "changes": "no change; keep Dockerfile from round 2",
+          "rationale": "构建与验证均通过，满足 verify.command，收敛并停止迭代"
+        }
+      ],
+      "final_build": "success",
+      "final_verify": "make test passed"
+    },
+    "error": null
+  },
+  "open_items": [
+    "状态枚举/错误码命名需经 A07 确认，见 status_error.json",
+    "DRAFT 输出字段由 B07 定义；生成过程的轮次/理由结构如需 A07 消费需另行协商"
+  ]
+}
