@@ -1,0 +1,23 @@
+{
+  "$comment": "E2-B07-005 DRAFT 请求样例。本文件为自描述的复合参考样例：内嵌 request 即 POST /v1/dockerfile-jobs 的请求体（DRAFT input）；请求体不含 job_id、trace_id，二者由服务端生成并在响应/查询链路回传。校验针对 task.schema.json 中 DRAFT 分支的 input 子 schema。",
+  "schema_version": "1.0",
+  "description": "DRAFT 请求样例（请求体）",
+  "job_type": "DRAFT",
+  "method": "POST /v1/dockerfile-jobs",
+  "request": {
+    "repository": {
+      "url": "https://github.com/example/clib",
+      "commit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "build": { "command": "make", "workdir": "/app" },
+    "verify": { "command": "make test" },
+    "max_iterations": 10,
+    "time_limit": 1800,
+    "idempotency_key": "draft-clib-01"
+  },
+  "server_generated": ["job_id", "trace_id", "status", "execution"],
+  "open_items": [
+    "状态枚举/错误码命名需经 A07 确认，见 status_error.json",
+    "请求体字段由 B07 定义；FULL_CHECK / INCREMENTAL_CHECK 输入由 A07 定义"
+  ]
+}
