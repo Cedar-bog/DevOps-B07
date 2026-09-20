@@ -1,0 +1,47 @@
+{
+  "$comment": "E2-B07-008 REPAIR response sample. The report URI is consumed as an ERROR_REPORT and only MISSING findings are repaired; rejected candidates retain their reasons.",
+  "schema_version": "1.0",
+  "job_id": "job-repair01",
+  "trace_id": "trace-clib-repair-01",
+  "job_type": "REPAIR",
+  "status": "SUCCEEDED",
+  "execution": {
+    "created_at": "2026-09-20T10:00:00Z",
+    "queued_at": "2026-09-20T10:00:01Z",
+    "started_at": "2026-09-20T10:00:05Z",
+    "finished_at": "2026-09-20T10:01:12Z",
+    "attempts": 1,
+    "runner": "repair-runner-pair01"
+  },
+  "input": {
+    "repository": {
+      "url": "https://github.com/example/clib",
+      "commit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "commit": "0123456789abcdef0123456789abcdef01234567",
+    "md_report_uri": "artifact://pair01/full01/error_report.json",
+    "makefile": "Makefile",
+    "env": {
+      "build": "make",
+      "verify": "make test"
+    },
+    "verify": "make test",
+    "idempotency_key": "repair-clib-01"
+  },
+  "output": {
+    "git_patch": "diff --git a/Makefile b/Makefile\n--- a/Makefile\n+++ b/Makefile\n@@ -1,2 +1,2 @@\n-clib: $(SRC)\n+clib: $(SRC) src/common/clib-settings.h\n",
+    "style_description": "The missing header is appended to the existing prerequisite list without changing target order or variable style.",
+    "recheck": {
+      "build": "SUCCEEDED: make",
+      "test": "SUCCEEDED: make test",
+      "detection": "SUCCEEDED: no MISSING findings remain; REDUNDANT findings were ignored"
+    },
+    "rejected_candidates": [
+      {
+        "patch": "diff --git a/Makefile b/Makefile\n--- a/Makefile\n+++ b/Makefile\n@@ -1,2 +1,2 @@\n-clib: $(SRC)\n+clib: $(SRC) src/common/clib-settings.h generated.h\n",
+        "reason": "Rejected because generated.h is not a MISSING finding in the referenced ERROR_REPORT."
+      }
+    ]
+  },
+  "error": null
+}
