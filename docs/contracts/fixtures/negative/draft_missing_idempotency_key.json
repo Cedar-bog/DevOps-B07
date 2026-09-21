@@ -1,0 +1,10 @@
+{
+  "id": "draft_missing_idempotency_key",
+  "description": "删除 DRAFT 任务的幂等键，必须被拒绝。",
+  "source": { "file": "draft_response.json", "pointer": "/response" },
+  "mutate": { "op": "delete", "pointer": "/input/idempotency_key" },
+  "expect": { "pointer": "/input", "keyword": "required" },
+  "owner": "B07",
+  "acceptance": "E2-B07-010 约束类别：required",
+  "note": "幂等键由 ADR-0001 定为请求必填，用于重复提交去重。"
+}

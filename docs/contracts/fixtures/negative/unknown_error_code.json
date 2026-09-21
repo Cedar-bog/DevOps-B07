@@ -1,0 +1,10 @@
+{
+  "id": "unknown_error_code",
+  "description": "系统错误码不在约定枚举内，必须被拒绝。",
+  "source": { "file": "status_error.json", "pointer": "/examples/3" },
+  "mutate": { "op": "set", "pointer": "/error/code", "value": "ENV_9999" },
+  "expect": { "pointer": "/error/code", "keyword": "enum" },
+  "owner": "B07",
+  "acceptance": "E2-B07-010 约束类别：enum",
+  "note": "错误码命名需经 A07 确认，见 E2-B07-002。"
+}

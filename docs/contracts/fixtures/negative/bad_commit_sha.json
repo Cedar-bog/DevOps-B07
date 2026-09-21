@@ -1,0 +1,10 @@
+{
+  "id": "bad_commit_sha",
+  "description": "commit 不是 40 位完整 SHA，必须被拒绝。",
+  "source": { "file": "draft_response.json", "pointer": "/response" },
+  "mutate": { "op": "set", "pointer": "/input/repository/commit", "value": "abc123" },
+  "expect": { "pointer": "/input/repository/commit", "keyword": "pattern" },
+  "owner": "B07",
+  "acceptance": "E2-B07-010 约束类别：pattern",
+  "note": "契约要求完整提交 SHA（40 位十六进制）；基线与报告的可追溯性依赖它。"
+}

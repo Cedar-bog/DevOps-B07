@@ -1,0 +1,14 @@
+{
+  "id": "succeeded_with_error",
+  "description": "检测任务正常完成并报告了 MD/RD 发现，却被标记为系统错误，必须被拒绝。",
+  "source": { "file": "status_error.json", "pointer": "/examples/2" },
+  "mutate": {
+    "op": "set",
+    "pointer": "/error",
+    "value": { "code": "ANALYSIS_5001", "message": "conflated a finding with a tool failure" }
+  },
+  "expect": { "pointer": "/error", "keyword": "null-required" },
+  "owner": "B07",
+  "acceptance": "E2-B07-010 验收 04",
+  "note": "口径来自 002：发现（MD/RD）写入 output 的 ERROR_REPORT 且任务保持 SUCCEEDED，job.error 必须为 null。keyword=null-required 是 B07 语义不变式，不是 jsonschema 关键字（jsonschema 无法表达此约束）。此条同时是课堂配对练习第三轮『加入一个失败输入，讨论状态与错误码』的交接物。"
+}
