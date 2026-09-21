@@ -23,7 +23,9 @@ DevOps-B07/
     ├── contracts/              # 接口契约
     │   ├── task.schema.json        # 统一任务模型 Schema
     │   ├── validate.py             # 失败输入校验脚本
-    │   └── examples/               # 任务请求/响应样例
+    │   ├── examples/               # 任务请求/响应样例
+    │   └── fixtures/               # 校验用例
+    │       └── negative/               # 失败输入用例（来源指针 + 变异操作）
     └── design/                 # 设计记录
         ├── backlog.md              # 任务与验收条件
         ├── adr/                    # 架构决策记录

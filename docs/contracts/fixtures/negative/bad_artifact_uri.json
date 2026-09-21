@@ -1,0 +1,10 @@
+{
+  "id": "bad_artifact_uri",
+  "description": "MD 报告 URI 不是 artifact:// 引用，必须被拒绝。",
+  "source": { "file": "repair_response.json", "pointer": "" },
+  "mutate": { "op": "set", "pointer": "/input/md_report_uri", "value": "https://example.com/report.json" },
+  "expect": { "pointer": "/input/md_report_uri", "keyword": "pattern" },
+  "owner": "B07",
+  "acceptance": "E2-B07-010 约束类别：pattern",
+  "note": "产物一律按引用交接，artifact:// 前缀是平台统一约定，见 ADR-0002。"
+}

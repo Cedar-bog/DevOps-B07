@@ -1,0 +1,11 @@
+
+{
+  "id": "incremental_missing_baseline",
+  "description": "删除增量检测任务的 baseline，必须被拒绝（基线不可追溯）。",
+  "source": { "file": "status_error.json", "pointer": "/examples/5" },
+  "mutate": { "op": "delete", "pointer": "/input/baseline" },
+  "expect": { "pointer": "/input", "keyword": "required" },
+  "owner": "A07",
+  "acceptance": "E2-B07-010 验收 03",
+  "note": "baseline 属 A 侧 INCREMENTAL_CHECK 契约语义；该用例由 A 组定义并提供（见 E2-B07-014），B 侧仅实现校验逻辑。"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "job_type_not_in_enum",
+  "description": "把 job_type 改成不在枚举内的值，必须被拒绝。",
+  "source": { "file": "status_error.json", "pointer": "/examples/0" },
+  "mutate": { "op": "set", "pointer": "/job_type", "value": "ABC" },
+  "expect": { "pointer": "/job_type", "keyword": "enum" },
+  "owner": "B07",
+  "acceptance": "E2-B07-010 验收 02",
+  "note": "验收条件明写：将 job_type 改成 ABC 应被拒绝。"
+}
