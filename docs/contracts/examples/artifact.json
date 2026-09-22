@@ -1,33 +1,33 @@
 {
-  "$comment": "E2-B07-003 产物访问样例。本文件为自描述的复合参考样例：说明 artifact:// URI、media_type、producer_job_id、sha256 的读取方式，并给出满足 task.schema.json $defs/artifact 的实例。大文件的存储与下载解析约定见 ADR 012，本文件仅说明字段含义与消费侧约束，不重复 ADR 内容。",
+  "$comment": "E2-B07-003 产物访问样例。本文件为自描述的复合参考样例：说明 artifact:// URI、media_type、producer_job_id、sha256 的读取方式，并给出满足 task.schema.json $defs/artifact 的实例。大文件的存储与读取入口约定见 PAIR07-ADR-002，本文件仅说明字段含义与消费侧约束，不重复 ADR 内容。",
   "schema_version": "1.0",
   "description": "产物访问约定",
   "artifact_uri": {
     "$comment": "artifact:// 前缀标识平台产物，是 Job 之间传递大文件的引用交接方式。",
     "format": "artifact://<pair>/<job>/<file>",
     "examples": [
-      "artifact://pair01/full01/actual.json",
-      "artifact://pair01/full01/error_report.json",
-      "artifact://pair01/draft01/dockerfile.log"
+      "artifact://pair07/full01/actual.json",
+      "artifact://pair07/full01/error_report.json",
+      "artifact://pair07/draft01/dockerfile.log"
     ],
     "reading": {
-      "$comment": "消费方按 URI 中 artifact:// 之后的部分向平台产物存储发起读取；实际的下载接口/解析器约定见 ADR 012。",
+      "$comment": "消费方按 URI 中 artifact:// 之后的部分向平台统一读取入口发起读取；入口形状见 PAIR07-ADR-002。",
       "uri_scheme": "以 artifact:// 前缀标识，是平台内部引用的统一约定，不是任意 URL。",
       "path_segments": "pair 标识配对组，job 标识生产任务的短名（与 producer_job_id 对应），file 标识产物文件名。",
-      "resolution": "解析器或实际下载接口由平台定义，见 ADR 012。"
+      "resolution": "平台统一 HTTP 读取入口：GET /v1/artifacts/{pair}/{job}/{file}，200 带 Content-Type 与 X-Artifact-Sha256、404 未找到或已过保留期、403 跨 pair（PAIR07-ADR-002）。共享目录仅作可选降级实现。"
     }
   },
   "media_type": {
     "$comment": "声明产物内容格式，供消费方选择解析方式。",
     "application/json": "结构化数据：实际依赖图、声明依赖图、MD/RD 报告、增量检测结果。",
-    "text/plain": "文本产物：Dockerfile、Git Patch、构建日志。",
+    "text/plain": "文本产物：Dockerfile、Git Patch、构建日志（BUILD_LOG）、检测轨迹日志（TRACE_LOG）。",
     "application/octet-stream": "二进制产物：镜像归档等。",
     "reading": "消费方依据 media_type 选择解析器；未知类型应拒绝并记录原因。"
   },
   "producer_job_id": {
     "$comment": "产物由哪个任务生产，用于可追溯性与校验。",
     "reading": "producer_job_id 必须指向实际生产该产物的 Job（job_id 由服务端生成）；同一 trace_id 链路内的下游 Job 通过该字段确认产物来源。",
-    "type_match": "artifact.type 与 producer 的 job_type 匹配约束：ACTUAL_GRAPH / DECLARED_GRAPH / ERROR_REPORT 由 FULL_CHECK 或 INCREMENTAL_CHECK 生产；DRAFT 产物由 DRAFT 生产。",
+    "type_match": "artifact.type 与 producer 的 job_type 匹配约束：ACTUAL_GRAPH / DECLARED_GRAPH / ERROR_REPORT / TRACE_LOG 由 FULL_CHECK 或 INCREMENTAL_CHECK 生产；BUILD_LOG 由执行构建的任务（DRAFT / REPAIR）生产。",
     "verification": "读取时校验 producer_job_id 存在且其产出内容与 URI 指向一致，不一致视为失败。"
   },
   "sha256": {
@@ -36,15 +36,18 @@
     "reading": "消费方下载产物后计算 sha256 并与本字段比对；不一致时拒绝该产物并报告完整性错误。"
   },
   "parsing": {
-    "$comment": "下游解析约定（URI 下载、产物读取、逐级传递）详见 ADR 012，本文件不重复。",
-    "ref": "adr/0002-artifact-passing.md"
+    "$comment": "下游解析约定（URI 下载、产物读取、逐级传递）见 B07-ADR-0002；读取入口、保留与权限的形状由双方共同决策，见 PAIR07-ADR-002。本文件不重复。",
+    "refs": [
+      "docs/design/adr/B07-ADR-0002-artifact-passing.md",
+      "docs/design/adr/PAIR07-ADR-002-artifact-access-and-retention.md"
+    ]
   },
   "examples": {
     "$comment": "以下实例均为满足 task.schema.json $defs/artifact 的产物引用记录，可直接进入 Job 的 output.artifacts。",
     "ACTUAL_GRAPH": {
       "artifact_id": "full01-actual-graph",
       "type": "ACTUAL_GRAPH",
-      "uri": "artifact://pair01/full01/actual.json",
+      "uri": "artifact://pair07/full01/actual.json",
       "media_type": "application/json",
       "producer_job_id": "job-full01",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
@@ -52,22 +55,30 @@
     "ERROR_REPORT": {
       "artifact_id": "full01-error-report",
       "type": "ERROR_REPORT",
-      "uri": "artifact://pair01/full01/error_report.json",
+      "uri": "artifact://pair07/full01/error_report.json",
       "media_type": "application/json",
       "producer_job_id": "job-full01",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     },
-    "LOG": {
+    "BUILD_LOG": {
       "artifact_id": "draft01-build-log",
-      "type": "LOG",
-      "uri": "artifact://pair01/draft01/build.log",
+      "type": "BUILD_LOG",
+      "uri": "artifact://pair07/draft01/build.log",
       "media_type": "text/plain",
       "producer_job_id": "job-draft01"
+    },
+    "TRACE_LOG": {
+      "artifact_id": "full01-trace-log",
+      "type": "TRACE_LOG",
+      "uri": "artifact://pair07/full01/trace.log",
+      "media_type": "text/plain",
+      "producer_job_id": "job-full01"
     }
   },
   "open_items": [
-    "artifact:// 命名与解析机制需经 A07 确认",
-    "实际下载接口/解析器由平台与 A07 定义",
-    "ADR 012（adr/0002-artifact-passing.md）已完成，记录下游解析约定"
+    "artifact:// 的 pair 段已由 A07 A07:ADR-003 确认为 pair07（job 段取生产任务短名）",
+    "读取入口已按 PAIR07-ADR-002 定为平台统一 HTTP 接口 GET /v1/artifacts/{pair}/{job}/{file}；共享目录仅作可选降级实现",
+    "PAIR07-ADR-002 同时约定保留（平台统一 GC、终态后 30 天）与权限（pair 内只读互访），并给出硬约束『只要还有 Job 引用某个 artifact，该文件不得删除』；E2 只约定形状，服务端落地在 E12",
+    "B07-ADR-0002（docs/design/adr/B07-ADR-0002-artifact-passing.md）记录下游解析约定"
   ]
 }

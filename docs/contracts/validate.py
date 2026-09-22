@@ -3,9 +3,10 @@
 
 设计要点
 - task.schema.json 是唯一真源：本脚本不重述任何约束，只加载并执行它。
-- 正向一致性：递归发现 examples/*.json 中的 Job / 请求体 / artifact 实例并逐条校验，
+- 正向一致性：递归发现 examples/ 下的 Job / 请求体 / artifact 实例并逐条校验，
   任一不通过即视为「样例与 Schema 漂移」。每个样例文件必须至少贡献 1 条 payload，
-  否则 FAIL —— 防止静默漏判使套件失去意义。
+  否则 FAIL —— 防止静默漏判使套件失去意义。examples/invalid/ 是负例区（如 A07 提供的
+  失败样例），不计入正向，由 SKIP 行显式列出，避免被误当成漏判或误当成漂移。
 - 失败输入：fixtures/negative/ 下的用例是「变异」而非副本 —— 只记录来源指针与变异操作，
   运行时从当前样例实时派生，故样例更新时用例不会静默失效。每个用例断言两件事：
   被拒绝，且违反点是指定的 JSON 指针 + 关键字；只断言「被拒绝」会掩盖「因别的原因被拒」。
@@ -13,7 +14,7 @@
   ERROR_REPORT，任务保持 SUCCEEDED 且 job.error 为 null；工具/系统失败才写 job.error。
   该语义由 check_semantic_invariants() 以不变式钉住，避免说明与实现漂移。
 - $comment 是样例的自描述注解，不是载荷数据，校验前递归剥离。
-- 已知例外见 QUERY_VIEWS / OUT_OF_SCOPE，均注明依据，不做隐式放宽。
+- 已知例外见 OUT_OF_SCOPE，注明依据，不做隐式放宽。
 
 用法
     uv run docs/contracts/validate.py          # 退出码 0/1，可作 CI 门禁
@@ -34,6 +35,7 @@ from jsonschema import Draft202012Validator
 CONTRACTS = Path(__file__).resolve().parent
 EXAMPLES = CONTRACTS / "examples"
 NEGATIVE_DIR = CONTRACTS / "fixtures" / "negative"
+NEGATIVE_EXAMPLE_DIR = "invalid"
 SCHEMA_PATH = CONTRACTS / "task.schema.json"
 
 JOB = "job"
@@ -44,15 +46,6 @@ JOB_SIG = {"job_id", "job_type", "status"}
 ARTIFACT_SIG = {"artifact_id", "type", "uri", "media_type"}
 
 EXEC_TIMEOUT_CODE = "EXEC_4002"
-
-# 查询视图：ADR-0001 规定 GET /v1/jobs/{job_id} 返回状态与产物引用，运行中返回输入摘要
-# 而非大日志，故 task.schema.json 的 required.input 不适用于查询响应体。
-# 显式列出、不做隐式放宽：未登记且缺少 input 的 Job 仍会 FAIL。
-# 该差异已记入 backlog 的 A 侧待确认清单（Schema 与查询视图的建模不一致）。
-QUERY_VIEWS = {
-    ("job_query.json", "/responses/running/body"),
-    ("job_query.json", "/responses/succeeded/body"),
-}
 
 # A 侧产物格式，不在 B 侧 schema 范围内（B 只声明消费侧约束，见 E2-B07-004）。
 OUT_OF_SCOPE = {
@@ -213,17 +206,35 @@ def _walk(node: Any, path: list, file_name: str, out: list[Payload]) -> None:
             _walk(value, path + [index], file_name, out)
 
 
+def _sample_relpaths(negative: bool) -> list[str]:
+    """examples/ 下的样例按相对路径收集；invalid/ 是负例区，与正向样例分流。"""
+    paths = (
+        path
+        for path in EXAMPLES.rglob("*.json")
+        if (NEGATIVE_EXAMPLE_DIR in path.relative_to(EXAMPLES).parts) == negative
+    )
+    return sorted(str(path.relative_to(EXAMPLES)).replace("\\", "/") for path in paths)
+
+
+def positive_sample_files() -> list[str]:
+    return _sample_relpaths(negative=False)
+
+
+def negative_sample_files() -> list[str]:
+    return _sample_relpaths(negative=True)
+
+
 def discover_payloads() -> list[Payload]:
     payloads: list[Payload] = []
-    for sample in sorted(EXAMPLES.glob("*.json")):
-        document = json.loads(sample.read_text(encoding="utf-8"))
-        _walk(document, [], sample.name, payloads)
+    for rel in positive_sample_files():
+        document = json.loads((EXAMPLES / rel).read_text(encoding="utf-8"))
+        _walk(document, [], rel, payloads)
     return payloads
 
 
 def unrecognized_sample_files(payloads: list[Payload]) -> list[str]:
     recognized = {p.file for p in payloads}
-    return sorted({p.name for p in EXAMPLES.glob("*.json")} - recognized)
+    return [rel for rel in positive_sample_files() if rel not in recognized]
 
 
 # --------------------------------------------------------------------------
@@ -237,12 +248,6 @@ def input_branch(schema: dict, job_type: str | None) -> dict | None:
         if condition.get("const") == job_type:
             return entry["then"]["properties"]["input"]
     return None
-
-
-def _without_required_input(schema: dict) -> dict:
-    relaxed = dict(schema)
-    relaxed["required"] = [r for r in schema["required"] if r != "input"]
-    return relaxed
 
 
 def check_semantic_invariants(job: dict) -> list[Violation]:
@@ -285,8 +290,7 @@ def check_semantic_invariants(job: dict) -> list[Violation]:
 
 def validate_payload(payload: Payload, schema: dict) -> list[Violation]:
     if payload.kind == JOB:
-        is_view = (payload.file, payload.pointer) in QUERY_VIEWS
-        target = _without_required_input(schema) if is_view else schema
+        target = schema
     elif payload.kind == ARTIFACT:
         target = {"$ref": "#/$defs/artifact"}
     else:
@@ -396,6 +400,11 @@ def main() -> int:
     if skipped:
         print(f"  FAIL  未被识别的样例文件（防静默漏判）: {skipped}")
         failures += len(skipped)
+
+    for rel in negative_sample_files():
+        print(
+            f"  SKIP  {rel}  [负例区，由 fixtures/negative/ 下的用例覆盖同一拒绝点]"
+        )
 
     for (file_name, pointer), reason in OUT_OF_SCOPE.items():
         print(f"  SKIP  {file_name}#{pointer}  [{reason}]")

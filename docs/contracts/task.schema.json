@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://devops.nju.edu.cn/b07/contracts/task.schema.json",
   "title": "DevOps-B07 Unified Task Model",
-  "description": "统一任务模型：用同一份 Schema 表达 DRAFT、FULL_CHECK、INCREMENTAL_CHECK、REPAIR 四类耗时任务。公共字段由 B07 定义；FULL_CHECK 与 INCREMENTAL_CHECK 的具体输入字段由 A07 定义，B 侧仅提供占位与公共约束。",
+  "description": "统一任务模型：用同一份 Schema 表达 DRAFT、FULL_CHECK、INCREMENTAL_CHECK、REPAIR 四类耗时任务。公共字段由 B07 定义；FULL_CHECK 与 INCREMENTAL_CHECK 的具体输入字段由 A07 定义（见仓库 github.com/jkiuiui0058/DevOps-A07 的 docs/contracts/task.schema.json），B 侧仅提供占位与公共约束。",
   "type": "object",
   "required": [
     "schema_version",
@@ -18,7 +18,7 @@
   "properties": {
     "schema_version": {
       "const": "1.0",
-      "description": "契约版本。共享 Schema 变更须同步版本号，见 ADR/002 版本约定。"
+      "description": "契约版本。共享 Schema 变更须同步版本号，见 docs/design/adr/B07-ADR-0002-artifact-passing.md §版本约定 与 PAIR07-ADR-004（同步流程、由变更发起方递增）。"
     },
     "job_id": {
       "type": "string",
@@ -36,7 +36,7 @@
     },
     "status": {
       "enum": ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
-      "description": "任务状态。SUCCEEDED 也可能报告 MD/RD 发现（检测正常完成但发现缺失/冗余依赖）。状态枚举命名需经 A07 确认。"
+      "description": "任务状态。SUCCEEDED 也可能报告 MD/RD 发现（检测正常完成但发现缺失/冗余依赖）。状态枚举命名已由 A07 B07-INTEGRATION.md 确认。"
     },
     "execution": {
       "type": "object",
@@ -65,7 +65,7 @@
       "properties": {
         "code": {
           "enum": ["ENV_3002", "EXEC_4002", "ANALYSIS_5001"],
-          "description": "ENV_3002 镜像构建失败；EXEC_4002 任务超时；ANALYSIS_5001 分析器失败。命名需经 A07 确认。"
+          "description": "ENV_3002 镜像构建失败；EXEC_4002 任务超时；ANALYSIS_5001 分析器失败。命名已由 A07 error-codes.md 确认。按前缀分域（PAIR07-ADR-003）：ENV_* / EXEC_* 为平台共享、新增须双方确认；ANALYSIS_* 为 A07 专有、A07 可自由扩展。消费者须按前缀区分处理未知码——共享前缀下的未知码拒绝，A07 专有前缀下的未知码容忍（原样记录、不解析语义、不崩）。本枚举暂保持封闭为三个已协商码；放宽以使 ANALYSIS_* 细分也通过校验属共享 Schema 变更，须走 PAIR07-ADR-004 流程。"
         },
         "message": { "type": "string" },
         "details": { "type": ["object", "null"] }
@@ -135,7 +135,7 @@
       }
     },
     {
-      "$comment": "FULL_CHECK：全量依赖检测。具体输入字段由 A07 定义，B 侧仅提供公共约束与占位。",
+      "$comment": "FULL_CHECK：全量依赖检测。输入字段全集由 A07 定义（仓库 github.com/jkiuiui0058/DevOps-A07 的 docs/contracts/task.schema.json $defs/fullCheckInput）：repository / environment / build / configuration_id / commit / defined_by / idempotency_key。B 侧仅提供公共约束与占位，additionalProperties 保持宽松以免拒绝 A 侧字段。",
       "if": { "properties": { "job_type": { "const": "FULL_CHECK" } }, "required": ["job_type"] },
       "then": {
         "properties": {
@@ -146,7 +146,7 @@
               "repository": { "$ref": "#/$defs/repository" },
               "commit": { "$ref": "#/$defs/commit" },
               "defined_by": {
-                "$comment": "具体输入字段（如 configuration_id、clean build 命令、项目根目录等）由 A07 定义，见 A07 契约。",
+                "$comment": "输入字段全集见 A07 的 docs/contracts/task.schema.json $defs/fullCheckInput（environment.image / environment.project_root、build.clean_command / build.build_command / build.verify_command / build.timeout_seconds 等）。B 侧不逐字段约束，避免与 A 侧定义形成两处真源。",
                 "const": "A07"
               }
             },
@@ -163,7 +163,7 @@
       }
     },
     {
-      "$comment": "INCREMENTAL_CHECK：跨提交增量检测。具体输入字段由 A07 定义；B 侧保留 base_commit 与 baseline 必填占位。",
+      "$comment": "INCREMENTAL_CHECK：跨提交增量检测。输入字段全集由 A07 定义（仓库 github.com/jkiuiui0058/DevOps-A07 的 docs/contracts/task.schema.json $defs/incrementalCheckInput）：base_commit / repository / environment / build / configuration_id / baseline / commit / defined_by / idempotency_key。B 侧保留 base_commit 与 baseline 必填占位；baseline 的必填三字段与 A07 $defs/baseline 一致。",
       "if": { "properties": { "job_type": { "const": "INCREMENTAL_CHECK" } }, "required": ["job_type"] },
       "then": {
         "properties": {
@@ -183,9 +183,12 @@
                   "configuration_id": { "type": "string", "minLength": 1 }
                 },
                 "additionalProperties": true,
-                "description": "增量检测必须携带的历史基线（删除本字段应被拒绝）。"
+                "description": "增量检测必须携带的历史基线（删除本字段应被拒绝）。三必填字段与 A07 $defs/baseline 一致；A07 侧还有可选 sha256。"
               },
-              "defined_by": { "const": "A07" }
+              "defined_by": {
+                "$comment": "输入字段全集见 A07 的 docs/contracts/task.schema.json $defs/incrementalCheckInput。",
+                "const": "A07"
+              }
             },
             "additionalProperties": true
           },
@@ -287,14 +290,14 @@
     "artifact_uri": {
       "type": "string",
       "pattern": "^artifact://",
-      "description": "产物 URI，以 artifact:// 前缀标识，读取方式见 ADR 012。"
+      "description": "产物 URI，以 artifact:// 前缀标识；读取入口见 PAIR07-ADR-002（GET /v1/artifacts/{pair}/{job}/{file}）。"
     },
     "artifact": {
       "type": "object",
       "required": ["artifact_id", "type", "uri", "media_type", "producer_job_id"],
       "properties": {
         "artifact_id": { "type": "string" },
-        "type": { "type": "string", "description": "如 ACTUAL_GRAPH / DECLARED_GRAPH / ERROR_REPORT。" },
+        "type": { "type": "string", "description": "如 ACTUAL_GRAPH / DECLARED_GRAPH / ERROR_REPORT / TRACE_LOG / BUILD_LOG。" },
         "uri": { "$ref": "#/$defs/artifact_uri" },
         "media_type": { "type": "string", "description": "如 application/json。" },
         "producer_job_id": { "$ref": "#/$defs/job_id" },

@@ -13,7 +13,7 @@
     ],
     "definitions": {
       "QUEUED": "任务已接受，等待后台执行。此时 output 为 null。",
-      "RUNNING": "后台执行中。查询返回输入摘要而非大日志。",
+      "RUNNING": "后台执行中。查询返回完整 Job（含 input），output 为空以省略大日志。",
       "SUCCEEDED": "任务正常完成，结果可用。检测类任务即使发现 MD/RD 仍为 SUCCEEDED——发现是正常分析结果，写入 output 中的 ERROR_REPORT 产物，job.error 保持 null。",
       "FAILED": "系统执行失败，原因写入 job.error（错误码 ENV_3002 / EXEC_4002 / ANALYSIS_5001）。",
       "TIMED_OUT": "执行超时，job.error.code 为 EXEC_4002。属系统执行失败，与检测到 MD 无关。",
@@ -43,18 +43,35 @@
     }
   },
   "error_codes": {
-    "$comment": "系统执行错误，写入 job.error。与检测发现（MD/RD，写入 output 的 ERROR_REPORT）语义分开。",
+    "$comment": "系统执行错误，写入 job.error。与检测发现（MD/RD，写入 output 的 ERROR_REPORT）语义分开。按前缀分域：ENV_* / EXEC_* 为平台共享（DRAFT 构建失败、REPAIR 超时由 B07 产生），新增须双方确认；ANALYSIS_* 为 A07 专有，A07 可自由扩展。见 PAIR07-ADR-003。",
+    "namespaces": {
+      "$comment": "前缀分域与扩展规则（PAIR07-ADR-003）。",
+      "ENV_*": { "owner": "shared", "scope": "platform", "extend_rule": "新增须双方确认" },
+      "EXEC_*": { "owner": "shared", "scope": "platform", "extend_rule": "新增须双方确认" },
+      "ANALYSIS_*": { "owner": "A07", "scope": "a-only", "extend_rule": "A07 可自由扩展" }
+    },
+    "consumer_tolerance": {
+      "$comment": "按前缀区分的宽容规则（PAIR07-ADR-003）：共享前缀下的未知码必须被拒绝（未协商值意味着契约分叉）；A07 专有前缀下的未知码必须被容忍——原样记录、不解析语义、不崩。",
+      "shared_prefix_unknown": "REJECT",
+      "a_only_prefix_unknown": "TOLERATE"
+    },
     "ENV_3002": {
+      "owner": "shared",
+      "scope": "platform",
       "summary": "镜像构建失败",
       "where": "job.error",
       "message": "docker build failed: <摘要>"
     },
     "EXEC_4002": {
+      "owner": "shared",
+      "scope": "platform",
       "summary": "任务超时",
       "where": "job.error",
       "message": "job timed out after <秒>s"
     },
     "ANALYSIS_5001": {
+      "owner": "A07",
+      "scope": "a-only",
       "summary": "分析器失败",
       "where": "job.error",
       "message": "analyzer failed: <摘要>"
@@ -83,7 +100,7 @@
       "error": null
     },
     {
-      "$comment": "RUNNING：查询返回状态与输入摘要。",
+      "$comment": "RUNNING：查询返回完整 Job（含 input），output 仍为 null。",
       "schema_version": "1.0",
       "job_id": "job-full01",
       "trace_id": "trace-a7b9c1",
@@ -131,7 +148,7 @@
           {
             "artifact_id": "full01-error-report",
             "type": "ERROR_REPORT",
-            "uri": "artifact://pair01/full01/error_report.json",
+            "uri": "artifact://pair07/full01/error_report.json",
             "media_type": "application/json",
             "producer_job_id": "job-full01",
             "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
@@ -197,7 +214,7 @@
           "url": "https://github.com/example/clib",
           "commit": "0123456789abcdef0123456789abcdef01234567"
         },
-        "md_report_uri": "artifact://pair01/full01/error_report.json",
+        "md_report_uri": "artifact://pair07/full01/error_report.json",
         "makefile": "Makefile",
         "env": {
           "build": "make",
@@ -236,7 +253,7 @@
         },
         "base_commit": "0123456789abcdef0123456789abcdef01234567",
         "baseline": {
-          "actual_graph_uri": "artifact://pair01/full01/actual.json",
+          "actual_graph_uri": "artifact://pair07/full01/actual.json",
           "commit": "0123456789abcdef0123456789abcdef01234567",
           "configuration_id": "cc-MODE0"
         },
@@ -279,7 +296,9 @@
     }
   ],
   "open_items": [
-    "状态枚举（QUEUED/RUNNING/SUCCEEDED/FAILED/TIMED_OUT/CANCELLED）命名需经 A07 确认",
-    "错误码（ENV_3002/EXEC_4002/ANALYSIS_5001）命名与语义需经 A07 确认"
+    "状态枚举（QUEUED/RUNNING/SUCCEEDED/FAILED/TIMED_OUT/CANCELLED）命名已由 A07 B07-INTEGRATION.md 确认",
+    "错误码（ENV_3002/EXEC_4002/ANALYSIS_5001）命名与语义已由 A07 error-codes.md 确认，与 B07 一致",
+    "更细的 A07 专有编码按 A07 error-codes.md 以 message / details 表达，不入共享枚举",
+    "错误码前缀分域与按前缀区分的宽容规则见 PAIR07-ADR-003；放宽 error.code 枚举使 ANALYSIS_* 细分也能通过 B07 校验器，属共享 Schema 变更，须走 PAIR07-ADR-004 流程"
   ]
 }

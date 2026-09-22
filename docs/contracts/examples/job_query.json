@@ -1,5 +1,5 @@
 {
-  "$comment": "E2-B07-009 query sample. GET returns a lightweight status view while a job is running and artifact references after completion; trace_id remains unchanged across the chain.",
+  "$comment": "E2-B07-009 query sample. GET returns the full Job including input in every state; output stays null until the job finishes; trace_id remains unchanged across the chain.",
   "endpoint": {
     "method": "GET",
     "path_template": "/v1/jobs/{job_id}"
@@ -22,12 +22,13 @@
           "queued_at": "2026-09-20T10:00:01Z",
           "started_at": "2026-09-20T10:00:05Z"
         },
-        "input_summary": {
+        "input": {
           "repository": {
             "url": "https://github.com/example/clib",
             "commit": "0123456789abcdef0123456789abcdef01234567"
           },
-          "defined_by": "A07"
+          "defined_by": "A07",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
         },
         "output": null,
         "error": null
@@ -47,12 +48,20 @@
           "started_at": "2026-09-20T10:00:05Z",
           "finished_at": "2026-09-20T10:03:12Z"
         },
+        "input": {
+          "repository": {
+            "url": "https://github.com/example/clib",
+            "commit": "0123456789abcdef0123456789abcdef01234567"
+          },
+          "defined_by": "A07",
+          "commit": "0123456789abcdef0123456789abcdef01234567"
+        },
         "output": {
           "artifacts": [
             {
               "artifact_id": "full01-actual-graph",
               "type": "ACTUAL_GRAPH",
-              "uri": "artifact://pair01/full01/actual.json",
+              "uri": "artifact://pair07/full01/actual.json",
               "media_type": "application/json",
               "producer_job_id": "job-full01",
               "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
@@ -60,7 +69,7 @@
             {
               "artifact_id": "full01-error-report",
               "type": "ERROR_REPORT",
-              "uri": "artifact://pair01/full01/error_report.json",
+              "uri": "artifact://pair07/full01/error_report.json",
               "media_type": "application/json",
               "producer_job_id": "job-full01",
               "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"

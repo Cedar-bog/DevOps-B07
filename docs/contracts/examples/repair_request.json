@@ -9,7 +9,7 @@
       "commit": "0123456789abcdef0123456789abcdef01234567"
     },
     "commit": "0123456789abcdef0123456789abcdef01234567",
-    "md_report_uri": "artifact://pair01/full01/error_report.json",
+    "md_report_uri": "artifact://pair07/full01/error_report.json",
     "makefile": "Makefile",
     "env": {
       "build": "make",
