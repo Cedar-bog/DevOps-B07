@@ -6,5 +6,5 @@
   "expect": { "pointer": "/input/md_report_uri", "keyword": "pattern" },
   "owner": "B07",
   "acceptance": "E2-B07-010 约束类别：pattern",
-  "note": "产物一律按引用交接，artifact:// 前缀是平台统一约定，见 ADR-0002。"
+  "note": "产物一律按引用交接，artifact:// 前缀是平台统一约定，见 B07-ADR-0002（解析入口见 PAIR07-ADR-002）。"
 }

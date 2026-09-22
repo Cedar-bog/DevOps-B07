@@ -1,6 +1,7 @@
-# ADR-0001：异步任务模型
+# B07-ADR-0001：异步任务模型
 
-- 状态：Accepted
+- 状态：Accepted（B 单方决策）
+- 命名空间：`B07-ADR-*` = B07 单方决策；跨组共同决策见 `PAIR07-ADR-*`（约定见 `PAIR07-ADR-001`）
 - 日期：2026-09-19
 - 关联任务：E2-B07-011
 - 关联文件：`contracts/task.schema.json`、`contracts/examples/status_error.json`
@@ -21,7 +22,7 @@
 
 - **创建**：`POST /v1/{job-type}-jobs`（如 `/v1/dockerfile-jobs`、`/v1/full-check-jobs`、`/v1/incremental-check-jobs`、`/v1/repair-jobs`）返回 `HTTP 202 Accepted`，响应体为 `{ "job_id": ..., "status": "QUEUED" }`。
 - **job_id 由服务端生成**，不随请求传入；请求携带输入与幂等键（`idempotency_key`），幂等键用于去重。
-- **查询**：`GET /v1/jobs/{job_id}` 返回当前任务状态与产物引用（`artifact://` URI）；运行中返回输入摘要而非大日志。
+- **查询**：`GET /v1/jobs/{job_id}` 返回完整 Job（含 `input`）与产物引用（`artifact://` URI）；运行中 `output` 为空以省略大日志与产物内容。
 - **状态机**：`QUEUED` → `RUNNING` → `SUCCEEDED | FAILED | TIMED_OUT | CANCELLED`；`SUCCEEDED` 也可能报告 MD/RD 发现。见 `contracts/examples/status_error.json` 的 transition 定义。
 - **串联**：同一次平台流程的所有任务携带同一 `trace_id`（DRAFT → FULL_CHECK / INCREMENTAL_CHECK → REPAIR），查询链路贯穿该标识。
 - **公共字段**：`schema_version`、`job_id`、`trace_id`、`job_type`、`status`、`execution`、`input`、`output`、`error` 由 `contracts/task.schema.json` 统一约束；服务专有输入由各 `job_type` 分支约束。
@@ -39,7 +40,8 @@
 - 客户端与执行解耦，长任务不受 HTTP 生命周期限制。
 - 配对组可随时查询进度并取回结果，支持异步协作。
 - `idempotency_key` 支持幂等去重，重复提交不会重复执行。
-- 产物通过 `artifact://` 引用传递，查询响应保持轻量，避免大日志随每次响应传输。
+- 产物通过 `artifact://` 引用传递，查询响应保持轻量（运行中 `output` 为空），避免大日志随每次响应传输。
+- 查询响应体即完整 Job，与 `task.schema.json` 的 `required.input` 一致，无需查询视图特例（A07 `A07:ADR-002`，文件 `ADR-002-job-query-response.md` 确认）。
 - 支持超时（`TIMED_OUT`）与重试语义，错误码集中表达（`ENV_3002`/`EXEC_4002`/`ANALYSIS_5001`）。
 
 ### 代价与待办

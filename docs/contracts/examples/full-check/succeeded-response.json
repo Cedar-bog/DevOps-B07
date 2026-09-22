@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "job_id": "job-full01",
+  "trace_id": "trace-a07-001",
+  "job_type": "FULL_CHECK",
+  "status": "SUCCEEDED",
+  "input": {
+    "repository": {
+      "url": "https://example.com/course/sample-c-project.git",
+      "commit": "1111111111111111111111111111111111111111"
+    },
+    "environment": {
+      "image": "example/sample-c-project:gcc-debug",
+      "project_root": "/workspace/project"
+    },
+    "build": {
+      "clean_command": "make clean",
+      "build_command": "make -j1",
+      "verify_command": "make test",
+      "timeout_seconds": 600
+    },
+    "configuration_id": "gcc-debug",
+    "commit": "1111111111111111111111111111111111111111",
+    "defined_by": "A07",
+    "idempotency_key": "a07-full-001"
+  },
+  "execution": {
+    "created_at": "2026-09-20T10:00:00Z",
+    "queued_at": "2026-09-20T10:00:00Z",
+    "started_at": "2026-09-20T10:00:02Z",
+    "finished_at": "2026-09-20T10:01:30Z",
+    "attempts": 1
+  },
+  "output": {
+    "artifacts": [
+      {
+        "artifact_id": "actual-graph-001",
+        "type": "ACTUAL_GRAPH",
+        "uri": "artifact://pair07/full01/actual.json",
+        "media_type": "application/json",
+        "producer_job_id": "job-full01"
+      },
+      {
+        "artifact_id": "declared-graph-001",
+        "type": "DECLARED_GRAPH",
+        "uri": "artifact://pair07/full01/declared.json",
+        "media_type": "application/json",
+        "producer_job_id": "job-full01"
+      },
+      {
+        "artifact_id": "report-001",
+        "type": "ERROR_REPORT",
+        "uri": "artifact://pair07/full01/error_report.json",
+        "media_type": "application/json",
+        "producer_job_id": "job-full01"
+      }
+    ]
+  },
+  "error": null
+}

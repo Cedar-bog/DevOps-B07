@@ -6,5 +6,5 @@
   "expect": { "pointer": "/error/code", "keyword": "enum" },
   "owner": "B07",
   "acceptance": "E2-B07-010 约束类别：enum",
-  "note": "错误码命名需经 A07 确认，见 E2-B07-002。"
+  "note": "错误码命名已由 A07 error-codes.md 确认。共享前缀 ENV_* / EXEC_* 下的未知码必须被拒绝（本用例即此类）；A07 专有扩展限于 ANALYSIS_* 前缀且消费端须容忍，见 PAIR07-ADR-003。"
 }

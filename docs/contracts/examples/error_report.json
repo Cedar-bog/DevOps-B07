@@ -1,5 +1,5 @@
 {
-  "$comment": "E2-B07-004 MD 报告消费约束。本文件为自描述的复合参考样例：只声明 B 侧（MDFixer）对 MD 报告（ERROR_REPORT）中 MISSING 记录的消费约束——必填字段、commit 匹配、位置满足 REPAIR 定位需求，以及 artifact:// URI 读取方式（遵循 003 约定）。完整 ERROR_REPORT 结构由 A07 定义，本文件不规定 A 侧检测器的输出格式，仅说明 B 侧必须能读取到什么。",
+  "$comment": "E2-B07-004 MD 报告消费约束。本文件为自描述的复合参考样例：只声明 B 侧（MDFixer）对 MD 报告（ERROR_REPORT）中 MISSING 记录的消费约束——必填字段、commit 匹配、位置满足 REPAIR 定位需求，以及 artifact:// URI 读取方式（遵循 003 约定）。完整 ERROR_REPORT 结构由 A07 定义（仓库 github.com/jkiuiui0058/DevOps-A07 的 docs/contracts/error-report.schema.json 与 finding.schema.json），本文件不规定 A 侧检测器的输出格式，仅说明 B 侧必须能读取到什么；下方示例的顶层与 finding 形状已按 A07 实际 schema 对齐。",
   "schema_version": "1.0",
   "description": "MD 报告消费约束（B 消费侧视图）",
   "scope": {
@@ -16,7 +16,7 @@
     },
     "required_fields": {
       "$comment": "每条 MISSING 记录必须携带以下字段，缺失任一字段即视为不可消费，REPAIR 应拒绝该报告并记录原因。",
-      "fields": ["type", "target", "dependency", "commit", "position"],
+      "fields": ["type", "target", "dependency", "commit", "position", "detector"],
       "definitions": {
         "type": {
           "const": "MISSING",
@@ -55,6 +55,22 @@
             }
           },
           "additionalProperties": true
+        },
+        "detector": {
+          "enum": ["BUILDCHECKER", "ECHECKER", "INSTRUCTOR_ORACLE"],
+          "description": "发现来源标识，必填（A07 finding.schema.json 确认）。人工样本必须显式标注。"
+        },
+        "finding_id": {
+          "type": "string",
+          "description": "由 A07 定义，B 不消费。登记仅为在 additionalProperties:false 下仍可解析。"
+        },
+        "configuration_id": {
+          "type": "string",
+          "description": "由 A07 定义，B 不消费。与 INCREMENTAL_CHECK 基线中的 configuration_id 同源。"
+        },
+        "evidence_uri": {
+          "type": "string",
+          "description": "由 A07 定义，B 不消费。证据产物引用。"
         }
       },
       "additionalProperties": false
@@ -64,23 +80,18 @@
       "rule": "error_report.findings[].commit == input.repository.commit",
       "on_mismatch": "REJECT"
     },
-    "detector": {
-      "$comment": "可选但推荐。发现来源标识，用于追溯与人工样本区分。人工样本必须显式标注。",
-      "enum": ["BUILDCHECKER", "ECHECKER", "INSTRUCTOR_ORACLE"],
-      "note": "枚举命名需经 A07 确认。"
-    },
     "evidence": {
       "$comment": "可选。进程、文件与声明位置证据，由 A07 决定是否在完整报告中提供；B 侧不强依赖。",
       "provided_by": "A07"
     }
   },
   "uri_reading": {
-    "$comment": "URI 读取方式遵循 E2-B07-003 产物访问样例（docs/contracts/examples/artifact.json）与 ADR 012：MD 报告作为 ERROR_REPORT 产物通过 artifact:// URI 引用交接。",
+    "$comment": "URI 读取方式遵循 E2-B07-003 产物访问样例（docs/contracts/examples/artifact.json）与 PAIR07-ADR-002：MD 报告作为 ERROR_REPORT 产物通过 artifact:// URI 引用交接。",
     "artifact_type": "ERROR_REPORT",
     "media_type": "application/json",
     "reading": {
       "uri_scheme": "以 artifact:// 前缀标识，为平台内部引用，不是任意 URL。",
-      "resolution": "解析器或实际下载接口由平台定义，见 ADR 012。",
+      "resolution": "平台统一 HTTP 读取入口：GET /v1/artifacts/{pair}/{job}/{file}（PAIR07-ADR-002）；404 覆盖『未找到』与『已过保留期』，消费方需区分并记录。",
       "producer_job_id": "消费时校验产物由检测类任务（FULL_CHECK / INCREMENTAL_CHECK）生产，来源可追溯。",
       "sha256": "跨网络/跨组传递时核验完整性，不一致则拒绝该报告。"
     }
@@ -88,7 +99,8 @@
   "examples": {
     "$comment": "以下实例展示 B 侧消费所需的 MISSING 记录与报告视图。完整 ERROR_REPORT 文件结构以 A07 定义为准，这里仅保证 B 侧必读字段齐备。",
     "finding": {
-      "$comment": "一条满足必填约束的 MISSING 记录。",
+      "$comment": "一条满足必填约束的 MISSING 记录，并带有 A07 定义的额外字段（B 不消费，仅登记以免被 additionalProperties:false 拒绝）。",
+      "finding_id": "MISSING-clib-clib-settings-h",
       "type": "MISSING",
       "target": "clib",
       "dependency": "src/common/clib-settings.h",
@@ -98,17 +110,22 @@
         "line": 5,
         "declaration": "$(BINS): $(SRC)"
       },
-      "detector": "ECHECKER"
+      "detector": "ECHECKER",
+      "configuration_id": "cc-MODE0",
+      "evidence_uri": "artifact://pair07/full01/evidence/clib-clib-settings-h.json"
     },
     "error_report": {
-      "$comment": "B 消费侧视图：REPAIR 读取 artifact:// 指向的 ERROR_REPORT 内容，仅遍历 findings 中 type == MISSING 的记录；position 必须指向目标声明，用于定位与修复。REDUNDANT 记录被忽略。",
+      "$comment": "B 消费侧视图：REPAIR 读取 artifact:// 指向的 ERROR_REPORT 内容，仅遍历 findings 中 type == MISSING 的记录；position 必须指向目标声明，用于定位与修复。REDUNDANT 记录被忽略。顶层 configuration_id 与每条 finding 的 finding_id 由 A07 error-report.schema.json / finding.schema.json 要求，B 不消费但必须能解析。",
       "schema_version": "1.0",
       "repository": {
         "url": "https://github.com/example/clib",
         "commit": "0123456789abcdef0123456789abcdef01234567"
       },
+      "configuration_id": "cc-MODE0",
+      "producer_job_id": "job-full01",
       "findings": [
         {
+          "finding_id": "MISSING-clib-clib-settings-h",
           "type": "MISSING",
           "target": "clib",
           "dependency": "src/common/clib-settings.h",
@@ -121,6 +138,7 @@
           "detector": "ECHECKER"
         },
         {
+          "finding_id": "MISSING-fzy-o-fzy-h",
           "type": "MISSING",
           "target": "src/fzy.o",
           "dependency": "src/fzy.h",
@@ -133,6 +151,7 @@
           "detector": "BUILDCHECKER"
         },
         {
+          "finding_id": "REDUNDANT-clib-legacy-c",
           "type": "REDUNDANT",
           "target": "clib",
           "dependency": "src/legacy.c",
@@ -145,16 +164,17 @@
       "$comment": "ERROR_REPORT 产物的引用记录（与 E2-B07-003 一致，可直接进入 Job 的 output.artifacts）。",
       "artifact_id": "full01-error-report",
       "type": "ERROR_REPORT",
-      "uri": "artifact://pair01/full01/error_report.json",
+      "uri": "artifact://pair07/full01/error_report.json",
       "media_type": "application/json",
       "producer_job_id": "job-full01",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     }
   },
   "open_items": [
-    "完整 ERROR_REPORT 结构由 A07 定义，本文件仅声明 B 消费侧约束",
-    "position 字段命名与必填性需 A07 配合确认（B 侧至少需要能定位到 Makefile 声明位置）",
-    "detector 枚举命名（BUILDCHECKER/ECHECKER/INSTRUCTOR_ORACLE）需经 A07 确认",
-    "REDUNDANT 记录的消费策略（忽略）需经 A07 确认"
+    "完整 ERROR_REPORT 结构已由 A07 定义：docs/contracts/error-report.schema.json 与 finding.schema.json（仓库 github.com/jkiuiui0058/DevOps-A07）",
+    "position 已确认：position.file + position.line 必填、declaration 可选（A07 finding.schema.json / B07-CONFIRMATION-RECORD.md）",
+    "detector 必填且枚举已确认：BUILDCHECKER / ECHECKER / INSTRUCTOR_ORACLE（A07 finding.schema.json）",
+    "A07 额外字段 finding_id / configuration_id / evidence_uri 已显式登记（B 不消费）；其中 finding_id 为 A07 每条 finding 必填、顶层 configuration_id 为 A07 error-report.schema.json 必填，本文件示例已补齐",
+    "REDUNDANT 记录的消费策略（忽略）已由 A07 B07-CONFIRMATION-RECORD.md 确认，不构成新的未协商策略"
   ]
 }

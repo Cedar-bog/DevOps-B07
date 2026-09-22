@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "job_id": "job-full01",
+  "trace_id": "trace-a07-001",
+  "job_type": "FULL_CHECK",
+  "status": "QUEUED",
+  "input": {
+    "repository": {
+      "url": "https://example.com/course/sample-c-project.git",
+      "commit": "1111111111111111111111111111111111111111"
+    },
+    "environment": {
+      "image": "example/sample-c-project:gcc-debug",
+      "project_root": "/workspace/project"
+    },
+    "build": {
+      "clean_command": "make clean",
+      "build_command": "make -j1",
+      "verify_command": "make test",
+      "timeout_seconds": 600
+    },
+    "configuration_id": "gcc-debug",
+    "commit": "1111111111111111111111111111111111111111",
+    "defined_by": "A07",
+    "idempotency_key": "a07-full-001"
+  },
+  "execution": {
+    "created_at": "2026-09-20T10:00:00Z",
+    "queued_at": "2026-09-20T10:00:00Z",
+    "attempts": 1
+  },
+  "output": null,
+  "error": null
+}
