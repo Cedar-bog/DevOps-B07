@@ -10,7 +10,8 @@
 |---|---|
 | `main.c` | C 源码，标准输出一行 `hello E3` 后以退出码 0 结束 |
 | `Makefile` | GNU Make 构建脚本，编译 `main.c` 生成可执行文件 `hello` |
-| `README.md` | 本文件：构建与验证命令、成功判据、环境与版本记录 |
+| `Dockerfile.broken` | E3-B07-002 失败样例：基础镜像缺少 `make`/C 工具链，构建非零退出 |
+| `README.md` | 本文件：构建与验证命令、成功判据、失败样例、环境与版本记录 |
 
 ## 构建与验证
 
@@ -85,3 +86,48 @@ make clean      # 清理 hello 与 main.o，使样例可重复运行
 ```
 
 > 本样例为人工构造的基线；人工标签（ORACLE）与后续工具真实运行日志须分开保存，不得将人工预期计入工具准确率。
+
+## 失败样例（E3-B07-002）
+
+- 对应任务：**E3-B07-002 DRAFT 失败样例**
+- 产物：`fixtures/draft/Dockerfile.broken`、`evidence/draft/broken.log`
+
+### 构建文件
+
+`Dockerfile.broken`（故意使用不含 `make`/C 工具链的基础镜像）：
+
+```dockerfile
+FROM python:3.13-slim
+WORKDIR /work
+COPY main.c Makefile ./
+RUN make
+CMD ["./hello"]
+```
+
+### 复现命令
+
+在仓库根目录执行：
+
+```sh
+docker build --progress=plain --no-cache \
+  -f fixtures/draft/Dockerfile.broken \
+  -t nju-e3-draft-broken:20260930 \
+  fixtures/draft
+```
+
+### 预期判据（人工）
+
+1. `docker build` 退出码非零；
+2. 构建日志出现 `make: not found`；
+3. 失败点可定位到 `Dockerfile.broken:4`（`RUN make`）；
+4. 失败可定位到具体版本：基础镜像 `python:3.13-slim`，本次解析 digest 为
+   `sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c`。
+
+### 实际观察
+
+真实构建日志见 `evidence/draft/broken.log`（本仓库实测捕获，逐字保留）。
+本次实测：`docker build` 退出码 `1`，容器内 `RUN make` 退出码 `127`，日志命中
+`/bin/sh: 1: make: not found`。
+
+> 本失败样例是 E3-B07-003（参考成功）与后续 DRAFT 修复的输入：失败日志表明镜像缺少
+> `make`/C 工具链，参考修复需在基础镜像中安装 `gcc make libc6-dev` 等。
