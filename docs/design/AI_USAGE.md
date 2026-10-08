@@ -3,7 +3,7 @@
 - 对应任务：**E2-B07-013**
 - 文档性质：**设计过程证据**——写清 AI 提出什么、人工怎样判断、如何验证
 - 记录时间：2026-09-18 ~ 2026-09-22（UTC+8）
-- 记录范围：全部 E2 任务（001–015）
+- 记录范围：E2 任务（001–015）、E3 任务（001–007）
 - 说明：001–004、007–009、011、012 记录的是 **2026-09-22 收口阶段** AI 对这些产物的实际改动（提交 `5f229cb`）；这些任务**原始建模阶段**的交互省略。
 
 ## 一、工具 / 模型与任务
@@ -250,3 +250,25 @@
 | `git merge-tree --write-tree origin/main E2/B07-align` | 无冲突（仅输出树哈希） |
 
 不变式（验收 04）：`SUCCEEDED` 必须 `job.error is null`（发现写入 `output` 的 `ERROR_REPORT.findings`）；`FAILED` / `TIMED_OUT` 必须带 `job.error`，且 `TIMED_OUT` 的 `code` 固定为 `EXEC_4002`。
+
+## 五、E3 记录（并行测试基线）
+
+- 记录时间：2026-10-08（UTC+8）
+- 记录方式与前文一致：AI 提议、人工裁量；「AI 建议」以实际 diff 为准，「验证」取自实际运行结果。
+
+### E3-B07-002 DRAFT 失败样例
+
+| 字段 | 内容 |
+|---|---|
+| 提示摘要 | 「在新分支中完成002」；人工就分支名与基点、基础镜像写法、提交与记录范围、负责人逐项确认 |
+| AI 建议 | ①分支：从 `main` 新建 `E3/B07-002`；②新增 `fixtures/draft/Dockerfile.broken`（沿用课件 `FROM python:3.13-slim`，故意不含 `make`/C 工具链）；③本机 WSL 未启用 Docker Desktop 集成，AI 发现可用 Windows 侧 `docker.exe`（引擎 29.8.2，registry mirror `docker.1ms.run`）驱动构建，并实测其能读取 WSL 路径作为构建上下文；④真实构建并把日志落盘 `evidence/draft/broken.log`，头部记录命令、Docker 版本、基础镜像 digest、Dockerfile SHA-256 与退出码，原始输出逐字保留；⑤更新 `fixtures/draft/README.md` 失败样例小节与 `backlog.md` |
+| 人工判断 | **采纳**。人工选定：分支 `E3/B07-002` 从 `main`；基础镜像保持 `python:3.13-slim`、仅在日志记录解析 digest；完成后提交并同步 backlog 与 AI_USAGE；负责人填 `郑悫` |
+| 关联文件 | `fixtures/draft/Dockerfile.broken`、`evidence/draft/broken.log`、`fixtures/draft/README.md`、`docs/design/backlog.md`，提交 `7da3c3d` |
+| 验证 | `docker build --progress=plain --no-cache -f fixtures/draft/Dockerfile.broken …` → `docker build` 退出码 `1`；容器内 `RUN make` 退出码 `127`，日志命中 `/bin/sh: 1: make: not found`；失败点定位 `Dockerfile.broken:4`；基础镜像解析 digest `sha256:bf44cdf…`；契约校验 `uv run docs/contracts/validate.py` → 正向 23、失败输入 7、失败 0（本次未改契约） |
+
+## 六、E3 提交与版本
+
+| 阶段 | 提交 | 内容 |
+|---|---|---|
+| E3-B07-002 产物 | `7da3c3d` | `Dockerfile.broken` + 实测 `broken.log` + README 失败小节 + backlog 置 DONE |
+| E3-B07-002 记录 | 见本节提交 | 本 AI_USAGE 记录（§五 / §六） |
