@@ -11,6 +11,7 @@
 | `main.c` | C 源码，标准输出一行 `hello E3` 后以退出码 0 结束 |
 | `Makefile` | GNU Make 构建脚本，编译 `main.c` 生成可执行文件 `hello` |
 | `Dockerfile.broken` | E3-B07-002 失败样例：基础镜像缺少 `make`/C 工具链，构建非零退出 |
+| `Dockerfile.reference` | E3-B07-003 参考成功：安装 `gcc make libc6-dev` 后构建成功、运行输出 `hello E3` |
 | `README.md` | 本文件：构建与验证命令、成功判据、失败样例、环境与版本记录 |
 
 ## 构建与验证
@@ -131,3 +132,61 @@ docker build --progress=plain --no-cache \
 
 > 本失败样例是 E3-B07-003（参考成功）与后续 DRAFT 修复的输入：失败日志表明镜像缺少
 > `make`/C 工具链，参考修复需在基础镜像中安装 `gcc make libc6-dev` 等。
+
+## 参考成功样例（E3-B07-003）
+
+- 对应任务：**E3-B07-003 DRAFT 参考成功**
+- 产物：`fixtures/draft/Dockerfile.reference`、`evidence/draft/reference.log`
+
+### 构建文件
+
+`Dockerfile.reference`（在 E3-B07-002 失败文件的基础上安装工具链）：
+
+```dockerfile
+FROM python:3.13-slim
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc make libc6-dev && \
+    rm -rf /var/lib/apt/lists/*
+WORKDIR /work
+COPY main.c Makefile ./
+RUN make
+CMD ["./hello"]
+```
+
+### 与失败样例的差异（参考修复）
+
+| 文件 | 与工具链相关的步骤 |
+|---|---|
+| `Dockerfile.broken` | 无；直接 `RUN make` |
+| `Dockerfile.reference` | 先 `apt-get install gcc make libc6-dev`，再 `RUN make` |
+
+### 复现命令
+
+在仓库根目录执行：
+
+```sh
+# 构建（应成功，退出码 0）
+docker build --progress=plain --no-cache \
+  -f fixtures/draft/Dockerfile.reference \
+  -t nju-e3-draft-reference:20260906 \
+  fixtures/draft
+
+# 运行功能验证（应输出 hello E3，退出码 0）
+docker run --rm nju-e3-draft-reference:20260906
+```
+
+### 预期判据（人工）
+
+1. `docker build` 退出码为 `0`；
+2. 镜像成功生成，记录镜像 ID；
+3. 容器运行标准输出恰为一行 `hello E3`，进程退出码为 `0`。
+
+### 实际观察
+
+真实构建与运行日志见 `evidence/draft/reference.log`（本仓库实测捕获，逐字保留）。
+本次实测：`docker build` 退出码 `0`；镜像 ID
+`sha256:e3e6855586b42b3d0c5102f6812d904bb39cc57582881a65574f216f57f33bb7`；
+容器运行输出 `hello E3`、退出码 `0`。
+
+> 参考成功样例证明：在同一源码与验证命令下，补齐工具链后 DRAFT 的两层成功判据均可满足。
