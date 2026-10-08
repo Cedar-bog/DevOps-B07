@@ -263,12 +263,24 @@
 | 提示摘要 | 「在新分支中完成002」；人工就分支名与基点、基础镜像写法、提交与记录范围、负责人逐项确认 |
 | AI 建议 | ①分支：从 `main` 新建 `E3/B07-002`；②新增 `fixtures/draft/Dockerfile.broken`（沿用课件 `FROM python:3.13-slim`，故意不含 `make`/C 工具链）；③本机 WSL 未启用 Docker Desktop 集成，AI 发现可用 Windows 侧 `docker.exe`（引擎 29.8.2，registry mirror `docker.1ms.run`）驱动构建，并实测其能读取 WSL 路径作为构建上下文；④真实构建并把日志落盘 `evidence/draft/broken.log`，头部记录命令、Docker 版本、基础镜像 digest、Dockerfile SHA-256 与退出码，原始输出逐字保留；⑤更新 `fixtures/draft/README.md` 失败样例小节与 `backlog.md` |
 | 人工判断 | **采纳**。人工选定：分支 `E3/B07-002` 从 `main`；基础镜像保持 `python:3.13-slim`、仅在日志记录解析 digest；完成后提交并同步 backlog 与 AI_USAGE；负责人填 `郑悫` |
-| 关联文件 | `fixtures/draft/Dockerfile.broken`、`evidence/draft/broken.log`、`fixtures/draft/README.md`、`docs/design/backlog.md`，提交 `7da3c3d` |
+| 关联文件 | `fixtures/draft/Dockerfile.broken`、`evidence/draft/broken.log`、`fixtures/draft/README.md`、`docs/design/backlog.md`，提交 `8002fef` |
 | 验证 | `docker build --progress=plain --no-cache -f fixtures/draft/Dockerfile.broken …` → `docker build` 退出码 `1`；容器内 `RUN make` 退出码 `127`，日志命中 `/bin/sh: 1: make: not found`；失败点定位 `Dockerfile.broken:4`；基础镜像解析 digest `sha256:bf44cdf…`；契约校验 `uv run docs/contracts/validate.py` → 正向 23、失败输入 7、失败 0（本次未改契约） |
+
+### E3-B07-003 DRAFT 参考成功样例
+
+| 字段 | 内容 |
+|---|---|
+| 提示摘要 | 「已合并到main，继续003」 |
+| AI 建议 | ①从 `main` 新建 `E3/B07-003`；②新增 `fixtures/draft/Dockerfile.reference`，在 002 失败文件基础上加 `apt-get install -y --no-install-recommends gcc make libc6-dev`；③用 `docker.exe` 实测 `--no-cache` 构建（退出码 `0`）并 `docker run --rm`（输出 `hello E3`、退出码 `0`），把完整 build 与 run 日志落盘 `evidence/draft/reference.log`，头部记录镜像 ID、基础镜像 digest、Dockerfile SHA-256 与两处退出码；④README 增参考成功小节（含与失败样例的差异表）；⑤把 backlog E3-B07-003 置 DONE；⑥顺带把 002 在 AI_USAGE 中的提交 SHA 由分支原始值改为合并入 `main` 后的值 |
+| 人工判断 | **采纳**。沿用 002 已确认的约定：从 `main` 拉分支、基础镜像保持 tag 并在日志记录 digest、提交并同步 backlog 与 AI_USAGE、负责人 `郑悫` |
+| 关联文件 | `fixtures/draft/Dockerfile.reference`、`evidence/draft/reference.log`、`fixtures/draft/README.md`、`docs/design/backlog.md`，提交 `a90d569` |
+| 验证 | `docker build --progress=plain --no-cache -f fixtures/draft/Dockerfile.reference …` → 退出码 `0`；镜像 ID `sha256:e3e6855586b42b3d0c5102f6812d904bb39cc57582881a65574f216f57f33bb7`；`docker run --rm nju-e3-draft-reference:20260906` → 标准输出 `hello E3`、退出码 `0`；契约校验不受影响（本次未改契约） |
 
 ## 六、E3 提交与版本
 
 | 阶段 | 提交 | 内容 |
 |---|---|---|
-| E3-B07-002 产物 | `7da3c3d` | `Dockerfile.broken` + 实测 `broken.log` + README 失败小节 + backlog 置 DONE |
-| E3-B07-002 记录 | 见本节提交 | 本 AI_USAGE 记录（§五 / §六） |
+| E3-B07-002 产物 | `8002fef` | `Dockerfile.broken` + 实测 `broken.log` + README 失败小节 + backlog 置 DONE |
+| E3-B07-002 记录 | `a91edf3` | AI_USAGE 记录（§五 / §六） |
+| E3-B07-003 产物 | `a90d569` | `Dockerfile.reference` + 实测 `reference.log` + README 参考成功小节 + backlog 置 DONE |
+| E3-B07-003 记录 | 见本节提交 | 本 AI_USAGE 记录（§五 / §六） |
