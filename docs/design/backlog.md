@@ -17,6 +17,13 @@
 | E2-B07-013 | DONE | AI_USAGE.md  | 王师师 | `design/AI_USAGE.md`              | 记录 AI 提议、人工采纳修改拒绝理由、关联文件与验证结果                                                                                                                                                                                                                                                             |
 | E2-B07-014 | DONE | 交换契约样例       | 王师师 | `examples/full-check/`、`incremental-check/`、`invalid/` | 与 A07 完成双向样例交换：复制 A 组 FULL_CHECK / INCREMENTAL_CHECK 请求与响应样例至 `examples/`；四类任务样例齐全，双方能解释同一份请求与结果；A07 提供的失败用例（如删 baseline）可被 validate.py 校验                                                                                                                  |
 | E2-B07-015 | DONE | 交换决定与未决追踪    | 王师师 | `backlog.md`、`adr/B07-ADR-0001` `B07-ADR-0002`、`adr/PAIR07-ADR-001`~`004`、`design/a07-proposal.md` | 课堂配对三轮练习（环境基线→MD 报告→失败输入）的决定写入 `B07-ADR-0001` / `B07-ADR-0002`；J1–J5 推荐方案已由 B 侧落地为 `PAIR07-ADR-001`~`004`（现状态 Accepted），未决工作同步 backlog §七                                                                                                                                                                                                                          |
+| E3-B07-001 |  | DRAFT 样本项目与两层成功判据 |  | `fixtures/draft/`（main.c、Makefile、README） | `make` 退出码为 0 且预期可执行文件确实生成；按 README 的验证命令检查退出码与预期输出（`hello E3`）；记录项目与工具版本、真实 SHA |
+| E3-B07-002 |  | DRAFT 失败样例 |  | `fixtures/draft/Dockerfile.broken`、`evidence/draft/broken.log` | 构建非零退出；失败日志可定位（`make: not found`）且可定位到具体版本 |
+| E3-B07-003 |  | DRAFT 参考成功 |  | `fixtures/draft/Dockerfile.reference`、`evidence/draft/reference.log` | 参考 Dockerfile 构建成功、容器运行输出 `hello E3`；记录 build 退出码与镜像 ID |
+| E3-B07-004 |  | MDFixer 固定 MD 报告与 Makefile |  | `fixtures/md-fixer/`（`main.o` 缺 `config.h` 的 ORACLE 报告、对应 Makefile） | 固定报告字段满足 E2-B07-004 消费约束（`type/target/dependency/commit/position/detector`）；报告与 Makefile 属同一源码版本 |
+| E3-B07-005 |  | MDFixer 四种声明风格与参考 Patch |  | `fixtures/md-fixer/`（Target/Macro/Hybrid/Implicit 的 before 与 reference.patch） | 四种风格各一份可 `git apply --check` 通过的参考补丁；补丁不改变原声明风格；写明期望补丁与「怎样判断修复有效」的依据 |
+| E3-B07-006 |  | MDFixer 行为验证与无效候选拒绝/恢复 |  | `evidence/md-fixer/`（apply、before、after、reapply、rejected 日志） | 修复前只改头文件仍输出旧值；应用参考补丁后 clean 输出新值；再次修改头文件不 clean 自动重建输出新值；无效候选被拒绝且样例副本可恢复 |
+| E3-B07-007 |  | 共同信息与失败记录 |  | `README.md`、`scripts/`、`evidence/` | 他人可照 README 重跑；环境、命令与日志齐全；人工答案（ORACLE）与实际日志分离；记录仓库地址、提交 SHA、个人贡献；未完成项记录当前代码与失败日志、卡点、尝试与下一步 |
 
 状态说明：`DONE` 已完成；`阻塞` 依赖外部输入无法推进；`部分` 仅完成可独立推进的部分。
 
