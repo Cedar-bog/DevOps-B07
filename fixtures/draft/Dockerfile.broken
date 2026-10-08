@@ -1,0 +1,5 @@
+FROM python:3.13-slim
+WORKDIR /work
+COPY main.c Makefile ./
+RUN make
+CMD ["./hello"]
