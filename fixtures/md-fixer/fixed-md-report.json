@@ -1,0 +1,33 @@
+{
+  "$comment": "E3-B07-004 MDFixer 固定 MD 报告（人工 ORACLE 样例，detector=INSTRUCTOR_ORACLE）。描述 fixtures/md-fixer/Makefile 的依赖缺陷：main.c 实际 include config.h 但 main.o 目标未声明（MISSING）；main.o 声明了 unused.h 但源码未使用（REDUNDANT，MDFixer 应忽略）。commit 指向引入该 Makefile 的提交，保证报告与源码同一版本。",
+  "schema_version": "1.0",
+  "repository": {
+    "url": "https://github.com/jkiuiui0058/DevOps-B07",
+    "commit": "dea937f3df3de19d1f0003adf4ae8abb3275221e"
+  },
+  "configuration_id": "md-fixer-base-MODE0",
+  "producer_job_id": "job-md-fixer-base",
+  "findings": [
+    {
+      "finding_id": "MISSING-main-o-config-h",
+      "type": "MISSING",
+      "target": "main.o",
+      "dependency": "config.h",
+      "commit": "dea937f3df3de19d1f0003adf4ae8abb3275221e",
+      "position": {
+        "file": "fixtures/md-fixer/Makefile",
+        "line": 14,
+        "declaration": "main.o: main.c unused.h"
+      },
+      "detector": "INSTRUCTOR_ORACLE"
+    },
+    {
+      "finding_id": "REDUNDANT-main-o-unused-h",
+      "type": "REDUNDANT",
+      "target": "main.o",
+      "dependency": "unused.h",
+      "commit": "dea937f3df3de19d1f0003adf4ae8abb3275221e",
+      "detector": "INSTRUCTOR_ORACLE"
+    }
+  ]
+}
