@@ -1,0 +1,11 @@
+--- Makefile.before
++++ Makefile.before
+@@ -3,7 +3,7 @@
+ 
+ TARGET  := hello
+ OBJS    := main.o
+-HEADERS :=
++HEADERS := config.h
+ 
+ .PHONY: all clean
+ 
