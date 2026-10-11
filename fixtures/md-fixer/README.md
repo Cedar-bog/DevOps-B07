@@ -94,16 +94,12 @@ make            # 退出码 0，生成 ./hello
 make clean
 ```
 
-## 环境与工具版本（本仓库实测记录）
+## 验证状态
 
-| 项 | 值 |
-|---|---|
-| 操作系统 | Ubuntu 26.04.1 LTS（WSL2） |
-| 内核 / 架构 | Linux 6.18.33.1-microsoft-standard-WSL2 / x86_64 |
-| GNU Make | 4.4.1 |
-| C 编译器 | cc / gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0 |
-
-> 本样例的构建与行为验证在服务器（Ubuntu）上完成；本地 Windows 仅落文件与生成补丁。
+- **已本地验证**：四份 `reference.patch` 均通过 `git apply --check`（本机 git 2.47.1，Windows）。
+- **待验证（E3-B07-006，服务器 Ubuntu）**：`make` 构建、`./hello` 输出 `1`，以及修复前后
+  「改头文件是否触发重建」的行为验证与无效候选拒绝/恢复。这些证据日志将落在
+  `evidence/md-fixer/`，与本样例的 ORACLE 标签分开保存。
 
 ## 源码版本与真实 SHA
 
@@ -114,7 +110,9 @@ make clean
 | `main.c` Git blob SHA | `f63388456898baae50b2ed5b9823e3b7fcaf93a7` |
 | `main.c` SHA-256 | `f3834cb89a3d12451e993ea2d6e762a2a56184f5c215868129259b9da7931aeb` |
 | `config.h` Git blob SHA | `81f0de950364be04fa3ebccc3288548d54a445ac` |
+| `config.h` SHA-256 | `16b4dfbcd633bc40c459d018a906d930f6735ace65d81beda186e464c675e2cb` |
 | `unused.h` Git blob SHA | `0afea29915494125aaea6a3c57d3382d06d1060e` |
+| `unused.h` SHA-256 | `60b3a3070f693c01e60f5cc8a7c16d72cd6d78d61e9342a87be63f7ac02c6933` |
 | `Makefile` Git blob SHA | `5f7c615d6778c123c5416393a4a60cc6437677a0` |
 | `Makefile` SHA-256 | `57f445890045a1025b512bc5f3325ddd81f8c1920f450e30fed650420b9f71e2` |
 
