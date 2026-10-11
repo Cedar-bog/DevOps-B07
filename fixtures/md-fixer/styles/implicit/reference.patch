@@ -1,0 +1,25 @@
+--- Makefile.before
++++ Makefile.before
+@@ -1,8 +1,10 @@
+ CC      ?= cc
+ CFLAGS  ?= -O2 -Wall -Wextra
++DEPFLAGS = -MMD -MP
+ 
+ TARGET  := hello
+ OBJS    := main.o
++DEPS    := $(OBJS:.o=.d)
+ 
+ .PHONY: all clean
+ 
+@@ -12,7 +14,9 @@
+ 	$(CC) $(CFLAGS) -o $@ $^
+ 
+ %.o: %.c
+-	$(CC) $(CFLAGS) -c $< -o $@
++	$(CC) $(CFLAGS) $(DEPFLAGS) -c $< -o $@
++
++-include $(DEPS)
+ 
+ clean:
+-	rm -f $(TARGET) $(OBJS)
++	rm -f $(TARGET) $(OBJS) $(DEPS)

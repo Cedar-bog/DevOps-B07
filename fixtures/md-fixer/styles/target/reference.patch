@@ -1,0 +1,11 @@
+--- Makefile.before
++++ Makefile.before
+@@ -11,7 +11,7 @@
+ $(TARGET): $(OBJS)
+ 	$(CC) $(CFLAGS) -o $@ $^
+ 
+-main.o: main.c
++main.o: main.c config.h
+ 	$(CC) $(CFLAGS) -c $< -o $@
+ 
+ clean:
