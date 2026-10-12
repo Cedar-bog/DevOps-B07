@@ -1,22 +1,22 @@
 # E3-B07-006 MDFixer verification log
 phase: before
-started_at_utc: 2026-10-12T06:19:13Z
-repository: git@github.com:Cedar-bog/DevOps-B07.git
-git_commit: 16bdf473a48dfdd28bd3c8a4725e28f2fbebeec8
+started_at_utc: 2026-10-12T06:48:55Z
+repository: https://github.com/Cedar-bog/DevOps-B07.git
+git_commit: 3974b7e9439347ea32f9e7f805eaf15c266936ad
 script_sha256: 8e0112ed1806541254a69413b7bb8b6f4c924de949d1abe43660118d610e0a31
 fixture: fixtures/md-fixer
-host: Linux DESKTOP-1CAGBJI 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-make: GNU Make 4.3
-compiler: cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
-git: git version 2.34.1
+host: Linux UserGoGo 6.6.114.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Mon Dec  1 20:46:23 UTC 2025 x86_64 GNU/Linux
+make: GNU Make 4.4.1
+compiler: cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+git: git version 2.53.0
 
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.tS5Qz6/before/main.c
++ cp /mnt/d/Codes/DevOps-B07/fixtures/md-fixer/main.c /tmp/md-fixer.kN0XgX/before/main.c
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.tS5Qz6/before/config.h
++ cp /mnt/d/Codes/DevOps-B07/fixtures/md-fixer/config.h /tmp/md-fixer.kN0XgX/before/config.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.tS5Qz6/before/unused.h
++ cp /mnt/d/Codes/DevOps-B07/fixtures/md-fixer/unused.h /tmp/md-fixer.kN0XgX/before/unused.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/Makefile /tmp/md-fixer.tS5Qz6/before/Makefile
++ cp /mnt/d/Codes/DevOps-B07/fixtures/md-fixer/Makefile /tmp/md-fixer.kN0XgX/before/Makefile
 exit_code: 0
 
 ## baseline build with missing dependency
@@ -30,7 +30,7 @@ exit_code: 0
 + ./hello
 stdout: 1
 assertion: baseline output = 1
-main.o_mtime_before_header_change: 1791785953
+main.o_mtime_before_header_change: 1791787735
 + sleep 1
 exit_code: 0
 + sed -i s/#define\ VALUE\ 1/#define\ VALUE\ 2/ config.h
@@ -41,6 +41,6 @@ exit_code: 0
 + ./hello
 stdout_after_header_change: 1
 assertion: unfixed output remains stale = 1
-main.o_mtime_after_header_change: 1791785953
-assertion: unfixed object was not rebuilt = 1791785953
+main.o_mtime_after_header_change: 1791787735
+assertion: unfixed object was not rebuilt = 1791787735
 result: missing dependency reproduced

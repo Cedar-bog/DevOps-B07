@@ -1,14 +1,14 @@
 # E3-B07-006 MDFixer verification log
 phase: apply
-started_at_utc: 2026-10-12T06:19:13Z
-repository: git@github.com:Cedar-bog/DevOps-B07.git
-git_commit: 16bdf473a48dfdd28bd3c8a4725e28f2fbebeec8
+started_at_utc: 2026-10-12T06:48:55Z
+repository: https://github.com/Cedar-bog/DevOps-B07.git
+git_commit: 3974b7e9439347ea32f9e7f805eaf15c266936ad
 script_sha256: 8e0112ed1806541254a69413b7bb8b6f4c924de949d1abe43660118d610e0a31
 fixture: fixtures/md-fixer
-host: Linux DESKTOP-1CAGBJI 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-make: GNU Make 4.3
-compiler: cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
-git: git version 2.34.1
+host: Linux UserGoGo 6.6.114.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Mon Dec  1 20:46:23 UTC 2025 x86_64 GNU/Linux
+make: GNU Make 4.4.1
+compiler: cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+git: git version 2.53.0
 
 
 ## style: target
