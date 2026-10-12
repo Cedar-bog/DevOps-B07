@@ -276,6 +276,16 @@
 | 关联文件 | `fixtures/draft/Dockerfile.reference`、`evidence/draft/reference.log`、`fixtures/draft/README.md`、`docs/design/backlog.md`，提交 `a90d569` |
 | 验证 | `docker build --progress=plain --no-cache -f fixtures/draft/Dockerfile.reference …` → 退出码 `0`；镜像 ID `sha256:e3e6855586b42b3d0c5102f6812d904bb39cc57582881a65574f216f57f33bb7`；`docker run --rm nju-e3-draft-reference:20260906` → 标准输出 `hello E3`、退出码 `0`；契约校验不受影响（本次未改契约） |
 
+### E3-B07-007 共同信息与失败记录
+
+| 字段 | 内容 |
+|---|---|
+| 提示摘要 | 「指派给我，完成007任务，应当在本地新建一个分支，确保完成之后再并入main」；人工确认分支命名、脚本范围、未完成项处理、AI_USAGE 记录范围与合并方式（保持线性） |
+| AI 建议 | ①从 `main` 新建 `E3/B07-007`；②新增 `scripts/verify-draft.sh`（复现 DRAFT 两层判据与 docker 失败/参考两相，无 Docker 引擎时跳过并提示）与 `scripts/verify-all.sh`（串联 draft 与 md-fixer）；③用脚本重跑并刷新 `evidence/`；④重写根 `README.md`：补全仓库结构、小组分工、环境版本、DRAFT/MDFixer 复现步骤、ORACLE 与真实日志分离、仓库地址与各产物提交 SHA、以及「未完成/已知问题」小节；⑤backlog 置 `E3-B07-007` 为 DONE（负责人 `刘雯`）；⑥仅新增本记录，不改动其他 E3 记录；⑦保持线性历史，以 `--ff-only` 并入 `main` |
+| 人工判断 | **采纳**。人工选定：分支 `E3/B07-007`；脚本范围为 `verify-draft` + `verify-all`（推荐）；未完成项仅记录、不修复；AI_USAGE 仅加 007 记录；分成多个提交；合并保持线性（`--ff-only`） |
+| 关联文件 | `scripts/verify-draft.sh`、`scripts/verify-all.sh`、`evidence/draft/build.log`、`evidence/md-fixer/*.log`、`README.md`、`docs/design/backlog.md`、`docs/design/AI_USAGE.md` |
+| 验证 | WSL Ubuntu 下 `bash scripts/verify-all.sh`：DRAFT `build` 相位 `make` 退出码 `0`、`./hello` 输出 `hello E3`；docker 两相因本机未启用 Docker Desktop 集成而由脚本跳过并提示；MDFixer 五相位（apply/before/after/reapply/rejected）全部通过，日志刷新落盘 `evidence/` |
+
 ## 六、E3 提交与版本
 
 | 阶段 | 提交 | 内容 |
@@ -284,3 +294,4 @@
 | E3-B07-002 记录 | `a91edf3` | AI_USAGE 记录（§五 / §六） |
 | E3-B07-003 产物 | `a90d569` | `Dockerfile.reference` + 实测 `reference.log` + README 参考成功小节 + backlog 置 DONE |
 | E3-B07-003 记录 | 见本节提交 | 本 AI_USAGE 记录（§五 / §六） |
+| E3-B07-007 产物 / 记录 | 见本分支 `E3/B07-007` 提交历史 | `scripts/verify-draft.sh`、`scripts/verify-all.sh`、README、evidence 刷新 + 本 AI_USAGE 记录（§五 / §六） |
