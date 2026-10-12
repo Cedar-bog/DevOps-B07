@@ -248,7 +248,7 @@ PATCH
     candidate_rc=0
     diff -u --label a/Makefile --label b/Makefile Makefile Makefile.candidate > ineffective.patch || candidate_rc=$?
     assert_eq "1" "$candidate_rc" "diff generated a changed candidate"
-    run_cmd cat ineffective.patch
+    run_cmd sed -n 'l' ineffective.patch
     run_cmd cp "$FIXTURE/README.md" README.md
     run_cmd git apply --check ineffective.patch
     run_cmd git apply ineffective.patch
