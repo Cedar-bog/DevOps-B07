@@ -1,0 +1,35 @@
+# E3-B07 DRAFT verification log
+phase: build
+started_at_utc: 2026-10-12T06:48:54Z
+repository: https://github.com/Cedar-bog/DevOps-B07.git
+git_commit: 3974b7e9439347ea32f9e7f805eaf15c266936ad
+script_sha256: 9bab0ebe4be2b41b8b289629773b7592903934439f5199f53405d4cc64a2d008
+fixture: fixtures/draft
+host: Linux UserGoGo 6.6.114.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Mon Dec  1 20:46:23 UTC 2025 x86_64 GNU/Linux
+make: GNU Make 4.4.1
+compiler: cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+git: git version 2.53.0
+docker: unavailable (broken/reference phases will be skipped)
+
+
+## E3-B07-001 local build and two-layer success criteria
++ cp /mnt/d/Codes/DevOps-B07/fixtures/draft/main.c /tmp/draft.GR4yhC/build/main.c
+exit_code: 0
++ cp /mnt/d/Codes/DevOps-B07/fixtures/draft/Makefile /tmp/draft.GR4yhC/build/Makefile
+exit_code: 0
++ make clean
+rm -f hello main.o
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
++ test -x ./hello
+assertion: ./hello exists and is executable
++ ./hello
+stdout: hello E3
+assertion: draft local output = hello\ E3
++ make clean
+rm -f hello main.o
+exit_code: 0
+result: layer 1 (build) and layer 2 (functional) both satisfied
