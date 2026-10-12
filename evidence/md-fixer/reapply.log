@@ -1,0 +1,76 @@
+# E3-B07-006 MDFixer verification log
+phase: reapply
+started_at_utc: 2026-10-12T06:15:28Z
+repository: git@github.com:Cedar-bog/DevOps-B07.git
+git_commit: 17ce3d6d2599e72d3bf76233775c5590c7dc16f1
+script_sha256: 9a58d2d3d2f3372dbd4e00883dd3b6a38c260e4f8b55aa9bb742e4294b72ee31
+fixture: fixtures/md-fixer
+host: Linux DESKTOP-1CAGBJI 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+make: GNU Make 4.3
+compiler: cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+git: git version 2.34.1
+
+
+## style: target
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
++ ./hello
+stdout_after_second_header_change: 4
+assertion: target patched output after second change = 4
+main.o_mtime_before_make: 1791785731
+main.o_mtime_after_make: 1791785737
+result: repeated header change rebuilt without make clean
+
+## style: macro
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
++ ./hello
+stdout_after_second_header_change: 4
+assertion: macro patched output after second change = 4
+main.o_mtime_before_make: 1791785733
+main.o_mtime_after_make: 1791785738
+result: repeated header change rebuilt without make clean
+
+## style: hybrid
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
++ ./hello
+stdout_after_second_header_change: 4
+assertion: hybrid patched output after second change = 4
+main.o_mtime_before_make: 1791785734
+main.o_mtime_after_make: 1791785740
+result: repeated header change rebuilt without make clean
+
+## style: implicit
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -MMD -MP -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
++ ./hello
+stdout_after_second_header_change: 4
+assertion: implicit patched output after second change = 4
+main.o_mtime_before_make: 1791785736
+main.o_mtime_after_make: 1791785741
+result: repeated header change rebuilt without make clean

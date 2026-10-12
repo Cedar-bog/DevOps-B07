@@ -1,0 +1,46 @@
+# E3-B07-006 MDFixer verification log
+phase: before
+started_at_utc: 2026-10-12T06:15:28Z
+repository: git@github.com:Cedar-bog/DevOps-B07.git
+git_commit: 17ce3d6d2599e72d3bf76233775c5590c7dc16f1
+script_sha256: 9a58d2d3d2f3372dbd4e00883dd3b6a38c260e4f8b55aa9bb742e4294b72ee31
+fixture: fixtures/md-fixer
+host: Linux DESKTOP-1CAGBJI 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+make: GNU Make 4.3
+compiler: cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+git: git version 2.34.1
+
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.XuFilp/before/main.c
+exit_code: 0
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.XuFilp/before/config.h
+exit_code: 0
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.XuFilp/before/unused.h
+exit_code: 0
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/Makefile /tmp/md-fixer.XuFilp/before/Makefile
+exit_code: 0
+
+## baseline build with missing dependency
++ make clean
+rm -f hello main.o
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
++ ./hello
+stdout: 1
+assertion: baseline output = 1
+main.o_mtime_before_header_change: 1791785728
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 1/#define\ VALUE\ 2/ config.h
+exit_code: 0
++ make
+make: Nothing to be done for 'all'.
+exit_code: 0
++ ./hello
+stdout_after_header_change: 1
+assertion: unfixed output remains stale = 1
+main.o_mtime_after_header_change: 1791785728
+assertion: unfixed object was not rebuilt = 1791785728
+result: missing dependency reproduced
