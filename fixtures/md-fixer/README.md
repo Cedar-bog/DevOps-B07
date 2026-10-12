@@ -96,10 +96,12 @@ make clean
 
 ## 验证状态
 
-- **已本地验证**：四份 `reference.patch` 均通过 `git apply --check`（本机 git 2.47.1，Windows）。
-- **待验证（E3-B07-006，服务器 Ubuntu）**：`make` 构建、`./hello` 输出 `1`，以及修复前后
-  「改头文件是否触发重建」的行为验证与无效候选拒绝/恢复。这些证据日志将落在
-  `evidence/md-fixer/`，与本样例的 ORACLE 标签分开保存。
+- **已本地验证**：四份 `reference.patch` 均通过 `git apply --check`。
+- **E3-B07-006 已完成**：`bash scripts/verify-md-fixer.sh` 在 WSL Ubuntu 22.04
+  中验证了修复前的陈旧输出、四种声明风格修复后的自动重建、再次修改头文件后的自动重建，
+  以及无效候选拒绝和样例副本恢复。实际命令与输出分别保存在
+  `evidence/md-fixer/apply.log`、`before.log`、`after.log`、`reapply.log` 和
+  `rejected.log`；这些工具日志与本样例的 ORACLE 标签分开保存。
 
 ## 源码版本与真实 SHA
 
