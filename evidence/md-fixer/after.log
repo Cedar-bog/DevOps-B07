@@ -1,9 +1,9 @@
 # E3-B07-006 MDFixer verification log
 phase: after
-started_at_utc: 2026-10-12T06:15:28Z
+started_at_utc: 2026-10-12T06:19:13Z
 repository: git@github.com:Cedar-bog/DevOps-B07.git
-git_commit: 17ce3d6d2599e72d3bf76233775c5590c7dc16f1
-script_sha256: 9a58d2d3d2f3372dbd4e00883dd3b6a38c260e4f8b55aa9bb742e4294b72ee31
+git_commit: 16bdf473a48dfdd28bd3c8a4725e28f2fbebeec8
+script_sha256: 8e0112ed1806541254a69413b7bb8b6f4c924de949d1abe43660118d610e0a31
 fixture: fixtures/md-fixer
 host: Linux DESKTOP-1CAGBJI 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
 make: GNU Make 4.3
@@ -12,15 +12,15 @@ git: git version 2.34.1
 
 
 ## style: target
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.XuFilp/patched-target/main.c
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.tS5Qz6/patched-target/main.c
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.XuFilp/patched-target/config.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.tS5Qz6/patched-target/config.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.XuFilp/patched-target/unused.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.tS5Qz6/patched-target/unused.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/target/Makefile.before /tmp/md-fixer.XuFilp/patched-target/Makefile.before
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/target/Makefile.before /tmp/md-fixer.tS5Qz6/patched-target/Makefile.before
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/target/reference.patch /tmp/md-fixer.XuFilp/patched-target/reference.patch
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/target/reference.patch /tmp/md-fixer.tS5Qz6/patched-target/reference.patch
 exit_code: 0
 + git init -q
 exit_code: 0
@@ -53,20 +53,20 @@ exit_code: 0
 + ./hello
 stdout_after_first_header_change: 3
 assertion: target patched output after first change = 3
-main.o_mtime_before_make: 1791785730
-main.o_mtime_after_make: 1791785731
+main.o_mtime_before_make: 1791785954
+main.o_mtime_after_make: 1791785956
 result: clean patch application and automatic rebuild verified
 
 ## style: macro
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.XuFilp/patched-macro/main.c
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.tS5Qz6/patched-macro/main.c
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.XuFilp/patched-macro/config.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.tS5Qz6/patched-macro/config.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.XuFilp/patched-macro/unused.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.tS5Qz6/patched-macro/unused.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/macro/Makefile.before /tmp/md-fixer.XuFilp/patched-macro/Makefile.before
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/macro/Makefile.before /tmp/md-fixer.tS5Qz6/patched-macro/Makefile.before
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/macro/reference.patch /tmp/md-fixer.XuFilp/patched-macro/reference.patch
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/macro/reference.patch /tmp/md-fixer.tS5Qz6/patched-macro/reference.patch
 exit_code: 0
 + git init -q
 exit_code: 0
@@ -99,20 +99,20 @@ exit_code: 0
 + ./hello
 stdout_after_first_header_change: 3
 assertion: macro patched output after first change = 3
-main.o_mtime_before_make: 1791785731
-main.o_mtime_after_make: 1791785733
+main.o_mtime_before_make: 1791785956
+main.o_mtime_after_make: 1791785957
 result: clean patch application and automatic rebuild verified
 
 ## style: hybrid
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.XuFilp/patched-hybrid/main.c
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.tS5Qz6/patched-hybrid/main.c
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.XuFilp/patched-hybrid/config.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.tS5Qz6/patched-hybrid/config.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.XuFilp/patched-hybrid/unused.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.tS5Qz6/patched-hybrid/unused.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/hybrid/Makefile.before /tmp/md-fixer.XuFilp/patched-hybrid/Makefile.before
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/hybrid/Makefile.before /tmp/md-fixer.tS5Qz6/patched-hybrid/Makefile.before
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/hybrid/reference.patch /tmp/md-fixer.XuFilp/patched-hybrid/reference.patch
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/hybrid/reference.patch /tmp/md-fixer.tS5Qz6/patched-hybrid/reference.patch
 exit_code: 0
 + git init -q
 exit_code: 0
@@ -145,20 +145,20 @@ exit_code: 0
 + ./hello
 stdout_after_first_header_change: 3
 assertion: hybrid patched output after first change = 3
-main.o_mtime_before_make: 1791785733
-main.o_mtime_after_make: 1791785734
+main.o_mtime_before_make: 1791785957
+main.o_mtime_after_make: 1791785959
 result: clean patch application and automatic rebuild verified
 
 ## style: implicit
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.XuFilp/patched-implicit/main.c
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/main.c /tmp/md-fixer.tS5Qz6/patched-implicit/main.c
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.XuFilp/patched-implicit/config.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/config.h /tmp/md-fixer.tS5Qz6/patched-implicit/config.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.XuFilp/patched-implicit/unused.h
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/unused.h /tmp/md-fixer.tS5Qz6/patched-implicit/unused.h
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/implicit/Makefile.before /tmp/md-fixer.XuFilp/patched-implicit/Makefile.before
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/implicit/Makefile.before /tmp/md-fixer.tS5Qz6/patched-implicit/Makefile.before
 exit_code: 0
-+ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/implicit/reference.patch /tmp/md-fixer.XuFilp/patched-implicit/reference.patch
++ cp /mnt/d/yaorz/works/DevOps/lab2/project/fixtures/md-fixer/styles/implicit/reference.patch /tmp/md-fixer.tS5Qz6/patched-implicit/reference.patch
 exit_code: 0
 + git init -q
 exit_code: 0
@@ -191,6 +191,6 @@ exit_code: 0
 + ./hello
 stdout_after_first_header_change: 3
 assertion: implicit patched output after first change = 3
-main.o_mtime_before_make: 1791785734
-main.o_mtime_after_make: 1791785736
+main.o_mtime_before_make: 1791785959
+main.o_mtime_after_make: 1791785960
 result: clean patch application and automatic rebuild verified
