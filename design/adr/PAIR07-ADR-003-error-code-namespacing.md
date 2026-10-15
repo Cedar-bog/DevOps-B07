@@ -4,7 +4,7 @@
 - 命名空间：`PAIR07-ADR-*` = A07 / B07 双方共同决策
 - 日期：2026-09-22
 - 关联任务：E2-B07-015（J3）
-- 关联文档：`contracts/examples/status_error.json`
+- 关联文档：`../../contracts/conventions/status_error.json`
 - 关联 ADR：`PAIR07-ADR-004`（放宽枚举属共享 Schema 变更）
 
 ## Context
@@ -43,8 +43,8 @@ A07 在 `error-codes.md` 中表示希望在 `ANALYSIS_*` 下细分更多编码�
 
 ### B07 侧落地
 
-- `contracts/examples/status_error.json`：`error_codes` 下每项加 `owner`（归属）与 `scope`（`platform` / `a-only`）标注，并新增 `namespaces` 块与 `consumer_tolerance` 说明。
-- `contracts/task.schema.json`：`job.error.code` 的 `description` 写明前缀分域与上述宽容规则。**枚举本身暂保持封闭为三个已协商码**——放宽为 `^ANALYSIS_[0-9]{4}$` 属共享 Schema 变更，按 `PAIR07-ADR-004` 须双方确认，B07 不在单方提交中先行修改。
+- `../../contracts/conventions/status_error.json`：`error_codes` 下每项加 `owner`（归属）与 `scope`（`platform` / `a-only`）标注，并新增 `namespaces` 块与 `consumer_tolerance` 说明。
+- `../../contracts/task.schema.json`：`job.error.code` 的 `description` 写明前缀分域与上述宽容规则。 **枚举本身暂保持封闭为三个已协商码**——放宽为 `^ANALYSIS_[0-9]{4}$` 属共享 Schema 变更，按 `PAIR07-ADR-004` 须双方确认，B07 不在单方提交中先行修改。
 
 ## Alternatives
 

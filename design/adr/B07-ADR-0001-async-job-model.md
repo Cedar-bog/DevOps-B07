@@ -4,7 +4,7 @@
 - 命名空间：`B07-ADR-*` = B07 单方决策；跨组共同决策见 `PAIR07-ADR-*`（约定见 `PAIR07-ADR-001`）
 - 日期：2026-09-19
 - 关联任务：E2-B07-011
-- 关联文件：`contracts/task.schema.json`、`contracts/examples/status_error.json`
+- 关联文件：`../../contracts/task.schema.json`、`../../../../contracts/conventions/status_error.json`
 
 ## Context
 
@@ -23,9 +23,9 @@
 - **创建**：`POST /v1/{job-type}-jobs`（如 `/v1/dockerfile-jobs`、`/v1/full-check-jobs`、`/v1/incremental-check-jobs`、`/v1/repair-jobs`）返回 `HTTP 202 Accepted`，响应体为 `{ "job_id": ..., "status": "QUEUED" }`。
 - **job_id 由服务端生成**，不随请求传入；请求携带输入与幂等键（`idempotency_key`），幂等键用于去重。
 - **查询**：`GET /v1/jobs/{job_id}` 返回完整 Job（含 `input`）与产物引用（`artifact://` URI）；运行中 `output` 为空以省略大日志与产物内容。
-- **状态机**：`QUEUED` → `RUNNING` → `SUCCEEDED | FAILED | TIMED_OUT | CANCELLED`；`SUCCEEDED` 也可能报告 MD/RD 发现。见 `contracts/examples/status_error.json` 的 transition 定义。
+- **状态机**：`QUEUED` → `RUNNING` → `SUCCEEDED | FAILED | TIMED_OUT | CANCELLED`；`SUCCEEDED` 也可能报告 MD/RD 发现。见 `../../contracts/conventions/status_error.json` 的 transition 定义。
 - **串联**：同一次平台流程的所有任务携带同一 `trace_id`（DRAFT → FULL_CHECK / INCREMENTAL_CHECK → REPAIR），查询链路贯穿该标识。
-- **公共字段**：`schema_version`、`job_id`、`trace_id`、`job_type`、`status`、`execution`、`input`、`output`、`error` 由 `contracts/task.schema.json` 统一约束；服务专有输入由各 `job_type` 分支约束。
+- **公共字段**：`schema_version`、`job_id`、`trace_id`、`job_type`、`status`、`execution`、`input`、`output`、`error` 由 `../../contracts/task.schema.json` 统一约束；服务专有输入由各 `job_type` 分支约束。
 
 ## Alternatives
 
