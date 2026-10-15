@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "consumed_types": ["MISSING"],
+  "ignored_types": ["REDUNDANT"],
+  "required_fields": ["type", "target", "dependency", "commit", "position", "detector"],
+  "position_required_fields": ["file", "line"],
+  "position_optional_fields": ["declaration"],
+  "detector_enum": ["BUILDCHECKER", "ECHECKER", "INSTRUCTOR_ORACLE"],
+  "commit_match": "findings[].commit 必须等于 input.repository.commit，不一致则拒绝该报告",
+  "a07_extra_fields": ["finding_id", "configuration_id", "evidence_uri"],
+  "examples": {
+    "error_report": {
+      "schema_version": "1.0",
+      "repository": {
+        "url": "https://github.com/example/clib",
+        "commit": "0123456789abcdef0123456789abcdef01234567"
+      },
+      "configuration_id": "cc-MODE0",
+      "producer_job_id": "job-full01",
+      "findings": [
+        {
+          "finding_id": "MISSING-clib-clib-settings-h",
+          "type": "MISSING",
+          "target": "clib",
+          "dependency": "src/common/clib-settings.h",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "position": {
+            "file": "Makefile",
+            "line": 5,
+            "declaration": "$(BINS): $(SRC)"
+          },
+          "detector": "ECHECKER"
+        },
+        {
+          "finding_id": "MISSING-fzy-o-fzy-h",
+          "type": "MISSING",
+          "target": "src/fzy.o",
+          "dependency": "src/fzy.h",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "position": {
+            "file": "Makefile",
+            "line": 42,
+            "declaration": "src/fzy.o: src/fzy.c"
+          },
+          "detector": "BUILDCHECKER"
+        },
+        {
+          "finding_id": "REDUNDANT-clib-legacy-c",
+          "type": "REDUNDANT",
+          "target": "clib",
+          "dependency": "src/legacy.c",
+          "commit": "0123456789abcdef0123456789abcdef01234567",
+          "detector": "ECHECKER"
+        }
+      ]
+    }
+  }
+}
