@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://devops.nju.edu.cn/b07/contracts/task.schema.json",
+  "$id": "https://github.com/Cedar-bog/DevOps-B07/main/contracts/task.schema.json",
   "title": "DevOps-B07 Unified Task Model",
-  "description": "统一任务模型：用同一份 Schema 表达 DRAFT、FULL_CHECK、INCREMENTAL_CHECK、REPAIR 四类耗时任务。公共字段由 B07 定义；FULL_CHECK 与 INCREMENTAL_CHECK 的具体输入字段由 A07 定义（见仓库 github.com/jkiuiui0058/DevOps-A07 的 docs/contracts/task.schema.json），B 侧仅提供占位与公共约束。",
+  "description": "DRAFT、FULL_CHECK、INCREMENTAL_CHECK、REPAIR 四类任务的统一任务模型。",
   "type": "object",
   "required": [
     "schema_version",
@@ -18,25 +18,24 @@
   "properties": {
     "schema_version": {
       "const": "1.0",
-      "description": "契约版本。共享 Schema 变更须同步版本号，见 docs/design/adr/B07-ADR-0002-artifact-passing.md §版本约定 与 PAIR07-ADR-004（同步流程、由变更发起方递增）。"
+      "description": "契约版本。"
     },
     "job_id": {
-      "type": "string",
-      "pattern": "^job-[a-z0-9-]+$",
-      "description": "任务编号，由服务端生成，不随请求传入。"
+      "$ref": "#/$defs/job_id",
+      "description": "任务编号，由服务端生成。"
     },
     "trace_id": {
       "type": "string",
       "pattern": "^trace-[a-z0-9-]+$",
-      "description": "同一次平台流程内所有任务共享的串联标识；DRAFT -> FULL_CHECK / INCREMENTAL_CHECK -> REPAIR 全链路携带同一 trace_id。"
+      "description": "串联同一次平台流程下所有任务的标识。"
     },
     "job_type": {
       "enum": ["DRAFT", "FULL_CHECK", "INCREMENTAL_CHECK", "REPAIR"],
-      "description": "任务类型：DRAFT 生成可构建环境；FULL_CHECK 全量依赖检测（A07）；INCREMENTAL_CHECK 跨提交增量检测（A07）；REPAIR 修复缺失依赖。"
+      "description": "任务类型。"
     },
     "status": {
       "enum": ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
-      "description": "任务状态。SUCCEEDED 也可能报告 MD/RD 发现（检测正常完成但发现缺失/冗余依赖）。状态枚举命名已由 A07 B07-INTEGRATION.md 确认。"
+      "description": "任务状态。SUCCEEDED 表示检测正常完成，此时仍可能报告 MISSING 或 REDUNDANT 发现。"
     },
     "execution": {
       "type": "object",
@@ -47,25 +46,25 @@
         "started_at": { "type": "string", "format": "date-time" },
         "finished_at": { "type": "string", "format": "date-time" },
         "attempts": { "type": "integer", "minimum": 1 },
-        "runner": { "type": "string", "description": "实际执行环境/工作节点标识。" }
+        "runner": { "type": "string", "description": "实际执行节点标识。" }
       },
       "additionalProperties": false
     },
     "input": {
       "type": "object",
-      "description": "任务输入。具体结构由 job_type 决定，见 allOf 条件约束。"
+      "description": "任务输入，结构由 job_type 决定。"
     },
     "output": {
       "type": ["object", "null"],
-      "description": "任务输出与产物引用。未完成或失败时可为空。具体结构由 job_type 决定。"
+      "description": "任务输出与产物引用，任务未完成时为空。"
     },
     "error": {
       "type": ["object", "null"],
-      "description": "系统执行错误。发现 MD/RD 属正常分析结果，写入 output 而非此处。",
+      "description": "系统执行错误。检测发现写入 output，不写此处。",
       "properties": {
         "code": {
           "enum": ["ENV_3002", "EXEC_4002", "ANALYSIS_5001"],
-          "description": "ENV_3002 镜像构建失败；EXEC_4002 任务超时；ANALYSIS_5001 分析器失败。命名已由 A07 error-codes.md 确认。按前缀分域（PAIR07-ADR-003）：ENV_* / EXEC_* 为平台共享、新增须双方确认；ANALYSIS_* 为 A07 专有、A07 可自由扩展。消费者须按前缀区分处理未知码——共享前缀下的未知码拒绝，A07 专有前缀下的未知码容忍（原样记录、不解析语义、不崩）。本枚举暂保持封闭为三个已协商码；放宽以使 ANALYSIS_* 细分也通过校验属共享 Schema 变更，须走 PAIR07-ADR-004 流程。"
+          "description": "系统执行错误码。ENV_3002 镜像构建失败，EXEC_4002 任务超时，ANALYSIS_5001 分析器失败。"
         },
         "message": { "type": "string" },
         "details": { "type": ["object", "null"] }
@@ -76,7 +75,6 @@
   },
   "allOf": [
     {
-      "$comment": "DRAFT：生成可构建环境（B07 定义输入输出）。",
       "if": { "properties": { "job_type": { "const": "DRAFT" } }, "required": ["job_type"] },
       "then": {
         "properties": {
@@ -89,20 +87,22 @@
                 "type": "object",
                 "required": ["command"],
                 "properties": {
-                  "command": { "type": "string", "minLength": 1 },
-                  "workdir": { "type": "string" }
+                  "command": { "type": "string", "minLength": 1, "description": "构建命令。" },
+                  "workdir": { "type": "string", "description": "工作目录。" }
                 },
                 "additionalProperties": false
               },
               "verify": {
                 "type": "object",
                 "required": ["command"],
-                "properties": { "command": { "type": "string", "minLength": 1 } },
+                "properties": {
+                  "command": { "type": "string", "minLength": 1, "description": "验证命令。" }
+                },
                 "additionalProperties": false
               },
-              "max_iterations": { "type": "integer", "minimum": 1 },
-              "time_limit": { "type": "integer", "minimum": 1, "description": "秒。" },
-              "idempotency_key": { "type": "string", "minLength": 1 }
+              "max_iterations": { "type": "integer", "minimum": 1, "description": "最大迭代次数。" },
+              "time_limit": { "type": "integer", "minimum": 1, "description": "时间限制，单位秒。" },
+              "idempotency_key": { "type": "string", "minLength": 1, "description": "幂等键。" }
             },
             "additionalProperties": false
           },
@@ -111,7 +111,7 @@
             "required": ["dockerfile", "image_ref", "rounds", "final_build", "final_verify"],
             "properties": {
               "dockerfile": { "type": "string", "description": "生成的 Dockerfile 文本。" },
-              "image_ref": { "type": "string", "description": "镜像引用，如 name:tag。" },
+              "image_ref": { "type": "string", "description": "镜像引用。" },
               "rounds": {
                 "type": "array",
                 "items": {
@@ -121,7 +121,7 @@
                     "iteration": { "type": "integer", "minimum": 1 },
                     "log": { "type": "string", "description": "本轮构建日志。" },
                     "changes": { "type": "string", "description": "本轮对 Dockerfile 的修改。" },
-                    "rationale": { "type": "string", "description": "本轮修改的选择理由。" }
+                    "rationale": { "type": "string", "description": "本轮修改的理由。" }
                   },
                   "additionalProperties": false
                 }
@@ -135,75 +135,91 @@
       }
     },
     {
-      "$comment": "FULL_CHECK：全量依赖检测。输入字段全集由 A07 定义（仓库 github.com/jkiuiui0058/DevOps-A07 的 docs/contracts/task.schema.json $defs/fullCheckInput）：repository / environment / build / configuration_id / commit / defined_by / idempotency_key。B 侧仅提供公共约束与占位，additionalProperties 保持宽松以免拒绝 A 侧字段。",
       "if": { "properties": { "job_type": { "const": "FULL_CHECK" } }, "required": ["job_type"] },
       "then": {
         "properties": {
           "input": {
             "type": "object",
-            "required": ["repository", "commit", "defined_by"],
+            "required": ["repository", "environment", "build", "configuration_id", "commit", "defined_by", "idempotency_key"],
             "properties": {
               "repository": { "$ref": "#/$defs/repository" },
+              "environment": {
+                "type": "object",
+                "required": ["image", "project_root"],
+                "properties": {
+                  "image": { "type": "string", "minLength": 1, "description": "运行环境镜像。" },
+                  "project_root": { "type": "string", "minLength": 1, "description": "项目根目录。" }
+                },
+                "additionalProperties": false
+              },
+              "build": { "$ref": "#/$defs/check_build" },
+              "configuration_id": { "type": "string", "minLength": 1, "description": "构建配置标识。" },
               "commit": { "$ref": "#/$defs/commit" },
-              "defined_by": {
-                "$comment": "输入字段全集见 A07 的 docs/contracts/task.schema.json $defs/fullCheckInput（environment.image / environment.project_root、build.clean_command / build.build_command / build.verify_command / build.timeout_seconds 等）。B 侧不逐字段约束，避免与 A 侧定义形成两处真源。",
-                "const": "A07"
-              }
+              "defined_by": { "const": "A07" },
+              "idempotency_key": { "type": "string", "minLength": 1, "description": "幂等键。" }
             },
-            "additionalProperties": true
+            "additionalProperties": false
           },
           "output": {
             "anyOf": [
               { "$ref": "#/$defs/artifact_set" },
               { "type": "null" }
             ],
-            "description": "输出为产物引用：实际依赖图、声明依赖图、MD/RD 报告（artifact:// URI）。"
+            "description": "输出为产物引用：实际依赖图、声明依赖图、MD 与 RD 报告。"
           }
         }
       }
     },
     {
-      "$comment": "INCREMENTAL_CHECK：跨提交增量检测。输入字段全集由 A07 定义（仓库 github.com/jkiuiui0058/DevOps-A07 的 docs/contracts/task.schema.json $defs/incrementalCheckInput）：base_commit / repository / environment / build / configuration_id / baseline / commit / defined_by / idempotency_key。B 侧保留 base_commit 与 baseline 必填占位；baseline 的必填三字段与 A07 $defs/baseline 一致。",
       "if": { "properties": { "job_type": { "const": "INCREMENTAL_CHECK" } }, "required": ["job_type"] },
       "then": {
         "properties": {
           "input": {
             "type": "object",
-            "required": ["repository", "commit", "base_commit", "baseline", "defined_by"],
+            "required": ["base_commit", "repository", "environment", "build", "configuration_id", "baseline", "commit", "defined_by", "idempotency_key"],
             "properties": {
+              "base_commit": { "$ref": "#/$defs/commit", "description": "基线提交 SHA。" },
               "repository": { "$ref": "#/$defs/repository" },
-              "commit": { "$ref": "#/$defs/commit", "description": "C1 的完整 SHA（新提交）。" },
-              "base_commit": { "$ref": "#/$defs/commit", "description": "C0 的完整 SHA（基线提交）。" },
+              "environment": {
+                "type": "object",
+                "required": ["image", "project_root"],
+                "properties": {
+                  "image": { "type": "string", "minLength": 1, "description": "运行环境镜像。" },
+                  "project_root": { "type": "string", "minLength": 1, "description": "项目根目录。" }
+                },
+                "additionalProperties": false
+              },
+              "build": { "$ref": "#/$defs/check_build" },
+              "configuration_id": { "type": "string", "minLength": 1, "description": "构建配置标识。" },
               "baseline": {
                 "type": "object",
                 "required": ["actual_graph_uri", "commit", "configuration_id"],
                 "properties": {
-                  "actual_graph_uri": { "$ref": "#/$defs/artifact_uri" },
+                  "actual_graph_uri": { "$ref": "#/$defs/artifact_uri", "description": "基线依赖图产物 URI。" },
                   "commit": { "$ref": "#/$defs/commit" },
-                  "configuration_id": { "type": "string", "minLength": 1 }
+                  "configuration_id": { "type": "string", "minLength": 1 },
+                  "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
                 },
-                "additionalProperties": true,
-                "description": "增量检测必须携带的历史基线（删除本字段应被拒绝）。三必填字段与 A07 $defs/baseline 一致；A07 侧还有可选 sha256。"
+                "additionalProperties": false,
+                "description": "增量检测必须携带的历史基线。"
               },
-              "defined_by": {
-                "$comment": "输入字段全集见 A07 的 docs/contracts/task.schema.json $defs/incrementalCheckInput。",
-                "const": "A07"
-              }
+              "commit": { "$ref": "#/$defs/commit", "description": "新提交 SHA。" },
+              "defined_by": { "const": "A07" },
+              "idempotency_key": { "type": "string", "minLength": 1, "description": "幂等键。" }
             },
-            "additionalProperties": true
+            "additionalProperties": false
           },
           "output": {
             "anyOf": [
               { "$ref": "#/$defs/artifact_set" },
               { "type": "null" }
             ],
-            "description": "输出为产物引用：当前发现、新增/消除的发现、更新后的依赖图。"
+            "description": "输出为产物引用：当前发现、新增或消除的发现、更新后的依赖图。"
           }
         }
       }
     },
     {
-      "$comment": "REPAIR：修复缺失依赖（B07 定义输入输出）。只消费 MISSING 类型。",
       "if": { "properties": { "job_type": { "const": "REPAIR" } }, "required": ["job_type"] },
       "then": {
         "properties": {
@@ -213,22 +229,19 @@
             "properties": {
               "repository": { "$ref": "#/$defs/repository" },
               "commit": { "$ref": "#/$defs/commit" },
-              "md_report_uri": {
-                "$ref": "#/$defs/artifact_uri",
-                "description": "MD 报告 URI，格式遵循 004 约定；只消费 MISSING 类型。"
-              },
+              "md_report_uri": { "$ref": "#/$defs/artifact_uri", "description": "MD 报告 URI，只消费 MISSING 类型。" },
               "makefile": { "type": "string", "description": "Makefile 文本或路径。" },
               "env": {
                 "type": "object",
                 "required": ["build", "verify"],
                 "properties": {
-                  "build": { "type": "string", "minLength": 1 },
-                  "verify": { "type": "string", "minLength": 1 }
+                  "build": { "type": "string", "minLength": 1, "description": "构建命令。" },
+                  "verify": { "type": "string", "minLength": 1, "description": "验证命令。" }
                 },
                 "additionalProperties": false
               },
               "verify": { "type": "string", "minLength": 1, "description": "构建与验证命令。" },
-              "idempotency_key": { "type": "string", "minLength": 1 }
+              "idempotency_key": { "type": "string", "minLength": 1, "description": "幂等键。" }
             },
             "additionalProperties": false
           },
@@ -272,12 +285,7 @@
       "type": "object",
       "required": ["url", "commit"],
       "properties": {
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "pattern": "^https?://",
-          "description": "仓库地址，必须为 http(s) URL。"
-        },
+        "url": { "type": "string", "format": "uri", "pattern": "^https?://", "description": "仓库地址。" },
         "commit": { "$ref": "#/$defs/commit" }
       },
       "additionalProperties": false
@@ -285,23 +293,34 @@
     "commit": {
       "type": "string",
       "pattern": "^[0-9a-f]{40}$",
-      "description": "完整提交 SHA（40 位十六进制）。"
+      "description": "完整提交 SHA。"
+    },
+    "check_build": {
+      "type": "object",
+      "required": ["clean_command", "build_command"],
+      "properties": {
+        "clean_command": { "type": "string", "minLength": 1, "description": "清理命令。" },
+        "build_command": { "type": "string", "minLength": 1, "description": "构建命令。" },
+        "verify_command": { "type": "string", "description": "验证命令。" },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "description": "超时时间，单位秒。" }
+      },
+      "additionalProperties": false
     },
     "artifact_uri": {
       "type": "string",
       "pattern": "^artifact://",
-      "description": "产物 URI，以 artifact:// 前缀标识；读取入口见 PAIR07-ADR-002（GET /v1/artifacts/{pair}/{job}/{file}）。"
+      "description": "产物 URI，以 artifact:// 为前缀。"
     },
     "artifact": {
       "type": "object",
       "required": ["artifact_id", "type", "uri", "media_type", "producer_job_id"],
       "properties": {
         "artifact_id": { "type": "string" },
-        "type": { "type": "string", "description": "如 ACTUAL_GRAPH / DECLARED_GRAPH / ERROR_REPORT / TRACE_LOG / BUILD_LOG。" },
+        "type": { "type": "string", "description": "产物类型。" },
         "uri": { "$ref": "#/$defs/artifact_uri" },
-        "media_type": { "type": "string", "description": "如 application/json。" },
+        "media_type": { "type": "string", "description": "媒体类型。" },
         "producer_job_id": { "$ref": "#/$defs/job_id" },
-        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "完整性核验用，可选。" }
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "完整性校验值。" }
       },
       "additionalProperties": false
     },
