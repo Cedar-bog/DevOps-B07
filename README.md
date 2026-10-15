@@ -19,7 +19,8 @@ Wiki：https://github.com/Cedar-bog/DevOps-B07/wiki
 
 ```
 DevOps-B07/
-└─── reference/             # 参考资料
-    ├─── papers/                # 复现论文
-    └─── slides/                # 课件
+├─── reference/             # 参考资料
+│   ├─── papers/                # 论文
+│   └─── slides/                # 课件
+└─── contracts/             # 接口契约
 ```
