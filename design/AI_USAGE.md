@@ -40,7 +40,7 @@
 | 提示摘要 | 「A组提出的待决定的 J1–J5 给我一版最推荐的方案我去和 a 组商量」；「现在所有未决定的方案都按照 b 组给出的推荐方案来执行吧，然后更新好 README 和 backlog」                                                                                                                                                                                                                                                                                                                         |
 | AI 建议 | 在 `task.schema.json` 落地三处：①J4——`schema_version` 的描述由裸引用 `ADR/002` 改为指向 `B07-ADR-0002` §版本约定与 `PAIR07-ADR-004`（同步流程、由变更发起方递增）；②J3——`error.code` 描述补入前缀分域与「按前缀区分处理未知码」，并注明枚举**暂保持封闭**、放宽属共享 Schema 变更须走 `PAIR07-ADR-004`；③把 FULL_CHECK / INCREMENTAL_CHECK 两个分支的 `$comment` 与 `defined_by` 由「由 A07 定义」的模糊占位，改为**指名 A07 仓库与具体 `$defs` 路径并列出字段全集**，同时明确 B 侧不逐字段约束以免形成两处真源。`additionalProperties` 与 `required` 有意**不动**。 |
 | 人工判断 | **采纳**。人工要求方案落地时同步更新 README 与 backlog，并要求不把 A 侧字段编码进 B 的 schema。                                                                                                                                                                                                                                                                                                                                                    |
-| 关联文件 | `docs/contracts/task.schema.json`，提交 `5f229cb`                                                                                                                                                                                                                                                                                                                                                                      |
+| 关联文件 | `../contracts/task.schema.json`，提交 `5f229cb`                                                                                                                                                                                                                                                                                                                                                                      |
 | 验证 | `uv run docs/contracts/validate.py` → 正向 23 / 失败输入 7 / 失败 0，`EXIT=0`；`additionalProperties: false` 的严格性未放宽                                                                                                                                                                                                                                                                                                          |
 
 
@@ -50,7 +50,7 @@
 | 提示摘要 | 「现在所有未决定的方案都按照 b 组给出的推荐方案来执行」 |
 | AI 建议 | 落地 J3：`error_codes` 新增 `namespaces`（`ENV_*` / `EXEC_*` 归平台共享、`ANALYSIS_*` 归 A07 专有）与 `consumer_tolerance`（共享前缀未知码 `REJECT`、A07 专有前缀未知码 `TOLERATE`），各错误码补 `owner` / `scope`；`open_items` 重写为 4 条（状态枚举已确认、错误码已确认、更细的 A07 编码先用 `message` / `details` 表达、枚举放宽为后续项）。**AI 在此处偏离提案原文**：提案写「消费者必须容忍未知错误码」，但既有负例 `unknown_error_code` 断言 `ENV_9999` 必须被拒绝，故收紧为按前缀区分，并就此显式向人工说明。 |
 | 人工判断 | **修改后采纳**。人工接受前缀分域规则，并**亲自修订** `PAIR07-ADR-003` 的待办措辞，把「放宽 `error.code` 枚举」明确为须按 `PAIR07-ADR-004` 流程发起的后续项（提交 `134220d`）。 |
-| 关联文件 | `docs/contracts/examples/status_error.json`，提交 `5f229cb`；`docs/design/adr/PAIR07-ADR-003-error-code-namespacing.md`，提交 `134220d` |
+| 关联文件 | `../contracts/conventions/status_error.json`，提交 `5f229cb`；`..`，提交 `134220d` |
 | 验证 | `unknown_error_code` 用例（`/error/code` → `ENV_9999` → `enum`）仍 PASS，既有验收条件未被推翻 |
 
 
@@ -61,7 +61,7 @@
 | 提示摘要 | 「@https://github.com/jkiuiui0058/DevOps-A07 这是 a 组的相关样例等信息，现在继续完成backlog中记录的未完成任务」；「现在所有未决定的方案都按照 b 组给出的推荐方案来执行」                                                                                                                                                                                                                                                                      |
 | AI 建议 | 改动五处：①J1——`reading.resolution` 由「解析器或实际下载接口由平台定义，见 ADR 012」改为明确写出 HTTP 入口 `GET /v1/artifacts/{pair}/{job}/{file}` 及 200 / 404 / 403 语义，并注明共享目录仅作可选降级；②C2——全部 URI 的 pair 段 `pair01` → `pair07`；③C3——产物类型 `LOG` 拆为 `BUILD_LOG` 与 `TRACE_LOG` 并新增后者的示例，同步更新 `media_type` 与 `type_match` 说明；④`parsing.ref` 单值改为 `refs` 数组，指向 `B07-ADR-0002` 与 `PAIR07-ADR-002`；⑤`open_items` 重写为 4 条已决结论。 |
 | 人工判断 | **采纳**。                                                                                                                                                                                                                                                                                                                                                                               |
-| 关联文件 | `docs/contracts/examples/artifact.json`，提交 `5f229cb`                                                                                                                                                                                                                                                                                                                                  |
+| 关联文件 | `../contracts/conventions/artifact.json`，提交 `5f229cb`                                                                                                                                                                                                                                                                                                                                  |
 | 验证 | 因新增 `TRACE_LOG` 示例，正向样例由 17 条增至 18 条（A07 样例落地后为 23 条），失败 0 条                                                                                                                                                                                                                                                                                                                          |
 
 
@@ -72,7 +72,7 @@
 | 提示摘要 | 「@https://github.com/jkiuiui0058/DevOps-A07 现在继续完成backlog中记录的未完成任务」 |
 | AI 建议 | ①J1——解析入口改为 HTTP 统一入口，并注明 404 同时覆盖「未找到」与「已过保留期」；②C4——把 `detector` 补进 `required_fields.fields` **并补进 `definitions`**（原文件声明了 `additionalProperties: false`，但 `definitions` 里没有 `detector`，连 B 自己的样例都会被判非法）；③C5——显式登记 A07 的 `finding_id` / `configuration_id` / `evidence_uri` 三个可选字段（B 不消费，仅保证可解析），维持 `additionalProperties: false`。AI 主动说明 C4 超出原计划多改了一处。 |
 | 人工判断 | **采纳**。 |
-| 关联文件 | `docs/contracts/examples/error_report.json`，提交 `5f229cb` |
+| 关联文件 | `../contracts/conventions/error_report.json`，提交 `5f229cb` |
 | 验证 | 以 A07 的 `error-report.schema.json` + `finding.schema.json` 校验本示例 → **0 错误** |
 
 
@@ -84,7 +84,7 @@
 | 提示摘要 | 「@https://github.com/jkiuiui0058/DevOps-A07 现在继续完成backlog中记录的未完成任务」 |
 | AI 建议 | C2：`md_report_uri` 的 pair 段 `artifact://pair01/full01/error_report.json` → `artifact://pair07/…`。 |
 | 人工判断 | **采纳**（pair 段由 A07 `A07:ADR-003` 定为 `pair07`）。 |
-| 关联文件 | `docs/contracts/examples/repair_request.json`，提交 `5f229cb` |
+| 关联文件 | `../contracts/examples/repair/request.json`，提交 `5f229cb` |
 | 验证 | 全仓残留扫描 `artifact://pair01` → 0 处 |
 
 ### E2-B07-008 REPAIR 响应样例
@@ -94,7 +94,7 @@
 | 提示摘要 | 同上 |
 | AI 建议 | C2：`md_report_uri` 的 pair 段改为 `pair07`；同时修正 `execution.runner` 里遗留的 `repair-runner-pair01` → `repair-runner-pair07`。 |
 | 人工判断 | **采纳**。 |
-| 关联文件 | `docs/contracts/examples/repair_response.json`，提交 `5f229cb` |
+| 关联文件 | `../contracts/examples/repair/response.json`，提交 `5f229cb` |
 | 验证 | 全仓残留扫描无 `pair01` |
 
 
@@ -105,7 +105,7 @@
 | 提示摘要 | 同上                                                                                                                                                                                                                                                 |
 | AI 建议 | C1：`running` 响应体原用 `input_summary` 代替 `input`、`succeeded` 响应体两者皆无，均不满足 `task.schema.json` 的 `required: input`；改为两个响应体都携带完整 `input`，并把 `$comment` 从「运行中返回轻量状态视图」改写为「GET 在所有状态都返回完整 Job」。AI 按 TDD 先删除 `validate.py` 中专为查询视图放宽 `required` 的 `QUERY_VIEWS` 例外（连带 `_without_required_input()`）并观察用例转红，证明该例外确为承重，再补样例转绿。 |
 | 人工判断 | **采纳**。依据 A07 `ADR-002`「查询返回完整 Job」的定法；人工同时要求同步改掉 `B07-ADR-0001` 与 `status_error.json` 中「返回输入摘要」的措辞，避免文档与契约不一致。                                                                                                                                                                                                    |
-| 关联文件 | `docs/contracts/examples/job_query.json`、`docs/contracts/validate.py`、`docs/design/adr/B07-ADR-0001-async-job-model.md`，提交 `5f229cb`                                                                                                                                                                               |
+| 关联文件 | `../contracts/examples/job_query.json`、`..`、`..`，提交 `5f229cb`                                                                                                                                                                               |
 | 验证 | 删除例外后查询响应体与 `task.schema.json` 的 `required.input` 一致，无特例；正向 18 条、失败 0 条                                                                                                                                                                                                                                            |
 
 
@@ -118,7 +118,7 @@
 | 提示摘要 | 「阅读 design/ 目录下的项目设计和 backlog.md 任务表，在全面掌握目前项目已经完成的任务继续完成任务 E2-B07-010」；「失败输入校验脚本理论上应该怎么完成最标准」；把需要 a 侧确认和定义的部分给出标注」                                                                    |
 | AI 建议 | 三层架构：Schema 层（只加载 `task.schema.json`，**不重述任何约束**，避免脚本与 Schema 漂移）、发现层（按结构签名分类 payload）、校验层（正向一致性 + 失败输入）。失败输入用 7 条**变异 fixture**。另建议把 stdout 固定为 UTF-8（本机 Python 默认 GBK，中文报告在 CI 会乱码）。 |
 | 人工判断 | **采纳**。人工先要求给出「最标准」的做法再动手，并按 AI 提示把范围从 010 扩到 B 侧 E2 全部未完成任务，同时要求标注所有需 A 侧确认/定义的项。                                                                                                     |
-| 关联文件 | `docs/contracts/validate.py`；`docs/contracts/fixtures/negative/`（7 条）；`.gitignore`；`pyproject.toml`（dev 依赖）；`docs/design/backlog.md`。提交 `947e11e`                                      |
+| 关联文件 | `../contracts/validate.py`；`..`（7 条）；`.gitignore`；`../../../pyproject.toml`（dev 依赖）；`..`。提交 `947e11e`                                      |
 | 验证 | `uv run docs/contracts/validate.py` → `EXIT=0`；`uv run pytest docs/contracts/validate.py -q` → `8 passed`；当时正向 17 条（A07 样例落地后为 23 条）、失败输入 7 条、失败 0 条                                   |
 
 #### 记录 2 · 验收 04 的落地方式
@@ -128,7 +128,7 @@
 | 提示摘要 | 「验收 04 要求解释 MD vs 工具失败给出设计方案                                                                                                                                                                                                                                                             |
 | AI 建议 | 先承认此前提问不严谨——把「按约束类别各一条」与「怎么满足验收 04」混成一个选项，使 04 在选项中隐形。指出验收 02/03 属 Schema 约束违规（`enum` / `required`），可由 fixture 覆盖；验收 04 是 002 定的**语义建模约定**（MD 是正常结果，写 `output.ERROR_REPORT`；工具失败是系统错误，写 `job.error`），Schema 表达不了。故建议 04 以**语义不变式** `check_semantic_invariants()` 落地，而非纯文字说明——文字说明会与实现漂移。 |
 | 人工判断 | **修改后采纳**。人工坚持把 04 做成语义不变式，并追问 AI 是否因此偏离原设计；确认原设计无技术缺陷后，确立分工：fixture 覆盖 Schema 约束违规，不变式覆盖 Schema 无法表达的语义约定。                                                                                                                                                                              |
-| 关联文件 | `docs/contracts/validate.py`（`check_semantic_invariants()`，第 253 行）；`docs/contracts/fixtures/negative/succeeded_with_error.json`                                                                                                                                                         |
+| 关联文件 | `../contracts/validate.py`（`check_semantic_invariants()`，第 253 行）；`..`                                                                                                                                                         |
 | 验证 | `validate.py` 输出打印不变式说明段、`EXIT=0`；`pytest` → `8 passed`                                                                                                                                                                                                                                  |
 
 
@@ -139,7 +139,7 @@
 | 提示摘要 | 无直接提示（AI 在实现前主动探测全部样例）；随后人工就处置方式作出决定 |
 | AI 建议 | 用一次性探测脚本核对全部 payload，发现 `job_query.json` 的 `running` / `succeeded` 两个响应体不满足根 Schema 的 `required: input`。AI 判定这是 Schema 要求与查询投影视图之间的建模差异，需人工定夺。 |
 | 人工判断 | **修改后采纳**。最终按 A07 `ADR-002` 的定法对齐（落地见 009）。 |
-| 关联文件 | `docs/contracts/examples/job_query.json`（属 009）；`docs/contracts/validate.py`；`docs/design/adr/B07-ADR-0001-async-job-model.md`（属 011） |
+| 关联文件 | `../contracts/examples/job_query.json`（属 009）；`..`；`..`（属 011） |
 | 验证 | 按 TDD 先删 `QUERY_VIEWS` 并观察用例转红（证明该例外确为承重），再补样例转绿 |
 
 ### E2-B07-011 ADR：异步任务模型
@@ -149,7 +149,7 @@
 | 提示摘要 | 按照 b 组给出的推荐方案完成任务011                                                                                                                                                                                      |
 | AI 建议 | ①J5——用 `git mv` 将 `0001-async-job-model.md` 改名为 `B07-ADR-0001-async-job-model.md`，更新标题、补「状态」与「命名空间」行，把交叉引用由裸编号改为带组名前缀（`A07:ADR-002`、`B07-ADR-0002`）；②C1——把「运行中返回输入摘要」的措辞同步为「返回完整 Job」，该措辞原本与 A07 的查询响应约定相矛盾。 |
 | 人工判断 | **采纳**。人工另将该 ADR 状态定为 `Accepted`（B 单方决策）。                                                                                                                                                                 |
-| 关联文件 | `docs/design/adr/B07-ADR-0001-async-job-model.md`，提交 `5f229cb`                                                                                                                                            |
+| 关联文件 | `adr/B07-ADR-0001-async-job-model.md`，提交 `5f229cb`                                                                                                                                            |
 | 验证 | 全仓扫描无遗留裸编号 `ADR-002` 跨组引用                                                                                                                                                                                 |
 | 待补 | 本任务**原始决策**阶段（郑悫）的交互记录未录入                                                                                                                                                                                 |
 
@@ -160,7 +160,7 @@
 | 提示摘要 | 同上 |
 | AI 建议 | ①J5——改名为 `B07-ADR-0002-artifact-passing.md` 并更新标题与命名空间行；②J1——「解析入口由平台定义（下载接口或解析器）」改为写出 `PAIR07-ADR-002` 的 HTTP 接口形状（200 / 404 / 403），并声明共享目录是被本文 Alternatives 否决方案的变体；③J2——「代价与待办」补入保留与清理结论（平台统一 GC、终态后 30 天、pair 内只读互访、硬约束「有引用则不删」）；④C3——产物类型 `LOG` 拆为 `BUILD_LOG` / `TRACE_LOG`。 |
 | 人工判断 | **采纳**。 |
-| 关联文件 | `docs/design/adr/B07-ADR-0002-artifact-passing.md`，提交 `5f229cb` |
+| 关联文件 | `adr/B07-ADR-0002-artifact-passing.md`，提交 `5f229cb` |
 | 验证 | 文中引用的 `PAIR07-ADR-002` 条目存在且状态为 `Accepted` |
 | 待补 | 本任务**原始决策**阶段（郑悫）的交互记录未录入 |
 
@@ -173,7 +173,7 @@
 | 提示摘要 | 「design/AI_USAGE.md 暂时搁置」（AI 一度把 013 列入「B 侧 E2 未完成任务」一并推进）     |
 | AI 建议 | 把 013 与 010/014/015 一同完成，由 AI 直接撰写成稿。                          |
 | 人工判断 | **拒绝**。人工明确暂缓——本文件是设计过程证据，在人工提供素材之前不写，以免虚构「哪些内容由 AI 提出」。       |
-| 关联文件 | `docs/design/AI_USAGE.md`；`docs/design/backlog.md`（E2-B07-013） |
+| 关联文件 | `AI_USAGE.md`；`..`（E2-B07-013） |
 | 验证 | 暂缓期间 `backlog.md` 中 E2-B07-013 保持 `部分`，未产生无据内容                 |
 
 #### 记录 2 · 依据会话记录据实成稿
@@ -183,7 +183,7 @@
 | 提示摘要 | 「帮我搭建一个 AI_USAGE 框架，格式和内容要满足可以直接交付的标准，我在本地和 claude code（接 deepseek v4.1 flash）的相关对话你都可以参考，我来按照实际情况进行修改。」                                                  |
 | AI 建议 | 不凭空编写，改为从本地会话记录（`.jsonl`）中抽取真实时间戳与原始发言作为素材；各条目的「AI 建议」以 `git show` 的实际 diff 为准。同时检索 `PENDING` 无命中，故**不写入**课程 slide 14 举例的「PENDING → QUEUED」条目（本项目未发生该事件）。 |
 | 人工判断 | **采纳方向**。人工提供真实会话记录、保留最终核对与修改权；AI 只做整理，不追加事后结论。                                                                                                           |
-| 关联文件 | `docs/design/AI_USAGE.md`（本文件）                                                                                                                            |
+| 关联文件 | `AI_USAGE.md`（本文件）                                                                                                                            |
 | 验证 | 各条目的关联文件与提交 SHA 均经 `git show --name-only` / `--stat` 核对；校验结论取自实际运行结果（见第四节）                                                                                |
 
 ### E2-B07-014 交换契约样例
@@ -195,7 +195,7 @@
 | 提示摘要 | 「@https://github.com/jkiuiui0058/DevOps-A07 这是 a 组的相关样例等信息，现在更新所有需要A组提供信息的部分           |
 | AI 建议 | 判定**不能一次收口**：A07 此前交的是**分歧说明**，不是样例文件，而 014 缺的恰好是后者。建议先按分歧说明把 B 侧自己的 5 项冲突对齐，样例文件另行索取。 |
 | 人工判断 | **采纳**。据此向 A07 索取仓库地址与样例。                                                              |
-| 关联文件 | `docs/design/backlog.md`（E2-B07-014 状态说明）                                              |
+| 关联文件 | `backlog.md`（E2-B07-014 状态说明）                                              |
 | 验证 | `backlog.md` 中 014 状态如实标注为「阻塞」而非直接宣称完成                                                 |
 
 #### 记录 2 · A07 样例落地与递归发现
@@ -205,7 +205,7 @@
 | 提示摘要 | 同上（A07 仓库到位后） |
 | AI 建议 | 原样落地 A07 的 5 份样例（`full-check/`、`incremental-check/`）+ 1 份负例（`invalid/`）；把发现层从非递归 `glob("*.json")` 改为 `rglob`，否则子目录样例会被**静默忽略**且「防静默漏判」守卫也抓不到；为 `examples/invalid/` 增设负例分区（SKIP 显式列出）；并补齐 `error_report.json` 相对 A07 schema 缺失的两个必填点（`finding_id`、顶层 `configuration_id`）。 |
 | 人工判断 | **采纳**。 |
-| 关联文件 | `docs/contracts/examples/full-check/*`（3 份）、`incremental-check/*`（2 份）、`invalid/incremental-without-baseline.json`；`docs/contracts/validate.py`；`docs/contracts/examples/error_report.json`。提交 `5f229cb` |
+| 关联文件 | `..`（3 份）、`incremental-check/*`（2 份）、`invalid/incremental-without-baseline.json`；`../contracts/validate.py`；`..`。提交 `5f229cb` |
 | 验证 | 正向样例 18 → **23** 条（+5 条 A07 样例）、失败输入仍 7 条、失败 0 条；负例以 `SKIP` 行显式列出、不计入正向也不误报漏判 |
 
 ### E2-B07-015 交换决定与未决追踪
@@ -217,7 +217,7 @@
 | 提示摘要 | 「待决定的 J1–J5 给我一版最推荐的方案我去和 a 组商量」；「单独出一份提案文件，并列出所有 a 组仍然需要交给我们的全部信息」 |
 | AI 建议 | 逐条给出 J1–J5 推荐方案与理由，并主动指出两处已有答案：**J4 不必重新设计**（`B07-ADR-0002` §版本约定已写明变更须同步 `schema_version`），以及 **`ADR-002` 在两边指向不同文档**（B 的产物传递 vs A 的查询响应），裸编号跨组必然歧义。建议单独出提案文件并列出 A07 尚欠的交接物。 |
 | 人工判断 | **采纳**，用于与 A07 当面沟通。 |
-| 关联文件 | `docs/design/backlog.md` §六 §七（提案文件后由人工删除，相关引用已清理） |
+| 关联文件 | `backlog.md` §六 §七（提案文件后由人工删除，相关引用已清理） |
 | 验证 | 该轮结论最终落为 `PAIR07-ADR-001~004`，见记录 2 |
 
 #### 记录 2 · 按推荐方案落地 J1–J5
@@ -227,7 +227,7 @@
 | 提示摘要 | 「现在所有未决定的方案都按照 b 组给出的推荐方案来执行，并更新好 README 和 backlog」；                                                                                                                                                                                                                                                                         |
 | AI 建议 | 落地 4 份共同决策 ADR（`PAIR07-ADR-001~004`）；把两份 B07 ADR 用 `git mv` 改名并更新全仓引用；J1 落到 `artifact.json` / `error_report.json` / `task.schema.json`，J3 落到 `status_error.json` 与 `task.schema.json`；C1–C5 逐项对齐；README 增「架构决策记录（ADR）」章节。**一处偏离提案原文**：提案中 J3 原文是「消费者必须容忍未知错误码」，但仓库既有负例 `unknown_error_code` 断言 `ENV_9999` 必须被拒绝（约束类别 `enum`），无条件容忍会推翻该既有验收，故 AI 把规则精确为**按前缀区分**，并就此显式向人工说明。 |
 | 人工判断 | **修改后采纳**。接受前缀分域；并**由人工亲自修订** `PAIR07-ADR-003` 的待办措辞（提交 `134220d`）。人工另将 4 份 ADR 状态定为 `Accepted`、backlog 中 015 改为 `DONE`。                                                                                                                                                                                                                                                   |
-| 关联文件 | `docs/design/adr/PAIR07-ADR-001~004`；`B07-ADR-0001` / `B07-ADR-0002`（改名）；`docs/contracts/task.schema.json`；`examples/status_error.json`；`examples/artifact.json`；`examples/error_report.json`；`examples/job_query.json`；`examples/repair_request.json`；`examples/repair_response.json`；`README.md`；`docs/design/backlog.md`。提交 `5f229cb`、`134220d`                         |
+| 关联文件 | `..`；`B07-ADR-0001` / `B07-ADR-0002`（改名）；`../contracts/task.schema.json`；`examples/status_error.json`；`examples/artifact.json`；`examples/error_report.json`；`examples/job_query.json`；`examples/repair_request.json`；`examples/repair_response.json`；`README.md`；`..`。提交 `5f229cb`、`134220d`                         |
 | 验证 | `validate.py` 正向 23 / 失败输入 7 / 失败 0，`EXIT=0`；`pytest` → `8 passed`；残留扫描 `artifact://pair01` 0 处、`"type": "LOG"` 0 处                                                                                                                                                                                                                                                        |
 
 
@@ -235,11 +235,11 @@
 
 | 阶段 | 提交 | 内容 |
 |---|---|---|
-| E2-B07-010 | `947e11e` | `validate.py` + 7 条失败输入 fixture + `.gitignore` + backlog 的 A 侧未决清单 |
+| E2-B07-010 | `947e11e` | `validate.py` + 7 条失败输入 fixture + `../.gitignore` + backlog 的 A 侧未决清单 |
 | E2-B07-014 / 015 收口 | `5f229cb` | A07 样例落地（5 份 + 1 负例）、递归发现与负例分区、`PAIR07-ADR-001~004`、C1–C5 与 J1/J3 落地、两份 B07 ADR 改名、README ADR 章节；含 001–004、007–009、011、012 各产物的改动 |
 | 人工修订 | `134220d` | 由人工修订 `PAIR07-ADR-003` 待办措辞 |
 
-契约版本：`docs/contracts/task.schema.json` 的 `schema_version` 为 `const: "1.0"`（同步流程见 `PAIR07-ADR-004`）。
+契约版本：`../contracts/task.schema.json` 的 `schema_version` 为 `const: "1.0"`（同步流程见 `PAIR07-ADR-004`）。
 
 ## 四、验证汇总
 
@@ -261,9 +261,9 @@
 | 字段 | 内容 |
 |---|---|
 | 提示摘要 | 「在新分支中完成002」；人工就分支名与基点、基础镜像写法、提交与记录范围、负责人逐项确认 |
-| AI 建议 | ①分支：从 `main` 新建 `E3/B07-002`；②新增 `fixtures/draft/Dockerfile.broken`（沿用课件 `FROM python:3.13-slim`，故意不含 `make`/C 工具链）；③本机 WSL 未启用 Docker Desktop 集成，AI 发现可用 Windows 侧 `docker.exe`（引擎 29.8.2，registry mirror `docker.1ms.run`）驱动构建，并实测其能读取 WSL 路径作为构建上下文；④真实构建并把日志落盘 `evidence/draft/broken.log`，头部记录命令、Docker 版本、基础镜像 digest、Dockerfile SHA-256 与退出码，原始输出逐字保留；⑤更新 `fixtures/draft/README.md` 失败样例小节与 `backlog.md` |
+| AI 建议 | ①分支：从 `main` 新建 `E3/B07-002`；②新增 `../to_be_organized/fixtures/draft/Dockerfile.broken`（沿用课件 `FROM python:3.13-slim`，故意不含 `make`/C 工具链）；③本机 WSL 未启用 Docker Desktop 集成，AI 发现可用 Windows 侧 `docker.exe`（引擎 29.8.2，registry mirror `docker.1ms.run`）驱动构建，并实测其能读取 WSL 路径作为构建上下文；④真实构建并把日志落盘 `../../evidence`，头部记录命令、Docker 版本、基础镜像 digest、Dockerfile SHA-256 与退出码，原始输出逐字保留；⑤更新 `../../fixtures` 失败样例小节与 `backlog.md` |
 | 人工判断 | **采纳**。人工选定：分支 `E3/B07-002` 从 `main`；基础镜像保持 `python:3.13-slim`、仅在日志记录解析 digest；完成后提交并同步 backlog 与 AI_USAGE；负责人填 `郑悫` |
-| 关联文件 | `fixtures/draft/Dockerfile.broken`、`evidence/draft/broken.log`、`fixtures/draft/README.md`、`docs/design/backlog.md`，提交 `8002fef` |
+| 关联文件 | `../to_be_organized/fixtures/draft/Dockerfile.broken`、`../../evidence`、`../../fixtures`、`..`，提交 `8002fef` |
 | 验证 | `docker build --progress=plain --no-cache -f fixtures/draft/Dockerfile.broken …` → `docker build` 退出码 `1`；容器内 `RUN make` 退出码 `127`，日志命中 `/bin/sh: 1: make: not found`；失败点定位 `Dockerfile.broken:4`；基础镜像解析 digest `sha256:bf44cdf…`；契约校验 `uv run docs/contracts/validate.py` → 正向 23、失败输入 7、失败 0（本次未改契约） |
 
 ### E3-B07-003 DRAFT 参考成功样例
@@ -271,9 +271,9 @@
 | 字段 | 内容 |
 |---|---|
 | 提示摘要 | 「已合并到main，继续003」 |
-| AI 建议 | ①从 `main` 新建 `E3/B07-003`；②新增 `fixtures/draft/Dockerfile.reference`，在 002 失败文件基础上加 `apt-get install -y --no-install-recommends gcc make libc6-dev`；③用 `docker.exe` 实测 `--no-cache` 构建（退出码 `0`）并 `docker run --rm`（输出 `hello E3`、退出码 `0`），把完整 build 与 run 日志落盘 `evidence/draft/reference.log`，头部记录镜像 ID、基础镜像 digest、Dockerfile SHA-256 与两处退出码；④README 增参考成功小节（含与失败样例的差异表）；⑤把 backlog E3-B07-003 置 DONE；⑥顺带把 002 在 AI_USAGE 中的提交 SHA 由分支原始值改为合并入 `main` 后的值 |
+| AI 建议 | ①从 `main` 新建 `E3/B07-003`；②新增 `../to_be_organized/fixtures/draft/Dockerfile.reference`，在 002 失败文件基础上加 `apt-get install -y --no-install-recommends gcc make libc6-dev`；③用 `docker.exe` 实测 `--no-cache` 构建（退出码 `0`）并 `docker run --rm`（输出 `hello E3`、退出码 `0`），把完整 build 与 run 日志落盘 `../../evidence`，头部记录镜像 ID、基础镜像 digest、Dockerfile SHA-256 与两处退出码；④README 增参考成功小节（含与失败样例的差异表）；⑤把 backlog E3-B07-003 置 DONE；⑥顺带把 002 在 AI_USAGE 中的提交 SHA 由分支原始值改为合并入 `main` 后的值 |
 | 人工判断 | **采纳**。沿用 002 已确认的约定：从 `main` 拉分支、基础镜像保持 tag 并在日志记录 digest、提交并同步 backlog 与 AI_USAGE、负责人 `郑悫` |
-| 关联文件 | `fixtures/draft/Dockerfile.reference`、`evidence/draft/reference.log`、`fixtures/draft/README.md`、`docs/design/backlog.md`，提交 `a90d569` |
+| 关联文件 | `../to_be_organized/fixtures/draft/Dockerfile.reference`、`../../evidence`、`../../fixtures`、`..`，提交 `a90d569` |
 | 验证 | `docker build --progress=plain --no-cache -f fixtures/draft/Dockerfile.reference …` → 退出码 `0`；镜像 ID `sha256:e3e6855586b42b3d0c5102f6812d904bb39cc57582881a65574f216f57f33bb7`；`docker run --rm nju-e3-draft-reference:20260906` → 标准输出 `hello E3`、退出码 `0`；契约校验不受影响（本次未改契约） |
 
 ### E3-B07-007 共同信息与失败记录
@@ -281,10 +281,10 @@
 | 字段 | 内容 |
 |---|---|
 | 提示摘要 | 「指派给我，完成007任务，应当在本地新建一个分支，确保完成之后再并入main」；人工确认分支命名、脚本范围、未完成项处理、AI_USAGE 记录范围与合并方式（保持线性） |
-| AI 建议 | ①从 `main` 新建 `E3/B07-007`；②新增 `scripts/verify-draft.sh`（复现 DRAFT 两层判据与 docker 失败/参考两相，无 Docker 引擎时跳过并提示）与 `scripts/verify-all.sh`（串联 draft 与 md-fixer）；③用脚本重跑并刷新 `evidence/`；④重写根 `README.md`：补全仓库结构、小组分工、环境版本、DRAFT/MDFixer 复现步骤、ORACLE 与真实日志分离、仓库地址与各产物提交 SHA、以及「未完成/已知问题」小节；⑤backlog 置 `E3-B07-007` 为 DONE（负责人 `刘雯`）；⑥仅新增本记录，不改动其他 E3 记录；⑦保持线性历史，以 `--ff-only` 并入 `main` |
+| AI 建议 | ①从 `main` 新建 `E3/B07-007`；②新增 `../to_be_organized/scripts`（复现 DRAFT 两层判据与 docker 失败/参考两相，无 Docker 引擎时跳过并提示）与 `../../scripts`（串联 draft 与 md-fixer）；③用脚本重跑并刷新 `../../evidence`；④重写根 `README.md`：补全仓库结构、小组分工、环境版本、DRAFT/MDFixer 复现步骤、ORACLE 与真实日志分离、仓库地址与各产物提交 SHA、以及「未完成/已知问题」小节；⑤backlog 置 `E3-B07-007` 为 DONE（负责人 `刘雯`）；⑥仅新增本记录，不改动其他 E3 记录；⑦保持线性历史，以 `--ff-only` 并入 `main` |
 | 人工判断 | **采纳**。人工选定：分支 `E3/B07-007`；脚本范围为 `verify-draft` + `verify-all`（推荐）；未完成项仅记录、不修复；AI_USAGE 仅加 007 记录；分成多个提交；合并保持线性（`--ff-only`） |
-| 关联文件 | `scripts/verify-draft.sh`、`scripts/verify-all.sh`、`evidence/draft/build.log`、`evidence/md-fixer/*.log`、`README.md`、`docs/design/backlog.md`、`docs/design/AI_USAGE.md` |
-| 验证 | WSL Ubuntu 下 `bash scripts/verify-all.sh`：DRAFT `build` 相位 `make` 退出码 `0`、`./hello` 输出 `hello E3`；docker 两相因本机未启用 Docker Desktop 集成而由脚本跳过并提示；MDFixer 五相位（apply/before/after/reapply/rejected）全部通过，日志刷新落盘 `evidence/` |
+| 关联文件 | `../to_be_organized/scripts`、`../../scripts`、`../../evidence`、`../../evidence`、`README.md`、`..`、`..` |
+| 验证 | WSL Ubuntu 下 `bash scripts/verify-all.sh`：DRAFT `build` 相位 `make` 退出码 `0`、`./hello` 输出 `hello E3`；docker 两相因本机未启用 Docker Desktop 集成而由脚本跳过并提示；MDFixer 五相位（apply/before/after/reapply/rejected）全部通过，日志刷新落盘 `../to_be_organized/evidence` |
 
 ## 六、E3 提交与版本
 
@@ -294,4 +294,4 @@
 | E3-B07-002 记录 | `a91edf3` | AI_USAGE 记录（§五 / §六） |
 | E3-B07-003 产物 | `a90d569` | `Dockerfile.reference` + 实测 `reference.log` + README 参考成功小节 + backlog 置 DONE |
 | E3-B07-003 记录 | 见本节提交 | 本 AI_USAGE 记录（§五 / §六） |
-| E3-B07-007 产物 / 记录 | 见本分支 `E3/B07-007` 提交历史 | `scripts/verify-draft.sh`、`scripts/verify-all.sh`、README、evidence 刷新 + 本 AI_USAGE 记录（§五 / §六） |
+| E3-B07-007 产物 / 记录 | 见本分支 `E3/B07-007` 提交历史 | `../to_be_organized/scripts`、`../../scripts`、README、evidence 刷新 + 本 AI_USAGE 记录（§五 / §六） |

@@ -4,7 +4,7 @@
 - 命名空间：`B07-ADR-*` = B07 单方决策；跨组共同决策见 `PAIR07-ADR-*`（约定见 `PAIR07-ADR-001`）
 - 日期：2026-09-19
 - 关联任务：E2-B07-012
-- 关联文件：`contracts/task.schema.json`、`contracts/examples/artifact.json`
+- 关联文件：`../../contracts/task.schema.json`、`../../../../contracts/conventions/artifact.json`
 - 关联 ADR：`PAIR07-ADR-002`（J1 解析入口 / J2 保留与清理的结论落点）、`PAIR07-ADR-004`（J4 版本同步）
 
 ## Context
@@ -12,7 +12,7 @@
 四类服务之间需要交接大文件产物：实际/声明依赖图（`ACTUAL_GRAPH`、`DECLARED_GRAPH`）、MD/RD 报告（`ERROR_REPORT`）、构建日志（`BUILD_LOG` / `TRACE_LOG`）、Dockerfile、Git Patch。这些产物体积大（如大规模项目的完整构建日志、依赖图 JSON），不适合随每次 HTTP 响应内联传递：
 
 - `B07-ADR-0001` 已确定查询接口返回**产物引用**而非内容本身，响应保持轻量，避免把大日志塞进每次响应。
-- `task.schema.json` 的 `$defs/artifact` 定义了产物引用的字段结构（`artifact_id`、`type`、`uri`、`media_type`、`producer_job_id`、`sha256`）；`contracts/examples/artifact.json` 说明了各字段的读取语义。
+- `task.schema.json` 的 `$defs/artifact` 定义了产物引用的字段结构（`artifact_id`、`type`、`uri`、`media_type`、`producer_job_id`、`sha256`）；`../../contracts/conventions/artifact.json` 说明了各字段的读取语义。
 - 课程约束：E2 阶段只约定接口契约，不要求部署 API；配对组 A07/B07 通过契约样例协商数据交接；E12 必须证明另一组能实际读取产物文件。
 
 产物字段的**含义**已由 `artifact.json` 定义，本 ADR 记录的是**交接方式与下游解析约定**，不重复样例内容。

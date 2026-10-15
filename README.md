@@ -22,5 +22,6 @@ DevOps-B07/
 ├─── reference/             # 参考资料
 │   ├─── papers/                # 论文
 │   └─── slides/                # 课件
-└─── contracts/             # 接口契约
+├─── contracts/             # 接口契约
+└─── design/                # 设计文件
 ```
