@@ -1,5 +1,4 @@
 {
-  "$comment": "E2-B07-008 REPAIR response sample. The report URI is consumed as an ERROR_REPORT and only MISSING findings are repaired; rejected candidates retain their reasons.",
   "schema_version": "1.0",
   "job_id": "job-repair01",
   "trace_id": "trace-clib-repair-01",

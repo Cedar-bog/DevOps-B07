@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "trace_id": "trace-a7b9c1",
+  "job_type": "DRAFT",
+  "input": {
+    "repository": {
+      "url": "https://github.com/example/clib",
+      "commit": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "build": { "command": "make", "workdir": "/app" },
+    "verify": { "command": "make test" },
+    "max_iterations": 10,
+    "time_limit": 1800,
+    "idempotency_key": "draft-clib-01"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "artifact_uri_format": "artifact://<pair>/<job>/<file>",
+  "artifact_uri_reading": "GET /v1/artifacts/{pair}/{job}/{file}；200 返回内容与 X-Artifact-Sha256，404 表示未找到或已过保留期，403 表示跨 pair",
+  "media_type": {
+    "application/json": "依赖图、MD 与 RD 报告、增量检测结果",
+    "text/plain": "Dockerfile、Git Patch、构建日志、检测轨迹日志",
+    "application/octet-stream": "镜像归档等二进制产物"
+  },
+  "media_type_reading": "按 media_type 选择解析方式，未知类型拒绝并记录原因",
+  "producer_job_id": "必须指向实际生产该产物的 Job",
+  "producer_job_id_type_match": "ACTUAL_GRAPH、DECLARED_GRAPH、ERROR_REPORT、TRACE_LOG 由 FULL_CHECK 或 INCREMENTAL_CHECK 生产；BUILD_LOG 由 DRAFT 或 REPAIR 生产",
+  "sha256": "可选，64 位小写十六进制；下载后比对，不一致则拒绝该产物",
+  "examples": [
+    {
+      "artifact_id": "full01-actual-graph",
+      "type": "ACTUAL_GRAPH",
+      "uri": "artifact://pair07/full01/actual.json",
+      "media_type": "application/json",
+      "producer_job_id": "job-full01",
+      "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    },
+    {
+      "artifact_id": "full01-error-report",
+      "type": "ERROR_REPORT",
+      "uri": "artifact://pair07/full01/error_report.json",
+      "media_type": "application/json",
+      "producer_job_id": "job-full01",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    {
+      "artifact_id": "draft01-build-log",
+      "type": "BUILD_LOG",
+      "uri": "artifact://pair07/draft01/build.log",
+      "media_type": "text/plain",
+      "producer_job_id": "job-draft01"
+    },
+    {
+      "artifact_id": "full01-trace-log",
+      "type": "TRACE_LOG",
+      "uri": "artifact://pair07/full01/trace.log",
+      "media_type": "text/plain",
+      "producer_job_id": "job-full01"
+    }
+  ]
+}
