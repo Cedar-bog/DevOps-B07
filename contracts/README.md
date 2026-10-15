@@ -15,5 +15,6 @@ contracts/
 │   ├─── status_error.json      # 状态与错误码
 │   ├─── artifact.json          # 产物访问
 │   └─── error_report.json      # MD 报告消费约束
-└─── negative/              # 非法样例
+├─── negative/              # 非法样例
+└─── validate.py            # 校验脚本
 ```

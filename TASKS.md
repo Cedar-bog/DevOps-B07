@@ -11,19 +11,19 @@
 
 ## E2
 
-| 编号 | 状态 | 任务                    | 负责人 | 产物                                      |
-|------|------|-------------------------|--------|-------------------------------------------|
-| 001  | DONE | 统一任务模型            |  郑悫  | `contracts/task.schema.json`              |
-| 002  | DONE | 状态与错误码约定        |  郑悫  | `contracts/conventions/status_error.json` |
-| 003  | DONE | 产物访问样例            |  郑悫  | `contracts/conventions/artifact.json`     |
-| 004  | DONE | MD 报告消费约束         |  郑悫  | `contracts/conventions/error_report.json` |
-| 005  | DONE | DRAFT 请求样例          |  刘雯  | `contracts/examples/draft/request.json`   |
-| 006  | DONE | DRAFT 响应样例          |  刘雯  | `contracts/examples/draft/response.json`  |
-| 007  | DONE | REPAIR 请求样例         | 姚睿哲 | `contracts/examples/repair/request.json`  |
-| 008  | DONE | REPAIR 响应样例         | 姚睿哲 | `contracts/examples/repair/response.json` |
-| 009  | DONE | 查询任务样例            | 姚睿哲 | `contracts/examples/job_query.json`       |
+| 编号 | 状态 | 任务                    | 负责人 | 产物                                             |
+|------|------|-------------------------|--------|--------------------------------------------------|
+| 001  | DONE | 统一任务模型            |  郑悫  | `contracts/task.schema.json`                     |
+| 002  | DONE | 状态与错误码约定        |  郑悫  | `contracts/conventions/status_error.json`        |
+| 003  | DONE | 产物访问样例            |  郑悫  | `contracts/conventions/artifact.json`            |
+| 004  | DONE | MD 报告消费约束         |  郑悫  | `contracts/conventions/error_report.json`        |
+| 005  | DONE | DRAFT 请求样例          |  刘雯  | `contracts/examples/draft/request.json`          |
+| 006  | DONE | DRAFT 响应样例          |  刘雯  | `contracts/examples/draft/response.json`         |
+| 007  | DONE | REPAIR 请求样例         | 姚睿哲 | `contracts/examples/repair/request.json`         |
+| 008  | DONE | REPAIR 响应样例         | 姚睿哲 | `contracts/examples/repair/response.json`        |
+| 009  | DONE | 查询任务样例            | 姚睿哲 | `contracts/examples/job_query.json`              |
+| 010  | DONE | 失败输入和校验脚本      | 王师师 | `contracts/negative`<br/>`contracts/validate.py` |
 
-| 010  | DONE | 失败输入校验脚本        | 王师师 | `contracts/validate.py`<br/>`contracts/fixtures/negative/`                                            |
 | 011  | DONE | ADR：异步任务模型       |  郑悫  | `adr/B07-ADR-0001-async-job-model.md`                                                                 |
 | 012  | DONE | ADR：产物传递与可追溯性 |  郑悫  | `adr/B07-ADR-0002-artifact-passing.md`                                                                |
 | 013  | DONE | AI_USAGE.md             | 王师师 | `design/AI_USAGE.md`                                                                                  |
