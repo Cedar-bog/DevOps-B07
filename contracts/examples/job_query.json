@@ -17,8 +17,18 @@
           "url": "https://github.com/example/clib",
           "commit": "0123456789abcdef0123456789abcdef01234567"
         },
+        "environment": {
+          "image": "example/clib:gcc-debug",
+          "project_root": "/workspace/project"
+        },
+        "build": {
+          "clean_command": "make clean",
+          "build_command": "make -j1"
+        },
+        "configuration_id": "gcc-debug",
+        "commit": "0123456789abcdef0123456789abcdef01234567",
         "defined_by": "A07",
-        "commit": "0123456789abcdef0123456789abcdef01234567"
+        "idempotency_key": "full-clib-01"
       },
       "output": null,
       "error": null
@@ -40,8 +50,18 @@
           "url": "https://github.com/example/clib",
           "commit": "0123456789abcdef0123456789abcdef01234567"
         },
+        "environment": {
+          "image": "example/clib:gcc-debug",
+          "project_root": "/workspace/project"
+        },
+        "build": {
+          "clean_command": "make clean",
+          "build_command": "make -j1"
+        },
+        "configuration_id": "gcc-debug",
+        "commit": "0123456789abcdef0123456789abcdef01234567",
         "defined_by": "A07",
-        "commit": "0123456789abcdef0123456789abcdef01234567"
+        "idempotency_key": "full-clib-01"
       },
       "output": {
         "artifacts": [

@@ -53,6 +53,14 @@
           "detector": "ECHECKER"
         }
       ]
+    },
+    "artifact_reference": {
+      "artifact_id": "full01-error-report",
+      "type": "ERROR_REPORT",
+      "uri": "artifact://pair07/full01/error_report.json",
+      "media_type": "application/json",
+      "producer_job_id": "job-full01",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     }
   }
 }

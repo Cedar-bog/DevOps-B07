@@ -1,10 +1,8 @@
 {
   "id": "unknown_error_code",
   "description": "系统错误码不在约定枚举内，必须被拒绝。",
-  "source": { "file": "status_error.json", "pointer": "/examples/3" },
+  "source": { "file": "conventions/status_error.json", "pointer": "/examples/3" },
   "mutate": { "op": "set", "pointer": "/error/code", "value": "ENV_9999" },
   "expect": { "pointer": "/error/code", "keyword": "enum" },
-  "owner": "B07",
-  "acceptance": "E2-B07-010 约束类别：enum",
-  "note": "错误码命名已由 A07 error-codes.md 确认。共享前缀 ENV_* / EXEC_* 下的未知码必须被拒绝（本用例即此类）；A07 专有扩展限于 ANALYSIS_* 前缀且消费端须容忍，见 PAIR07-ADR-003。"
+  "owner": "B07"
 }
