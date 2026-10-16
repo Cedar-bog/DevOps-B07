@@ -1,0 +1,63 @@
+# E3-B07 MDFixer verification log
+phase: rejected
+started_at_utc: 2026-10-16T10:47:58Z
+git_commit: 7040e60cee399cb3d8a39684d775ce430055e752
+script_sha256: 4db05d4cb417cbd0371150bed69e7a29c72d287a4335d908f018d7b95a9d659d
+fixture: fixtures/md-fixer
+
+## 无效候选的拒绝与恢复
++ git init -q
+exit_code: 0
++ git config core.autocrlf false
+exit_code: 0
++ cp Makefile Makefile.bak
+exit_code: 0
+makefile_sha_before: 57f445890045a1025b512bc5f3325ddd81f8c1920f450e30fed650420b9f71e2
+
+## 候选一：补丁指向样例中不存在的行
++ git apply --check invalid.patch
+error: patch failed: Makefile:14
+error: Makefile: patch does not apply
+exit_code: 1
+invalid_candidate_check_exit_code: 1
+assertion: 无效候选被拒绝 = 1
+assertion: 拒绝后 Makefile 未变 = 57f445890045a1025b512bc5f3325ddd81f8c1920f450e30fed650420b9f71e2
+
+## 候选二：可应用但没修好缺失依赖
+assertion: diff 产生了变更 = 1
++ git apply --check ineffective.patch
+exit_code: 0
++ git apply ineffective.patch
+exit_code: 0
++ make clean
+rm -f hello main.o
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 1/#define\ VALUE\ 2/ config.h
+exit_code: 0
++ make
+make: Nothing to be done for 'all'.
+exit_code: 0
+candidate_stdout_after_header_change: 1
+assertion: 无效候选未修复缺失依赖 = 1
+decision: REJECTED；期望 2，实际 1
+
+## 恢复
++ cp Makefile.bak Makefile
+exit_code: 0
+assertion: 恢复后 Makefile 与原始一致 = 57f445890045a1025b512bc5f3325ddd81f8c1920f450e30fed650420b9f71e2
++ make clean
+rm -f hello main.o
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_restore: 2
+assertion: 恢复后构建反映新 config.h = 2
+result: 无效候选被拒绝且样例副本可恢复

@@ -1,0 +1,60 @@
+# E3-B07 MDFixer verification log
+phase: reapply
+started_at_utc: 2026-10-16T10:47:58Z
+git_commit: 7040e60cee399cb3d8a39684d775ce430055e752
+script_sha256: 4db05d4cb417cbd0371150bed69e7a29c72d287a4335d908f018d7b95a9d659d
+fixture: fixtures/md-fixer
+
+## 再次改头文件：不 clean 也应自动重建
+
+## style: target
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_second_header_change: 4
+assertion: target 第二次改头文件自动重建 = 4
+result: target 不 clean 也能重建
+
+## style: macro
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_second_header_change: 4
+assertion: macro 第二次改头文件自动重建 = 4
+result: macro 不 clean 也能重建
+
+## style: hybrid
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_second_header_change: 4
+assertion: hybrid 第二次改头文件自动重建 = 4
+result: hybrid 不 clean 也能重建
+
+## style: implicit
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 3/#define\ VALUE\ 4/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -MMD -MP -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_second_header_change: 4
+assertion: implicit 第二次改头文件自动重建 = 4
+result: implicit 不 clean 也能重建
