@@ -1,0 +1,30 @@
+# E3-B07 DRAFT verification log
+phase: broken
+started_at_utc: 2026-10-16T10:20:21Z
+git_commit: 4428f3255f6543a2739fe8df72f948e9c4cb2e84
+script_sha256: fb97496649f09a1a1aa14fd048963cfa55fbf8ecdafed4573c88ed669751bc88
+fixture: fixtures/draft
+
+## 远程 docker build 失败样例
++ ssh_do cd\ \'/tmp/devops-b07-draft/2026-10-16T10-20-21Z\'\ \&\&\ docker\ build\ --no-cache\ -f\ Dockerfile.broken\ -t\ nju-e3-draft-broken:2026-10-16T10-20-21Z\ .
+Sending build context to Docker daemon  6.144kB
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Step 1/5 : FROM python:3.13-slim
+ ---> 70729b46c69b
+Step 2/5 : WORKDIR /work
+ ---> Running in f25189a4701c
+ ---> Removed intermediate container f25189a4701c
+ ---> 8c301d570592
+Step 3/5 : COPY main.c Makefile ./
+ ---> 43df28d63da7
+Step 4/5 : RUN make
+ ---> Running in 1e02f6f52dde
+/bin/sh: 1: make: not found
+The command '/bin/sh -c make' returned a non-zero code: 127
+exit_code: 127
+assertion: broken 构建退出码非零（127）
+assertion: 日志命中 "make: not found"
+result: 缺工具链失败已复现且可定位
