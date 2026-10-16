@@ -5,9 +5,9 @@
 | 学号      | 姓名   | GitHub    |
 |-----------|--------|-----------|
 | 241250022 | 姚睿哲 | yaorz26   |
-| 241250026 | 郑悫   | Cedar-bog |
+| 241250026 |  郑悫  | Cedar-bog |
 | 241250064 | 王师师 | Shishi-w  |
-| 241250103 | 刘雯   | Gogo1101  |
+| 241250103 |  刘雯  | Gogo1101  |
 
 ## E2 - 需求与接口契约
 
@@ -46,7 +46,7 @@
 | 编号 | 状态 | 任务                   | 负责人 | 产物                                                                                  |
 |------|------|------------------------|--------|---------------------------------------------------------------------------------------|
 | 001  | DONE | 服务骨架与命令行入口   |  郑悫  | `services/draft/draft/cli.py`<br/>`services/draft/draft/smoke.py`                     |
-| 002  |      | 依赖声明与锁文件       |        | `requirements-dev.in`<br/>`requirements-dev.lock`                                     |
+| 002  | DONE | 依赖声明与锁文件       |  郑悫  | `requirements-dev.in`<br/>`requirements-dev.lock`                                     |
 | 003  |      | 环境变量样例与忽略规则 |        | `.env.example`<br/>`.gitignore`<br/>`.dockerignore`                                   |
 | 004  |      | 服务 Dockerfile        |        | `services/draft/Dockerfile`                                                           |
 | 005  |      | Compose 运行配置       |        | `compose.yaml`                                                                        |
