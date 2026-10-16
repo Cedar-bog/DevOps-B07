@@ -6,8 +6,8 @@ task.schema.json 是唯一真源，脚本只加载并执行它，不重述任何
 失败输入：negative/ 下的用例记录来源指针与变异操作，运行时从当前样例派生。
 
 用法
-    uv run contracts/validate.py
-    uv run pytest contracts/validate.py
+    uv run --with-requirements requirements-dev.lock contracts/validate.py
+    uv run --with-requirements requirements-dev.lock pytest contracts/validate.py
 """
 
 from __future__ import annotations
