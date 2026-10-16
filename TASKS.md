@@ -45,7 +45,7 @@
 
 | 编号 | 状态 | 任务                   | 负责人 | 产物                                                                                  |
 |------|------|------------------------|--------|---------------------------------------------------------------------------------------|
-| 001  |      | 服务骨架与命令行入口   |        | `services/draft/draft/cli.py`<br/>`services/draft/draft/smoke.py`                     |
+| 001  | DONE | 服务骨架与命令行入口   |  郑悫  | `services/draft/draft/cli.py`<br/>`services/draft/draft/smoke.py`                     |
 | 002  |      | 依赖声明与锁文件       |        | `requirements-dev.in`<br/>`requirements-dev.lock`                                     |
 | 003  |      | 环境变量样例与忽略规则 |        | `.env.example`<br/>`.gitignore`<br/>`.dockerignore`                                   |
 | 004  |      | 服务 Dockerfile        |        | `services/draft/Dockerfile`                                                           |
