@@ -1,0 +1,10 @@
+# 所有文本文件一律以 LF 存入仓库，并在各平台按 LF 检出
+* text=auto eol=lf
+
+# 二进制文件不做行尾转换
+*.pdf  binary
+*.pptx binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
