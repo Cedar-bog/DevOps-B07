@@ -24,8 +24,7 @@ DevOps-B07/
 │   └─── slides/                # 课件
 ├─── contracts/             # 接口契约
 ├─── design/                # 设计文件
-│
 ├─── fixtures/              # 测试样本
-├─── evidence/              # 测试证据
-└─── scripts/               # 脚本工具
+├─── scripts/               # 脚本工具
+└─── services/              # 服务
 ```

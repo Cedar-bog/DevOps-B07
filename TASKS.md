@@ -40,3 +40,18 @@
 | 005  | DONE | MDFixer 四种声明风格与参考 Patch    | 王师师 | `fixtures/md-fixer/styles`                                                           |
 | 006  | DONE | MDFixer 行为验证与无效候选拒绝/恢复 | 姚睿哲 | `evidence/md-fixer`                                                                  |
 | 007  | DONE | 共同信息与失败记录                  |  刘雯  | `scripts`<br/>`fixtures/README.md`                                                   |
+
+## E4 - 可重复工程环境
+
+| 编号 | 状态 | 任务                   | 负责人 | 产物                                                                                  |
+|------|------|------------------------|--------|---------------------------------------------------------------------------------------|
+| 001  |      | 服务骨架与命令行入口   |        | `services/draft/draft/cli.py`<br/>`services/draft/draft/smoke.py`                     |
+| 002  |      | 依赖声明与锁文件       |        | `requirements-dev.in`<br/>`requirements-dev.lock`                                     |
+| 003  |      | 环境变量样例与忽略规则 |        | `.env.example`<br/>`.gitignore`<br/>`.dockerignore`                                   |
+| 004  |      | 服务 Dockerfile        |        | `services/draft/Dockerfile`                                                           |
+| 005  |      | Compose 运行配置       |        | `compose.yaml`                                                                        |
+| 006  |      | 环境自检脚本           |        | `scripts/doctor.py`                                                                   |
+| 007  |      | 密钥扫描脚本           |        | `scripts/secret_scan.py`                                                              |
+| 008  |      | 一键命令 Makefile      |        | `Makefile`                                                                            |
+| 009  |      | 服务单元测试           |        | `services/draft/tests/test_cli.py`<br/>`services/draft/tests/test_smoke.py`           |
+| 010  |      | 运行验证与证据归档     |        | `work/<timestamp>/{test.log,smoke.json,env.json,build.log,image.json,toolchain.lock}` |
