@@ -1,0 +1,148 @@
+# E3-B07 MDFixer verification log
+phase: after
+started_at_utc: 2026-10-16T10:47:58Z
+git_commit: 7040e60cee399cb3d8a39684d775ce430055e752
+script_sha256: 4db05d4cb417cbd0371150bed69e7a29c72d287a4335d908f018d7b95a9d659d
+fixture: fixtures/md-fixer
+
+## 应用参考补丁后：clean 构建输出新值，再改头文件自动重建
+
+## style: target
++ git init -q
+exit_code: 0
++ git config core.autocrlf false
+exit_code: 0
++ git apply --check reference.patch
+exit_code: 0
++ git apply reference.patch
+exit_code: 0
++ cp Makefile.before Makefile
+exit_code: 0
+assertion: target 声明风格保持不变
++ sed -i s/#define\ VALUE\ 1/#define\ VALUE\ 2/ config.h
+exit_code: 0
++ make clean
+rm -f hello main.o
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_initial: 2
+assertion: target clean 后输出新值 = 2
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 2/#define\ VALUE\ 3/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_header_change: 3
+assertion: target 再次改头文件自动重建 = 3
+result: target 补丁有效
+
+## style: macro
++ git init -q
+exit_code: 0
++ git config core.autocrlf false
+exit_code: 0
++ git apply --check reference.patch
+exit_code: 0
++ git apply reference.patch
+exit_code: 0
++ cp Makefile.before Makefile
+exit_code: 0
+assertion: macro 声明风格保持不变
++ sed -i s/#define\ VALUE\ 1/#define\ VALUE\ 2/ config.h
+exit_code: 0
++ make clean
+rm -f hello main.o
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_initial: 2
+assertion: macro clean 后输出新值 = 2
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 2/#define\ VALUE\ 3/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_header_change: 3
+assertion: macro 再次改头文件自动重建 = 3
+result: macro 补丁有效
+
+## style: hybrid
++ git init -q
+exit_code: 0
++ git config core.autocrlf false
+exit_code: 0
++ git apply --check reference.patch
+exit_code: 0
++ git apply reference.patch
+exit_code: 0
++ cp Makefile.before Makefile
+exit_code: 0
+assertion: hybrid 声明风格保持不变
++ sed -i s/#define\ VALUE\ 1/#define\ VALUE\ 2/ config.h
+exit_code: 0
++ make clean
+rm -f hello main.o
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_initial: 2
+assertion: hybrid clean 后输出新值 = 2
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 2/#define\ VALUE\ 3/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_header_change: 3
+assertion: hybrid 再次改头文件自动重建 = 3
+result: hybrid 补丁有效
+
+## style: implicit
++ git init -q
+exit_code: 0
++ git config core.autocrlf false
+exit_code: 0
++ git apply --check reference.patch
+exit_code: 0
++ git apply reference.patch
+exit_code: 0
++ cp Makefile.before Makefile
+exit_code: 0
+assertion: implicit 声明风格保持不变
++ sed -i s/#define\ VALUE\ 1/#define\ VALUE\ 2/ config.h
+exit_code: 0
++ make clean
+rm -f hello main.o main.d
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -MMD -MP -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_initial: 2
+assertion: implicit clean 后输出新值 = 2
++ sleep 1
+exit_code: 0
++ sed -i s/#define\ VALUE\ 2/#define\ VALUE\ 3/ config.h
+exit_code: 0
++ make
+cc -O2 -Wall -Wextra -MMD -MP -c main.c -o main.o
+cc -O2 -Wall -Wextra -o hello main.o
+exit_code: 0
+stdout_after_header_change: 3
+assertion: implicit 再次改头文件自动重建 = 3
+result: implicit 补丁有效

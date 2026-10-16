@@ -1,46 +1,33 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Reproduce E3-B07-006 without modifying the checked-in fixture.
-# Run from any directory: bash scripts/verify-md-fixer.sh
+# E3-B07 MDFixer 验证：在样例副本上应用四种参考补丁并观察行为，验证无效候选被拒绝。
+# 每次运行写入 evidence/md-fixer/<UTC 时间戳>/，不覆盖历史。
+# 各相输出同时打印到终端并写入日志。
+# 用法：bash scripts/verify-md-fixer.sh
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/fixtures/md-fixer"
 EVIDENCE="$ROOT/evidence/md-fixer"
+
+RUN_ID="$(date -u '+%Y-%m-%dT%H-%M-%SZ')"
+RUN_DIR="$EVIDENCE/$RUN_ID"
+if [[ -e "$RUN_DIR" ]]; then
+  echo "证据目录已存在，拒绝覆盖：$RUN_DIR" >&2
+  exit 1
+fi
+mkdir -p "$RUN_DIR"
+
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/md-fixer.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
-trap 'printf "Verification failed (exit %s). See %s for the command output.\n" "$?" "$EVIDENCE" >&2' ERR
-
-mkdir -p "$EVIDENCE"
 
 git_commit="$(git -C "$ROOT" rev-parse HEAD)"
-run_started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-header() {
-  local phase="$1"
-  cat <<EOF
-# E3-B07-006 MDFixer verification log
-phase: $phase
-started_at_utc: $run_started
-repository: $(git -C "$ROOT" config --get remote.origin.url || true)
-git_commit: $git_commit
-script_sha256: $(sha256sum "$ROOT/scripts/verify-md-fixer.sh" | awk '{print $1}')
-fixture: fixtures/md-fixer
-host: $(uname -a)
-make: $(make --version | sed -n '1p')
-compiler: $(cc --version | sed -n '1p')
-git: $(git --version)
+strip_ansi() { sed -u -r 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
 
-EOF
-}
-
-run_cmd() {
-  printf '+ %q' "$1"
-  local argument
-  for argument in "${@:2}"; do
-    printf ' %q' "$argument"
-  done
-  printf '\n'
+run() {
+  printf '+'; printf ' %q' "$@"; printf '\n'
   local rc=0
   "$@" || rc=$?
   printf 'exit_code: %s\n' "$rc"
@@ -48,9 +35,7 @@ run_cmd() {
 }
 
 assert_eq() {
-  local expected="$1"
-  local actual="$2"
-  local label="$3"
+  local expected="$1" actual="$2" label="$3"
   if [[ "$expected" != "$actual" ]]; then
     printf 'ASSERTION FAILED: %s (expected=%q actual=%q)\n' "$label" "$expected" "$actual" >&2
     return 1
@@ -59,164 +44,164 @@ assert_eq() {
 }
 
 assert_file_sha() {
-  local expected="$1"
-  local file="$2"
-  local label="$3"
-  local actual
+  local expected="$1" file="$2" label="$3" actual
   actual="$(sha256sum "$file" | awk '{print $1}')"
   assert_eq "$expected" "$actual" "$label"
+}
+
+header() {
+  cat <<EOF
+# E3-B07 MDFixer verification log
+phase: $1
+started_at_utc: $started
+git_commit: $git_commit
+script_sha256: $(sha256sum "$ROOT/scripts/verify-md-fixer.sh" | awk '{print $1}')
+fixture: fixtures/md-fixer
+
+EOF
 }
 
 copy_sources() {
   local destination="$1"
   mkdir -p "$destination"
-  run_cmd cp "$FIXTURE/main.c" "$destination/main.c"
-  run_cmd cp "$FIXTURE/config.h" "$destination/config.h"
-  run_cmd cp "$FIXTURE/unused.h" "$destination/unused.h"
+  cp "$FIXTURE/main.c" "$destination/main.c"
+  cp "$FIXTURE/config.h" "$destination/config.h"
+  cp "$FIXTURE/unused.h" "$destination/unused.h"
 }
 
 phase_apply() {
-  local log="$EVIDENCE/apply.log"
+  local log="$RUN_DIR/apply.log" style
   {
-    header "apply"
+    header apply
+    printf '## 四种参考补丁可对各自 Makefile.before 干净应用\n'
     for style in target macro hybrid implicit; do
-      local style_dir="$FIXTURE/styles/$style"
       printf '\n## style: %s\n' "$style"
-      (cd "$style_dir" && run_cmd git apply --check reference.patch)
-      printf 'result: reference.patch accepted by git apply --check\n'
+      cd "$FIXTURE/styles/$style"
+      run git apply --check reference.patch
     done
-  } >"$log" 2>&1
+    printf '\nresult: 四份 reference.patch 均通过 git apply --check\n'
+  } 2>&1 | strip_ansi | tee "$log"
 }
 
 phase_before() {
-  local log="$EVIDENCE/before.log"
-  local destination="$WORK/before"
+  local log="$RUN_DIR/before.log" dest="$WORK/before" out before_mtime after_mtime
   {
-    header "before"
-    copy_sources "$destination"
-    run_cmd cp "$FIXTURE/Makefile" "$destination/Makefile"
-    cd "$destination"
-    printf '\n## baseline build with missing dependency\n'
-    run_cmd make clean
-    run_cmd make
-    printf '+ ./hello\n'
-    local initial_output
-    initial_output="$(./hello)"
-    printf 'stdout: %s\n' "$initial_output"
-    assert_eq "1" "$initial_output" "baseline output"
-    local before_mtime
+    header before
+    printf '## 修复前：只改头文件不重建，输出旧值\n'
+    copy_sources "$dest"
+    cp "$FIXTURE/Makefile" "$dest/Makefile"
+    cd "$dest"
+    run make clean
+    run make
+    out="$("./hello")"
+    printf 'stdout: %s\n' "$out"
+    assert_eq "1" "$out" "baseline 输出"
     before_mtime="$(stat -c %Y main.o)"
-    printf 'main.o_mtime_before_header_change: %s\n' "$before_mtime"
-    run_cmd sleep 1
-    run_cmd sed -i 's/#define VALUE 1/#define VALUE 2/' config.h
-    run_cmd make
-    printf '+ ./hello\n'
-    local stale_output
-    stale_output="$(./hello)"
-    printf 'stdout_after_header_change: %s\n' "$stale_output"
-    assert_eq "1" "$stale_output" "unfixed output remains stale"
-    local after_mtime
+    printf 'main.o_mtime_before: %s\n' "$before_mtime"
+    run sleep 1
+    run sed -i 's/#define VALUE 1/#define VALUE 2/' config.h
+    run make
+    out="$("./hello")"
+    printf 'stdout_after_header_change: %s\n' "$out"
+    assert_eq "1" "$out" "未修复时仍输出旧值"
     after_mtime="$(stat -c %Y main.o)"
-    printf 'main.o_mtime_after_header_change: %s\n' "$after_mtime"
-    assert_eq "$before_mtime" "$after_mtime" "unfixed object was not rebuilt"
-    printf 'result: missing dependency reproduced\n'
-  } >"$log" 2>&1
+    printf 'main.o_mtime_after: %s\n' "$after_mtime"
+    assert_eq "$before_mtime" "$after_mtime" "未修复时 main.o 未重建"
+    printf 'result: 缺失 config.h 依赖已复现\n'
+  } 2>&1 | strip_ansi | tee "$log"
 }
 
 prepare_patched_style() {
-  local style="$1"
-  local destination="$WORK/patched-$style"
+  local style="$1" destination="$WORK/patched-$style"
   copy_sources "$destination"
-  run_cmd cp "$FIXTURE/styles/$style/Makefile.before" "$destination/Makefile.before"
-  run_cmd cp "$FIXTURE/styles/$style/reference.patch" "$destination/reference.patch"
-  (
-    cd "$destination"
-    run_cmd git init -q
-    run_cmd git apply --check reference.patch
-    run_cmd git apply reference.patch
-    run_cmd cp Makefile.before Makefile
-  )
+  cp "$FIXTURE/styles/$style/Makefile.before" "$destination/Makefile.before"
+  cp "$FIXTURE/styles/$style/reference.patch" "$destination/reference.patch"
+  cd "$destination"
+  run git init -q
+  run git config core.autocrlf false
+  run git apply --check reference.patch
+  run git apply reference.patch
+  run cp Makefile.before Makefile
 }
 
 phase_after() {
-  local log="$EVIDENCE/after.log"
+  local log="$RUN_DIR/after.log" style out bm am
   {
-    header "after"
-    local style destination initial_output fixed_output before_mtime after_mtime
+    header after
+    printf '## 应用参考补丁后：clean 构建输出新值，再改头文件自动重建\n'
     for style in target macro hybrid implicit; do
       printf '\n## style: %s\n' "$style"
       prepare_patched_style "$style"
-      destination="$WORK/patched-$style"
-      cd "$destination"
-      run_cmd sed -i 's/#define VALUE 1/#define VALUE 2/' config.h
-      run_cmd make clean
-      run_cmd make
-      printf '+ ./hello\n'
-      initial_output="$(./hello)"
-      printf 'stdout_initial: %s\n' "$initial_output"
-      assert_eq "2" "$initial_output" "$style clean patched output with changed header"
-      run_cmd sleep 1
-      run_cmd sed -i 's/#define VALUE 2/#define VALUE 3/' config.h
-      before_mtime="$(stat -c %Y main.o)"
-      run_cmd make
-      printf '+ ./hello\n'
-      fixed_output="$(./hello)"
-      printf 'stdout_after_first_header_change: %s\n' "$fixed_output"
-      assert_eq "3" "$fixed_output" "$style patched output after first change"
-      after_mtime="$(stat -c %Y main.o)"
-      printf 'main.o_mtime_before_make: %s\n' "$before_mtime"
-      printf 'main.o_mtime_after_make: %s\n' "$after_mtime"
-      if [[ "$before_mtime" == "$after_mtime" ]]; then
-        printf 'ASSERTION FAILED: %s object did not rebuild\n' "$style" >&2
+      case "$style" in
+        target)   grep -q '^main.o: main.c config.h$' Makefile ;;
+        macro)    grep -q '^DEPS    := main.c config.h$' Makefile ;;
+        hybrid)   grep -q '^HEADERS := config.h$' Makefile ;;
+        implicit) grep -q '^-include \$(DEPS)$' Makefile ;;
+      esac || { printf 'ASSERTION FAILED: %s 声明风格被改变\n' "$style" >&2; return 1; }
+      printf 'assertion: %s 声明风格保持不变\n' "$style"
+      run sed -i 's/#define VALUE 1/#define VALUE 2/' config.h
+      run make clean
+      run make
+      out="$("./hello")"
+      printf 'stdout_initial: %s\n' "$out"
+      assert_eq "2" "$out" "$style clean 后输出新值"
+      run sleep 1
+      run sed -i 's/#define VALUE 2/#define VALUE 3/' config.h
+      bm="$(stat -c %Y main.o)"
+      run make
+      out="$("./hello")"
+      printf 'stdout_after_header_change: %s\n' "$out"
+      assert_eq "3" "$out" "$style 再次改头文件自动重建"
+      am="$(stat -c %Y main.o)"
+      if [[ "$bm" == "$am" ]]; then
+        printf 'ASSERTION FAILED: %s main.o 未重建\n' "$style" >&2
         return 1
       fi
-      printf 'result: clean patch application and automatic rebuild verified\n'
+      printf 'result: %s 补丁有效\n' "$style"
     done
-  } >"$log" 2>&1
+  } 2>&1 | strip_ansi | tee "$log"
 }
 
 phase_reapply() {
-  local log="$EVIDENCE/reapply.log"
+  local log="$RUN_DIR/reapply.log" style out bm am
   {
-    header "reapply"
-    local style output before_mtime after_mtime
+    header reapply
+    printf '## 再次改头文件：不 clean 也应自动重建\n'
     for style in target macro hybrid implicit; do
-      local destination="$WORK/patched-$style"
       printf '\n## style: %s\n' "$style"
-      cd "$destination"
-      run_cmd sleep 1
-      run_cmd sed -i 's/#define VALUE 3/#define VALUE 4/' config.h
-      before_mtime="$(stat -c %Y main.o)"
-      run_cmd make
-      printf '+ ./hello\n'
-      output="$(./hello)"
-      printf 'stdout_after_second_header_change: %s\n' "$output"
-      assert_eq "4" "$output" "$style patched output after second change"
-      after_mtime="$(stat -c %Y main.o)"
-      printf 'main.o_mtime_before_make: %s\n' "$before_mtime"
-      printf 'main.o_mtime_after_make: %s\n' "$after_mtime"
-      if [[ "$before_mtime" == "$after_mtime" ]]; then
-        printf 'ASSERTION FAILED: %s object did not rebuild on reapply\n' "$style" >&2
+      cd "$WORK/patched-$style"
+      run sleep 1
+      run sed -i 's/#define VALUE 3/#define VALUE 4/' config.h
+      bm="$(stat -c %Y main.o)"
+      run make
+      out="$("./hello")"
+      printf 'stdout_after_second_header_change: %s\n' "$out"
+      assert_eq "4" "$out" "$style 第二次改头文件自动重建"
+      am="$(stat -c %Y main.o)"
+      if [[ "$bm" == "$am" ]]; then
+        printf 'ASSERTION FAILED: %s main.o 未重建\n' "$style" >&2
         return 1
       fi
-      printf 'result: repeated header change rebuilt without make clean\n'
+      printf 'result: %s 不 clean 也能重建\n' "$style"
     done
-  } >"$log" 2>&1
+  } 2>&1 | strip_ansi | tee "$log"
 }
 
 phase_rejected() {
-  local log="$EVIDENCE/rejected.log"
-  local destination="$WORK/rejected"
+  local log="$RUN_DIR/rejected.log" dest="$WORK/rejected" out before_sha car
   {
-    header "rejected"
-    copy_sources "$destination"
-    run_cmd cp "$FIXTURE/Makefile" "$destination/Makefile"
-    cd "$destination"
-    run_cmd git init -q
-    run_cmd cp Makefile Makefile.bak
-    local before_sha restored_sha output candidate_rc
+    header rejected
+    printf '## 无效候选的拒绝与恢复\n'
+    copy_sources "$dest"
+    cp "$FIXTURE/Makefile" "$dest/Makefile"
+    cd "$dest"
+    run git init -q
+    run git config core.autocrlf false
+    run cp Makefile Makefile.bak
     before_sha="$(sha256sum Makefile | awk '{print $1}')"
-    printf 'sample_copy_makefile_sha_before_candidate: %s\n' "$before_sha"
+    printf 'makefile_sha_before: %s\n' "$before_sha"
+
+    printf '\n## 候选一：补丁指向样例中不存在的行\n'
     cat > invalid.patch <<'PATCH'
 --- Makefile
 +++ Makefile
@@ -224,60 +209,62 @@ phase_rejected() {
 -main.o: main.c missing.h
 +main.o: main.c config.h
 PATCH
-    printf '%s\n' 'invalid candidate intentionally targets a line absent from the sample'
-    candidate_rc=0
-    run_cmd git apply --check invalid.patch || candidate_rc=$?
-    printf 'invalid_candidate_check_exit_code: %s\n' "$candidate_rc"
-    assert_eq "1" "$candidate_rc" "invalid candidate rejected"
-    assert_file_sha "$before_sha" Makefile "sample copy unchanged after rejection"
-    run_cmd cp Makefile.bak Makefile
-    restored_sha="$(sha256sum Makefile | awk '{print $1}')"
-    printf 'sample_copy_makefile_sha_after_restore: %s\n' "$restored_sha"
-    assert_eq "$before_sha" "$restored_sha" "sample copy restored from backup"
-    run_cmd make clean
-    run_cmd make
-    printf '+ ./hello\n'
-    output="$(./hello)"
-    printf 'stdout_after_restore: %s\n' "$output"
-    assert_eq "1" "$output" "restored sample remains buildable"
-    printf '\n## applicable candidate that leaves config.h undeclared\n'
-    # Generate the candidate from the actual copy so CRLF checkouts work too.
-    printf '+ sed (append an unrelated dependency) > Makefile.candidate\n'
-    sed 's/main.o: main.c unused.h/main.o: main.c unused.h README.md/' Makefile > Makefile.candidate
-    printf '+ diff -u --label a/Makefile --label b/Makefile Makefile Makefile.candidate > ineffective.patch\n'
-    candidate_rc=0
-    diff -u --label a/Makefile --label b/Makefile Makefile Makefile.candidate > ineffective.patch || candidate_rc=$?
-    assert_eq "1" "$candidate_rc" "diff generated a changed candidate"
-    run_cmd sed -n 'l' ineffective.patch
-    run_cmd cp "$FIXTURE/README.md" README.md
-    run_cmd git apply --check ineffective.patch
-    run_cmd git apply ineffective.patch
-    run_cmd make clean
-    run_cmd make
-    run_cmd sleep 1
-    run_cmd sed -i 's/#define VALUE 1/#define VALUE 2/' config.h
-    run_cmd make
-    printf '+ ./hello\n'
-    output="$(./hello)"
-    printf 'candidate_stdout_after_header_change: %s\n' "$output"
-    assert_eq "1" "$output" "ineffective candidate reproduces stale output"
-    printf 'decision: REJECTED; required output is 2, observed output is 1\n'
-    run_cmd cp Makefile.bak Makefile
-    assert_file_sha "$before_sha" Makefile "Makefile restored after behavioral rejection"
-    run_cmd make clean
-    run_cmd make
-    printf '+ ./hello\n'
-    output="$(./hello)"
-    printf 'stdout_after_behavioral_rejection_restore: %s\n' "$output"
-    assert_eq "2" "$output" "restored copy builds the updated source"
-    printf 'result: invalid and ineffective candidates rejected; sample copy recovered\n'
-  } >"$log" 2>&1
+    car=0
+    run git apply --check invalid.patch || car=$?
+    printf 'invalid_candidate_check_exit_code: %s\n' "$car"
+    assert_eq "1" "$car" "无效候选被拒绝"
+    assert_file_sha "$before_sha" Makefile "拒绝后 Makefile 未变"
+
+    printf '\n## 候选二：可应用但没修好缺失依赖\n'
+    printf 'unused for ineffective candidate\n' > unrelated.txt
+    sed 's/main.o: main.c unused.h/main.o: main.c unused.h unrelated.txt/' Makefile > Makefile.candidate
+    car=0
+    diff -u --label a/Makefile --label b/Makefile Makefile Makefile.candidate > ineffective.patch || car=$?
+    assert_eq "1" "$car" "diff 产生了变更"
+    run git apply --check ineffective.patch
+    run git apply ineffective.patch
+    run make clean
+    run make
+    run sleep 1
+    run sed -i 's/#define VALUE 1/#define VALUE 2/' config.h
+    run make
+    out="$("./hello")"
+    printf 'candidate_stdout_after_header_change: %s\n' "$out"
+    assert_eq "1" "$out" "无效候选未修复缺失依赖"
+    printf 'decision: REJECTED；期望 2，实际 1\n'
+
+    printf '\n## 恢复\n'
+    run cp Makefile.bak Makefile
+    assert_file_sha "$before_sha" Makefile "恢复后 Makefile 与原始一致"
+    run make clean
+    run make
+    out="$("./hello")"
+    printf 'stdout_after_restore: %s\n' "$out"
+    assert_eq "2" "$out" "恢复后构建反映新 config.h"
+    printf 'result: 无效候选被拒绝且样例副本可恢复\n'
+  } 2>&1 | strip_ansi | tee "$log"
 }
 
-phase_apply
-phase_before
-phase_after
-phase_reapply
-phase_rejected
+write_meta() {
+  cat >"$RUN_DIR/meta.json" <<EOF
+{
+  "run_id": "$RUN_ID",
+  "started_at_utc": "$started",
+  "git_commit": "$git_commit",
+  "host": "$(hostname)",
+  "make": "$(make --version | sed -n '1p')",
+  "compiler": "$(cc --version | sed -n '1p')",
+  "git": "$(git --version)"
+}
+EOF
+}
 
-printf 'MDFixer verification complete. Evidence written to %s\n' "$EVIDENCE"
+printf 'run_id: %s\n' "$RUN_ID"
+printf '==> apply\n';    phase_apply
+printf '==> before\n';   phase_before
+printf '==> after\n';    phase_after
+printf '==> reapply\n';  phase_reapply
+printf '==> rejected\n'; phase_rejected
+printf '==> meta\n';     write_meta
+
+printf 'MDFixer 验证完成，证据写入 %s\n' "$RUN_DIR"
