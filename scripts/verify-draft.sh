@@ -48,7 +48,7 @@ git_commit="$(git -C "$ROOT" rev-parse HEAD)"
 started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
 # 剥离 ANSI 颜色/控制码，日志保持纯文本
-strip_ansi() { sed -u -r 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
+strip_ansi() { sed -u -r -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/\r//g'; }
 
 run() {
   printf '+'; printf ' %q' "$@"; printf '\n'

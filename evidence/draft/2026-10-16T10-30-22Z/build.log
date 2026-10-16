@@ -1,14 +1,14 @@
 # E3-B07 DRAFT verification log
 phase: build
-started_at_utc: 2026-10-16T10:20:21Z
-git_commit: 4428f3255f6543a2739fe8df72f948e9c4cb2e84
-script_sha256: fb97496649f09a1a1aa14fd048963cfa55fbf8ecdafed4573c88ed669751bc88
+started_at_utc: 2026-10-16T10:30:22Z
+git_commit: a9b8773d492addcd8301af91ad1ada1e0aac8211
+script_sha256: f85da73dd792f613457f75342b4a2ba15cabfdd58cd966d222b276f979b98e92
 fixture: fixtures/draft
 
 ## 本地构建与两层成功判据
-+ cp /home/cedarbog/DevOps-B07/fixtures/draft/main.c /tmp/draft.zrBkxU/build/main.c
++ cp /home/cedarbog/DevOps-B07/fixtures/draft/main.c /tmp/draft.T8mGcx/build/main.c
 exit_code: 0
-+ cp /home/cedarbog/DevOps-B07/fixtures/draft/Makefile /tmp/draft.zrBkxU/build/Makefile
++ cp /home/cedarbog/DevOps-B07/fixtures/draft/Makefile /tmp/draft.T8mGcx/build/Makefile
 exit_code: 0
 + make clean
 rm -f hello main.o
