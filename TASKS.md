@@ -34,9 +34,9 @@
 | 编号 | 状态 | 任务                         | 负责人 | 产物                                                                                 |
 |------|------|------------------------------|--------|--------------------------------------------------------------------------------------|
 | 001  | DONE | DRAFT 样本项目与两层成功判据 |  郑悫  | `fixtures/draft/main.c`<br/>`fixtures/draft/Makefile`<br/>`fixtures/draft/README.md` |
+| 002  | DONE | DRAFT 失败样例               |  郑悫  | `fixtures/draft/Dockerfile.broken`                                                   |
+| 003  | DONE | DRAFT 参考成功               |  郑悫  | `fixtures/draft/Dockerfile.reference`<br/>`evidence/draft`                           |
 
-| 002  | DONE | DRAFT 失败样例                      |  郑悫  | `../../fixtures/draft/Dockerfile.broken`、`../../evidence`                             |
-| 003  | DONE | DRAFT 参考成功                      |  郑悫  | `../../fixtures/draft/Dockerfile.reference`、`../../evidence`                          |
 | 004  | DONE | MDFixer 固定 MD 报告与 Makefile     | 王师师 | `../../fixtures/md-fixer`（`main.o` 缺 `config.h` 的 ORACLE 报告、对应 Makefile）      |
 | 005  | DONE | MDFixer 四种声明风格与参考 Patch    | 王师师 | `../../fixtures/md-fixer`（Target/Macro/Hybrid/Implicit 的 before 与 reference.patch） |
 | 006  | DONE | MDFixer 行为验证与无效候选拒绝/恢复 | 姚睿哲 | `../../evidence/md-fixer`（apply、before、after、reapply、rejected 日志）              |

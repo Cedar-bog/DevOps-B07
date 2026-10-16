@@ -1,5 +1,6 @@
 FROM python:3.13-slim
-RUN apt-get update && \
+RUN sed -i 's|deb.debian.org|mirrors.huaweicloud.com|g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc make libc6-dev && \
     rm -rf /var/lib/apt/lists/*
