@@ -48,9 +48,9 @@
 | 001  | DONE | 服务骨架与命令行入口   |  郑悫  | `services/draft/draft/cli.py`<br/>`services/draft/draft/smoke.py`                     |
 | 002  | DONE | 依赖声明与锁文件       |  郑悫  | `requirements-dev.in`<br/>`requirements-dev.lock`                                     |
 | 003  | DONE | 环境变量样例与忽略规则 |  郑悫  | `.env.example`<br/>`.gitignore`<br/>`.dockerignore`                                   |
-| 004  |      | 服务 Dockerfile        |        | `services/draft/Dockerfile`                                                           |
-| 005  |      | Compose 运行配置       |        | `compose.yaml`                                                                        |
-| 006  |      | 环境自检脚本           |        | `scripts/doctor.py`                                                                   |
+| 004  | DONE | 服务 Dockerfile        |  刘雯  | `services/draft/Dockerfile`                                                           |
+| 005  | DONE | Compose 运行配置       |  刘雯  | `compose.yaml`                                                                        |
+| 006  | DONE | 环境自检脚本           |  刘雯  | `scripts/doctor.py`                                                                   |
 | 007  |      | 密钥扫描脚本           |        | `scripts/secret_scan.py`                                                              |
 | 008  |      | 一键命令 Makefile      |        | `Makefile`                                                                            |
 | 009  |      | 服务单元测试           |        | `services/draft/tests/test_cli.py`<br/>`services/draft/tests/test_smoke.py`           |
