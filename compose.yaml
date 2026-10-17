@@ -1,0 +1,12 @@
+services:
+  draft:
+    image: e4-draft:${STUDENT_ID}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID}"
+    env_file:
+      - .env
+    cpus: 2
+    mem_limit: 1g
+    pids_limit: 256
