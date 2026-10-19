@@ -3,3 +3,5 @@
 .env
 evidence/
 work/
+__pycache__/
+*.pyc
