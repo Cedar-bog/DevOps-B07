@@ -295,3 +295,36 @@
 | E3-B07-003 产物 | `a90d569` | `Dockerfile.reference` + 实测 `reference.log` + README 参考成功小节 + backlog 置 DONE |
 | E3-B07-003 记录 | 见本节提交 | 本 AI_USAGE 记录（§五 / §六） |
 | E3-B07-007 产物 / 记录 | 见本分支 `E3/B07-007` 提交历史 | `../to_be_organized/scripts`、`../../scripts`、README、evidence 刷新 + 本 AI_USAGE 记录（§五 / §六） |
+
+## 七、E4 记录（可重复工程环境）
+
+- 记录时间：2026-10-19（UTC+8）
+- 记录方式与前文一致：AI 提议、人工裁量；「AI 建议」以实际 diff 为准，「验证」取自实际运行结果。
+- 本轮人工只给出任务范围（见「提示摘要」），未逐条修改实现；AI 在自测中发现并修正的两处缺陷已写入「AI 建议」，不做事后粉饰。
+
+### E4-B07-007 密钥扫描脚本
+
+| 字段 | 内容 |
+|---|---|
+| 提示摘要 | 「从 main 拉取更新，阅读 TASK.md，完成 E4-007，008」 |
+| AI 建议 | 按课件 E4 slide 14–15 的三处泄露路径把脚本切成独立 surface：`workspace`、`git-history`、`image`。①工作区以 `git ls-files` 取文件清单而非遍历目录——`.gitignore` 天然排除 `work/`、`evidence/`、`.venv`、`.env`，与「密钥不进仓库」同义；另加 `workspace-untracked` 面覆盖「已写进工作区但还没 `git add`」的情况；②`.env` 单独做 `env-guard`：被跟踪即 finding，存在但未被忽略也是 finding，`.env.example` 记 `note` 而不是 allowlist（避免被读成「允许的泄露」）；③历史面用 `git log --all -p --unified=0` 流式逐行扫描，**AI 首版只用 `+++ b/` 取路径，删除文件的提交没有这一行、路径会退化成 `(unknown)`，自测后发现并改为从 `diff --git` 取**；④镜像面用 `docker history --no-trunc`，镜像不存在时记 `skipped` 而非失败，使 `make scan` 可以独立于 `make build` 运行；⑤同一密钥值会被多条正则同时命中（`sk-…` 同时命中 `openai-style-key` 与 `named-secret-assignment`），改为同一位置同一值只按最具体的模式报一次，**这也是 AI 首版重复报告、自测后修正的**；⑥脱敏只留前 4 位 + SHA-256 前 12 位指纹，报告本身可直接归档。 |
+| 人工判断 | **采纳**（本轮由 AI 提方案并实现，人工只给了任务范围，未逐条修改）。 |
+| 关联文件 | `../../scripts/secret_scan.py`，提交 `2ea8f54` |
+| 验证 | WSL Ubuntu 22.04 / `python3` 3.10 与 Windows `.venv` Python 3.13.7 下均实测：在本分支提交后的树上全仓扫描 `PASS`（工作区 5 148 行 + 历史 patch 15 059 行 + env 守卫 1 处，合计 20 208 行，0 命中；提交前另一次运行的工作区/未跟踪面数字不同，属文件尚未入库所致）；假 Key 注入后从三类路径分别报出且只留 4 位——未跟踪文件 → `openai-style-key`；`git add -N` 后 → 走跟踪文件面；临时仓库中「提交过又删掉」的 Key → 只由历史面报出；`.env` 被 `git add -f` → `tracked-env-file`（且不再重复报 `env-not-ignored`）；`.env` 在 `.gitignore` 中移除后 → `env-not-ignored`；文件内放一段私钥块首行 → `private-key-block`；干净仓库 → `PASS`。**收口时扫描器把本文件原先直接引用的那行私钥块首行判成命中（`design/AI_USAGE.md`），故把引用改成描述性措辞而不是放宽规则——规则对真实文档生效比让报告变绿更重要。** |
+
+### E4-B07-008 一键命令 Makefile
+
+| 字段 | 内容 |
+|---|---|
+| 提示摘要 | 同上 |
+| AI 建议 | ①五个目标与课件 slide 16 一一对齐（`doctor`/`build`/`test`/`smoke`/`scan` → `env.json`/`build.log`+`image.json`+`toolchain.lock`/`test.log`/`smoke.json`/`secret-scan.txt`），`make all` 依次执行并**共用同一个证据目录**（slide 19 的证据表要求六类文件同处一目录）；②证据目录名在 make 解析期算一次，`work/<UTC 时间戳>` 已存在时追加 `-1`、`-2`，满足「不覆盖旧记录」；③`.env` 只用来补 `STUDENT_ID`/`DOCKER_GID` 的缺省值，不 `include`（`.env` 里是密钥，不当 make 语法加载），并顺带剥掉 CR 与引号，避免 Windows 上编辑过的 `.env`（CRLF）拼出带 `\r` 的镜像名；④`DOCKER_GID` 缺省时 `stat -c %g /var/run/docker.sock` 自动取得（对应 slide 12「make 自动取得」）；⑤`SHELL := /bin/bash` + `.ONESHELL` + `-eu -o pipefail`，构建与测试的退出码先落盘再据此失败，日志始终完整；⑥`test` 在 `services/draft/tests` 还没有 `test_*.py` 时明确报错并指向 E4-B07-009，不静默跳过。 |
+| 人工判断 | **采纳**（同上，未逐条修改）。 |
+| 关联文件 | `../../Makefile`、`../..`（README 增「可重复工程环境（E4）」一节），提交 `2ea8f54` |
+| 验证 | WSL Ubuntu 22.04 / GNU Make 4.3 下以 **docker 替身**（本机 Docker Desktop 引擎未启动、WSL 未启用其集成，无法真实构建）跑通 `make all`：`EXIT=0`，`work/<时间戳>/` 下同时生成 `env.json`、`build.log`、`image.json`、`toolchain.lock`、`test.log`、`smoke.json`、`secret-scan.txt` 共 7 个文件；`make doctor` → `14 ok / 2 warnings / 0 failed`。错误路径实测：缺 `STUDENT_ID` → 明确提示并退出 1；缺单元测试 → `test.log` 记录原因并退出 1；同一秒内二次运行 → 新目录带 `-1` 后缀、旧记录不动；`.env` 用 CRLF + 引号写成 → `STUDENT_ID` 解析仍为 `241250022`；命令行变量覆盖 `.env` 生效。**真实 `docker build` 未在本机执行，需在服务器上补跑一次（属 E4-B07-010）。** |
+
+## 八、E4 提交与版本
+
+| 阶段 | 提交 | 内容 |
+|---|---|---|
+| E4-B07-007 / 008 产物 | `2ea8f54` | `../../scripts/secret_scan.py`、`../../Makefile`、README 增 E4 一键命令小节 |
+| E4-B07-007 / 008 记录 | 见本节提交 | `..`（007/008 置 DONE）、本 AI_USAGE 记录（§七 / §八） |
