@@ -304,13 +304,13 @@
 
 ### E4-B07-007 密钥扫描脚本
 
-| 字段 | 内容 |
-|---|---|
-| 提示摘要 | 「从 main 拉取更新，阅读 TASK.md，完成 E4-007，008」 |
+| 字段 | 内容                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 提示摘要 | 「从 main 拉取更新，阅读 TASK.md，完成 E4-007，008」                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | AI 建议 | 按课件 E4 slide 14–15 的三处泄露路径把脚本切成独立 surface：`workspace`、`git-history`、`image`。①工作区以 `git ls-files` 取文件清单而非遍历目录——`.gitignore` 天然排除 `work/`、`evidence/`、`.venv`、`.env`，与「密钥不进仓库」同义；另加 `workspace-untracked` 面覆盖「已写进工作区但还没 `git add`」的情况；②`.env` 单独做 `env-guard`：被跟踪即 finding，存在但未被忽略也是 finding，`.env.example` 记 `note` 而不是 allowlist（避免被读成「允许的泄露」）；③历史面用 `git log --all -p --unified=0` 流式逐行扫描，**AI 首版只用 `+++ b/` 取路径，删除文件的提交没有这一行、路径会退化成 `(unknown)`，自测后发现并改为从 `diff --git` 取**；④镜像面用 `docker history --no-trunc`，镜像不存在时记 `skipped` 而非失败，使 `make scan` 可以独立于 `make build` 运行；⑤同一密钥值会被多条正则同时命中（`sk-…` 同时命中 `openai-style-key` 与 `named-secret-assignment`），改为同一位置同一值只按最具体的模式报一次，**这也是 AI 首版重复报告、自测后修正的**；⑥脱敏只留前 4 位 + SHA-256 前 12 位指纹，报告本身可直接归档。 |
-| 人工判断 | **采纳**（本轮由 AI 提方案并实现，人工只给了任务范围，未逐条修改）。 |
-| 关联文件 | `../../scripts/secret_scan.py`，提交 `2ea8f54` |
-| 验证 | WSL Ubuntu 22.04 / `python3` 3.10 与 Windows `.venv` Python 3.13.7 下均实测：在本分支提交后的树上全仓扫描 `PASS`（工作区 5 148 行 + 历史 patch 15 059 行 + env 守卫 1 处，合计 20 208 行，0 命中；提交前另一次运行的工作区/未跟踪面数字不同，属文件尚未入库所致）；假 Key 注入后从三类路径分别报出且只留 4 位——未跟踪文件 → `openai-style-key`；`git add -N` 后 → 走跟踪文件面；临时仓库中「提交过又删掉」的 Key → 只由历史面报出；`.env` 被 `git add -f` → `tracked-env-file`（且不再重复报 `env-not-ignored`）；`.env` 在 `.gitignore` 中移除后 → `env-not-ignored`；文件内放一段私钥块首行 → `private-key-block`；干净仓库 → `PASS`。**收口时扫描器把本文件原先直接引用的那行私钥块首行判成命中（`design/AI_USAGE.md`），故把引用改成描述性措辞而不是放宽规则——规则对真实文档生效比让报告变绿更重要。** |
+| 人工判断 | **采纳**（本轮由 AI 提方案并实现，人工只给了任务范围，未逐条修改）。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 关联文件 | `../../scripts/secret_scan.py`，提交 `2ea8f54`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 验证 | WSL Ubuntu 22.04 / `python3` 3.10 与 Windows `.venv` Python 3.13.7 下均实测：在本分支提交后的树上全仓扫描 `PASS`（工作区 5 148 行 + 历史 patch 15 059 行 + env 守卫 1 处，合计 20 208 行，0 命中；提交前另一次运行的工作区/未跟踪面数字不同，属文件尚未入库所致）；假 Key 注入后从三类路径分别报出且只留 4 位——未跟踪文件 → `openai-style-key`；`git add -N` 后 → 走跟踪文件面；临时仓库中「提交过又删掉」的 Key → 只由历史面报出；`.env` 被 `git add -f` → `tracked-env-file`（且不再重复报 `env-not-ignored`）；`.env` 在 `.gitignore` 中移除后 → `env-not-ignored`；文件内放一段私钥块首行 → `private-key-block`；干净仓库 → `PASS`。**收口时扫描器把本文件原先直接引用的那行私钥块首行判成命中（`design/AI_USAGE.md`），故把引用改成描述性措辞而不是放宽规则——规则对真实文档生效比让报告变绿更重要。**                                                                                                                                                                    |
 
 ### E4-B07-008 一键命令 Makefile
 
@@ -322,9 +322,31 @@
 | 关联文件 | `../../Makefile`、`../..`（README 增「可重复工程环境（E4）」一节），提交 `2ea8f54` |
 | 验证 | WSL Ubuntu 22.04 / GNU Make 4.3 下以 **docker 替身**（本机 Docker Desktop 引擎未启动、WSL 未启用其集成，无法真实构建）跑通 `make all`：`EXIT=0`，`work/<时间戳>/` 下同时生成 `env.json`、`build.log`、`image.json`、`toolchain.lock`、`test.log`、`smoke.json`、`secret-scan.txt` 共 7 个文件；`make doctor` → `14 ok / 2 warnings / 0 failed`。错误路径实测：缺 `STUDENT_ID` → 明确提示并退出 1；缺单元测试 → `test.log` 记录原因并退出 1；同一秒内二次运行 → 新目录带 `-1` 后缀、旧记录不动；`.env` 用 CRLF + 引号写成 → `STUDENT_ID` 解析仍为 `241250022`；命令行变量覆盖 `.env` 生效。**真实 `docker build` 未在本机执行，需在服务器上补跑一次（属 E4-B07-010）。** |
 
+### E4-B07-009 服务单元测试
+
+| 字段 | 内容 |
+|---|---|
+| 提示摘要 | 「现在建立新的分支，帮我完成TASK.md里面的E4-009和010任务」 |
+| AI 建议 | 从 `main` 新建分支 `E4/009-010`；编写 `services/draft/tests/test_cli.py` 与 `test_smoke.py` 两个测试文件。`test_cli.py`：覆盖 `build_parser` 的 `version`/`smoke` 子命令、`main(["version"])` 退出码 0 并打印 `draft 0.1.0`、`main([])` 退出码 2、`main(["smoke"])` 用 `monkeypatch` 替换 `draft.cli.run_smoke` 分三态（`ok=True`→0、`ok=False`→1、抛 `SmokeError`→1）、`--output` 写 JSON；`test_smoke.py`：用 fake runner 覆盖 `run_smoke`（构建失败+签名命中=成功、构建成功=失败、缺目录/文件=抛 `SmokeError`、`FileNotFoundError`→`SmokeError`）、`SmokeResult.to_payload()` 结构、`write_result()`；以 `_make_result()` / `_make_fixture()` / `_make_runner()` 辅助函数复用，`calls` 列表捕获 docker 调用参数。 |
+| 人工判断 | **采纳**（AI 提方案并实现，人工只给任务范围，未逐条修改）。 |
+| 关联文件 | `../../services/draft/tests/test_cli.py`、`../../services/draft/tests/test_smoke.py`，提交 `bbc10f6` |
+| 验证 | 本地 `uv run pytest services/draft/tests -q` → `14 passed`；服务器 `make test`（容器内 `python -m pytest /app/tests -q`）→ `14 passed in 0.04s` |
+
+### E4-B07-010 运行验证与证据归档
+
+| 字段 | 内容 |
+|---|---|
+| 提示摘要 | 「你给服务器访问，我来跑」（就 E4-010 的执行方式）；随后提供华为云服务器凭据；「哪一种最符合课程要求」（就服务器缺 Docker 插件时的处理方式） |
+| AI 建议 | ①判定本机无 docker/make/python 运行时，E4-010 须在服务器（华为云 Ubuntu 24.04）执行；②服务器 `make doctor` 报 `docker compose`「unknown flag: --short」、`make build` 报「unknown flag: --progress」——分别缺 `docker-compose-v2` 与 `docker-buildx` 插件，**判定安装这两个插件最符合课程要求**（而非绕过 Makefile 或改命令）；③`docker pull` 到 `registry-1.docker.io` 反复 i/o timeout，往 `/etc/docker/daemon.json` 配三个国内镜像源（`docker.m.daocloud.io` / `docker.1ms.run` / `docker.xuanyuan.me`）并重启 docker，基础镜像按 digest 拉取成功；④服务器 `git clone` GitHub 反复「peer reset」，改用本地（已连 VPN）打 tarball + SFTP 上传解包；⑤写链式脚本 `run_e4.sh`：等待 `make build` 的 PID 结束后，在**单次** `make doctor test smoke` 调用里生成同一 `work/<时间戳>/` 目录，再把 build 阶段的 `build.log` / `image.json` / `toolchain.lock` 拷入，六类证据归并同一目录（满足 slide 19 证据表要求）。 |
+| 人工判断 | **采纳**（同上，人工给任务范围与服务器凭据，未逐条修改）。 |
+| 关联文件 | `../../work/2026-10-19T17-18-21Z/{test.log,smoke.json,env.json,build.log,image.json,toolchain.lock}`（`work/` 在 `.gitignore` 中，证据不提交） |
+| 验证 | 服务器单次 `make doctor test smoke`：doctor → `15 ok, 1 warnings, 0 failed`（`env.json`）；test → `14 passed in 0.04s`（`test.log`）；smoke → `ok=true`、`signature=hit`、退出码 1（`smoke.json`，坏样例构建失败+签名命中=符合预期）；build → 退出码 0、镜像 `sha256:c39a7f57…`（`build.log` / `image.json` / `toolchain.lock`）；`MAKE_EXIT=0`，六文件齐全 |
+
 ## 八、E4 提交与版本
 
 | 阶段 | 提交 | 内容 |
 |---|---|---|
 | E4-B07-007 / 008 产物 | `2ea8f54` | `../../scripts/secret_scan.py`、`../../Makefile`、README 增 E4 一键命令小节 |
 | E4-B07-007 / 008 记录 | 见本节提交 | `..`（007/008 置 DONE）、本 AI_USAGE 记录（§七 / §八） |
+| E4-B07-009 产物 | `bbc10f6` | `../../services/draft/tests/test_cli.py`、`../../services/draft/tests/test_smoke.py` |
+| E4-B07-009 / 010 记录 | 见本节提交 | `..`（009/010 置 DONE）、本 AI_USAGE 记录（§七 / §八）；010 证据为服务器运行时产物，`work/` 被忽略、无独立提交 |
