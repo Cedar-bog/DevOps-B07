@@ -51,7 +51,7 @@
 | 004  | DONE | 服务 Dockerfile        |  刘雯  | `services/draft/Dockerfile`                                                           |
 | 005  | DONE | Compose 运行配置       |  刘雯  | `compose.yaml`                                                                        |
 | 006  | DONE | 环境自检脚本           |  刘雯  | `scripts/doctor.py`                                                                   |
-| 007  |      | 密钥扫描脚本           |        | `scripts/secret_scan.py`                                                              |
-| 008  |      | 一键命令 Makefile      |        | `Makefile`                                                                            |
+| 007  | DONE | 密钥扫描脚本           | 姚睿哲 | `scripts/secret_scan.py`                                                              |
+| 008  | DONE | 一键命令 Makefile      | 姚睿哲 | `Makefile`                                                                            |
 | 009  |      | 服务单元测试           |        | `services/draft/tests/test_cli.py`<br/>`services/draft/tests/test_smoke.py`           |
 | 010  |      | 运行验证与证据归档     |        | `work/<timestamp>/{test.log,smoke.json,env.json,build.log,image.json,toolchain.lock}` |
