@@ -1,7 +1,9 @@
 .idea
+
 .venv
+__pycache__/
+*.pyc
+
 .env
 evidence/
 work/
-__pycache__/
-*.pyc
