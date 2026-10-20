@@ -43,15 +43,15 @@
 
 ## E4 - 可重复工程环境
 
-| 编号 | 状态 | 任务              | 负责人 | 产物                                                                                  |
-|------|------|-------------------|--------|---------------------------------------------------------------------------------------|
+| 编号 | 状态 | 任务                   | 负责人 | 产物                                                                                  |
+|------|------|------------------------|--------|---------------------------------------------------------------------------------------|
 | 001  | DONE | 服务骨架与命令行入口   |  郑悫  | `services/draft/draft/cli.py`<br/>`services/draft/draft/smoke.py`                     |
-| 002  | DONE | 依赖声明与锁文件      |  郑悫  | `requirements-dev.in`<br/>`requirements-dev.lock`                                     |
+| 002  | DONE | 依赖声明与锁文件       |  郑悫  | `requirements-dev.in`<br/>`requirements-dev.lock`                                     |
 | 003  | DONE | 环境变量样例与忽略规则 |  郑悫  | `.env.example`<br/>`.gitignore`<br/>`.dockerignore`                                   |
-| 004  | DONE | 服务 Dockerfile   |  刘雯  | `services/draft/Dockerfile`                                                           |
-| 005  | DONE | Compose 运行配置  |  刘雯  | `compose.yaml`                                                                        |
-| 006  | DONE | 环境自检脚本        |  刘雯  | `scripts/doctor.py`                                                                   |
-| 007  | DONE | 密钥扫描脚本        | 姚睿哲 | `scripts/secret_scan.py`                                                              |
-| 008  | DONE | 一键命令 Makefile | 姚睿哲 | `Makefile`                                                                            |
-| 009  | DONE | 服务单元测试        | 王师师 | `services/draft/tests/test_cli.py`<br/>`services/draft/tests/test_smoke.py`           |
+| 004  | DONE | 服务 Dockerfile        |  刘雯  | `services/draft/Dockerfile`                                                           |
+| 005  | DONE | Compose 运行配置       |  刘雯  | `compose.yaml`                                                                        |
+| 006  | DONE | 环境自检脚本           |  刘雯  | `scripts/doctor.py`                                                                   |
+| 007  | DONE | 密钥扫描脚本           | 姚睿哲 | `scripts/secret_scan.py`                                                              |
+| 008  | DONE | 一键命令 Makefile      | 姚睿哲 | `Makefile`                                                                            |
+| 009  | DONE | 服务单元测试           | 王师师 | `services/draft/tests/test_cli.py`<br/>`services/draft/tests/test_smoke.py`           |
 | 010  | DONE | 运行验证与证据归档     | 王师师 | `work/<timestamp>/{test.log,smoke.json,env.json,build.log,image.json,toolchain.lock}` |
