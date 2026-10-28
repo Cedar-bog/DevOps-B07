@@ -26,5 +26,9 @@ DevOps-B07/
 ├─── design/                # 设计文件
 ├─── fixtures/              # 测试样本
 ├─── scripts/               # 脚本工具
-└─── services/              # 服务
+├─── services/              # 服务
+│
+│ 以下内容以压缩包提交，不进入仓库
+├╌╌╌ evidence/              # 阶段实验证据
+└╌╌╌ work/                  # 服务/工具运行产物
 ```
