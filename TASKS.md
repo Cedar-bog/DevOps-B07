@@ -78,7 +78,7 @@ evidence/e5/
 | 编号 | 状态 | 任务                                                                  | 负责人 | 产物                                |
 |------|------|-----------------------------------------------------------------------|--------|-------------------------------------|
 | 001  | DONE | 扩展环境变量样例：LLM API 地址、密钥、模型                            |  郑悫  | `.env.example`                      |
-| 002  |      | 可注入的 LLM 适配层：读取 API 配置、发送提示词、返回原始回复          |  郑悫  | `services/draft/draft/llm.py`       |
+| 002  | DONE | 可注入的 LLM 适配层：读取 API 配置、发送提示词、返回原始回复          |  郑悫  | `services/draft/draft/llm.py`       |
 | 003  |      | 构建指定 Dockerfile，采集退出码与日志，成功时返回镜像 ID              |        | `services/draft/draft/docker.py`    |
 | 004  |      | 运行构建出的镜像，检查退出码与预期输出，记录验证结果                  |        | `services/draft/draft/verify.py`    |
 | 005  |      | 使用当前 Dockerfile、该轮失败日志与项目 README 生成完整提示词         |        | `services/draft/draft/prompt.py`    |

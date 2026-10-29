@@ -3,3 +3,7 @@ name = "devops-b07"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["services/draft"]
+testpaths = ["services/draft/tests"]
