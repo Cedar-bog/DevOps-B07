@@ -1,13 +1,13 @@
 # E4-B07 一键命令：可重复工程环境（服务 draft）
 #
-# 命令在本地执行，docker 通过 .env 中的 HUWEI_* 在服务器上运行。
+# 命令在本地执行，docker 在服务器上运行。
 # 每次运行都新建 work/<UTC 时间戳>/ 作为证据目录，不覆盖旧记录；
 # make all 依次执行五步，共用同一个证据目录。
-#   make doctor  -> env.json
-#   make build   -> build.log  image.json  toolchain.lock
-#   make test    -> test.log
-#   make smoke   -> smoke.json
-#   make scan    -> secret-scan.txt
+#   make doctor     -> env.json
+#   make build      -> build.log  image.json  toolchain.lock
+#   make test       -> test.log
+#   make smoke      -> smoke.json
+#   make scan       -> secret-scan.txt
 #
 # STUDENT_ID 与 DOCKER_GID 从 .env 读取，都可以用命令行变量覆盖；
 # DOCKER_GID 缺省时从服务器 docker.sock 读取。
@@ -42,7 +42,7 @@ RUN_ID := $(shell d='$(WORK_ROOT)/$(RUN_TS)'; n=0; while [ -e "$$d" ]; do n=$$((
 RUN_DIR := $(WORK_ROOT)/$(RUN_ID)
 EVIDENCE := work/$(RUN_ID)
 
-.PHONY: all help doctor build test smoke scan shell clean lock config \
+.PHONY: all help doctor llm-check build test smoke scan shell clean lock config \
         require-student-id require-remote require-image require-gid
 
 all: doctor build test smoke scan
@@ -52,23 +52,18 @@ all: doctor build test smoke scan
 
 help:
 	@printf '%s\n' \
-	  'E4-B07 一键命令（本地执行，docker 在 .env 指定的服务器上运行）' \
-	  '每次运行新建 work/<UTC 时间戳>/，不覆盖旧记录' \
+	  '  make doctor    服务器、Git 身份与工具链自检       -> env.json' \
+	  '  make build     构建服务镜像                       -> build.log  image.json  toolchain.lock' \
+	  '  make test      容器内运行本组单元测试             -> test.log' \
+	  '  make smoke     用 E3 样例做冒烟测试               -> smoke.json' \
+	  '  make scan      工作区、Git 历史、镜像的密钥检查   -> secret-scan.txt' \
+	  '  make all       依次执行上面五步，共用同一个证据目录' \
 	  '' \
-	  '  make doctor   服务器、Git 身份与工具链自检        -> env.json' \
-	  '  make build    构建服务镜像                       -> build.log  image.json  toolchain.lock' \
-	  '  make test     容器内运行本组单元测试             -> test.log' \
-	  '  make smoke    用 E3 样例做冒烟测试               -> smoke.json' \
-	  '  make scan     工作区、Git 历史、镜像的密钥检查   -> secret-scan.txt' \
-	  '  make all      依次执行上面五步，共用同一个证据目录' \
-	  '' \
-	  '  make shell    进入服务容器（compose，挂载 docker.sock）' \
-	  '  make clean    删除服务镜像与 smoke 镜像' \
-	  '  make lock     由 requirements-dev.in 重新生成锁文件' \
-	  '  make config   打印本次解析出的变量，用于排查' \
-	  '' \
-	  '服务器：$(HUWEI_LABEL)' \
-	  '变量：STUDENT_ID=$(STUDENT_ID) DOCKER_GID=$(DOCKER_GID) IMAGE=$(IMAGE)'
+	  '  make llm-check 校验 .env 中的 LLM 配置并调用模型' \
+	  '  make shell     进入服务容器（compose，挂载 docker.sock）' \
+	  '  make clean     删除服务镜像与 smoke 镜像' \
+	  '  make lock      由 requirements-dev.in 重新生成锁文件' \
+	  '  make config    打印本次解析出的变量，用于排查'
 
 config:
 	@printf '%s\n' \
@@ -76,7 +71,7 @@ config:
 	  'PYTHON=$(PYTHON)' \
 	  'REMOTE=$(REMOTE)' \
 	  'DOCKER=$(DOCKER)' \
-	  'SERVER=$(HUWEI_USER)@$(HUWEI_HOST):$(HUWEI_PORT)' \
+	  'SERVER=$(HUAWEI_USER)@$(HUAWEI_HOST):$(HUAWEI_PORT)' \
 	  'STUDENT_ID=$(STUDENT_ID)' \
 	  'DOCKER_SOCK=$(DOCKER_SOCK)' \
 	  'DOCKER_GID=$(DOCKER_GID)' \
@@ -84,10 +79,10 @@ config:
 	  'RUN_ID=$(RUN_ID)' \
 	  'RUN_DIR=$(RUN_DIR)'
 
-HUWEI_HOST := $(call env_get,HUWEI_HOST)
-HUWEI_PORT := $(or $(call env_get,HUWEI_PORT),22)
-HUWEI_USER := $(call env_get,HUWEI_USER)
-HUWEI_LABEL := $(HUWEI_USER)@$(HUWEI_HOST):$(HUWEI_PORT)
+HUAWEI_HOST := $(call env_get,HUAWEI_HOST)
+HUAWEI_PORT := $(or $(call env_get,HUAWEI_PORT),22)
+HUAWEI_USER := $(call env_get,HUAWEI_USER)
+HUAWEI_LABEL := $(HUAWEI_USER)@$(HUAWEI_HOST):$(HUAWEI_PORT)
 
 $(RUN_DIR):
 	@mkdir -p '$(RUN_DIR)'
@@ -106,7 +101,7 @@ require-gid:
 
 require-remote:
 	@if [ ! -f '$(ROOT)/.env' ]; then
-	  printf '%s\n' '.env 不存在：复制 .env.example 并填入 HUWEI_* 与 STUDENT_ID。'
+	  printf '%s\n' '.env 不存在：复制 .env.example 并填入 HUAWEI_* 与 STUDENT_ID。'
 	  exit 1
 	fi
 	@if [ ! -x '$(REMOTE)' ] || [ ! -x '$(DOCKER)' ]; then
@@ -131,6 +126,10 @@ doctor: | $(RUN_DIR)
 	  $(PYTHON) scripts/doctor.py --docker '$(DOCKER)' --ssh '$(REMOTE)' \
 	    --docker-gid '$(DOCKER_GID)' --output '$(RUN_DIR)/env.json'
 
+llm-check:
+	@cd $(ROOT)
+	$(PYTHON) scripts/check_llm.py
+
 build: require-student-id require-remote | $(RUN_DIR)
 	@set +e
 	cd $(ROOT)
@@ -145,7 +144,7 @@ build: require-student-id require-remote | $(RUN_DIR)
 	  printf 'dockerfile: %s\n' '$(DOCKERFILE)'
 	  printf 'dockerfile_sha256: %s\n' "$$(sha256sum '$(ROOT)/$(DOCKERFILE)' | awk '{print $$1}')"
 	  grep -E '^[[:space:]]*ARG (BASE_IMAGE|DOCKER_CLI_IMAGE)=' '$(ROOT)/$(DOCKERFILE)' || true
-	  printf 'server: %s\n' '$(HUWEI_LABEL)'
+	  printf 'server: %s\n' '$(HUAWEI_LABEL)'
 	  printf 'docker: %s\n\n' "$$($(DOCKER) --version 2>&1)"
 	} > '$(RUN_DIR)/build.log'
 
@@ -182,7 +181,7 @@ test: require-image | $(RUN_DIR)
 	  printf 'run_id: %s\n' '$(RUN_ID)'
 	  printf 'git_commit: %s\n' "$$(git rev-parse HEAD)"
 	  printf 'image: %s\n' '$(IMAGE)'
-	  printf 'server: %s\n\n' '$(HUWEI_LABEL)'
+	  printf 'server: %s\n\n' '$(HUAWEI_LABEL)'
 	  if ! compgen -G '$(ROOT)/$(TESTS_DIR)/test_*.py' >/dev/null; then
 	    printf '%s\n' '$(TESTS_DIR) 下没有 test_*.py。'
 	    exit 1

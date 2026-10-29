@@ -18,10 +18,10 @@ set -a
 . "$ENV_FILE"
 set +a
 
-: "${HUWEI_HOST:?remote: HUWEI_HOST is not set in .env}"
-: "${HUWEI_USER:?remote: HUWEI_USER is not set in .env}"
-: "${HUWEI_PASSWORD:?remote: HUWEI_PASSWORD is not set in .env}"
-PORT="${HUWEI_PORT:-22}"
+: "${HUAWEI_HOST:?remote: HUAWEI_HOST is not set in .env}"
+: "${HUAWEI_USER:?remote: HUAWEI_USER is not set in .env}"
+: "${HUAWEI_PASSWORD:?remote: HUAWEI_PASSWORD is not set in .env}"
+PORT="${HUAWEI_PORT:-22}"
 
 command -v sshpass >/dev/null 2>&1 || {
   echo "remote: sshpass is required" >&2
@@ -50,4 +50,4 @@ else
   COMMAND="${COMMAND% }"
 fi
 
-exec sshpass -p "$HUWEI_PASSWORD" ssh "${OPTS[@]}" "$HUWEI_USER@$HUWEI_HOST" "$COMMAND"
+exec sshpass -p "$HUAWEI_PASSWORD" ssh "${OPTS[@]}" "$HUAWEI_USER@$HUAWEI_HOST" "$COMMAND"
