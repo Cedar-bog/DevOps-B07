@@ -5,8 +5,8 @@
     "error_driven": "work/e5-01/iter-01/prompt-error-driven.txt",
     "context_driven": "work/e5-01/iter-01/prompt-context-driven.txt"
   },
-  "model": "deepseek-v4-pro",
-  "endpoint": "https://njusehub.info/v1/chat/completions",
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com/v1/chat/completions",
   "generated_by": "学生手工触发（E5），非 E6 自动化",
   "candidates": [
     {
@@ -15,20 +15,22 @@
       "prompt_file": "work/e5-01/iter-01/prompt-error-driven.txt",
       "response_file": "work/candidate/responses/error-driven-1.json",
       "dockerfile": "work/candidate/candidates/error-driven-1.Dockerfile",
-      "sha256": "fc49c2c51f7a2f70d3f7e0f3ab11edad5734e147860f64dd61eb72148544a1a6",
-      "normalized_sha256": "957162d2217267bd0d8b6cca7aa0a146236a92cf836d5751c65adae2bf408b3f",
-      "generated_at_utc": "2026-10-29T14:24:27Z",
-      "latency_seconds": 16.531,
+      "sha256": "e5ba1bd73b20eaf1efb48c22b86e82d8e3cae90f24a990c30cf10f7ef4aa5908",
+      "normalized_sha256": "7b369ee596817f3bf90224551c406aece9d637eef832a06d014251578c56697d",
+      "generated_at_utc": "2026-10-29T14:33:21Z",
+      "latency_seconds": 7.14,
       "usage": {
-        "prompt_tokens": 776,
-        "completion_tokens": 466,
-        "total_tokens": 1242,
-        "completion_tokens_details": {
-          "reasoning_tokens": 353
-        },
+        "prompt_tokens": 783,
+        "completion_tokens": 364,
+        "total_tokens": 1147,
         "prompt_tokens_details": {
           "cached_tokens": 0
-        }
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 247
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 783
       },
       "valid": true,
       "problems": [],
@@ -40,20 +42,22 @@
       "prompt_file": "work/e5-01/iter-01/prompt-error-driven.txt",
       "response_file": "work/candidate/responses/error-driven-2.json",
       "dockerfile": "work/candidate/candidates/error-driven-2.Dockerfile",
-      "sha256": "b7ac7682031bec7a907bdd49627b1dfab6b05e546e14cb313acc58fa8a0c4d8e",
-      "normalized_sha256": "cda6ff4e803decc2cf5096a6aad727a2d248e8a582e31b2d49ec1bd2c9db0d18",
-      "generated_at_utc": "2026-10-29T14:24:48Z",
-      "latency_seconds": 21.516,
+      "sha256": "e5ba1bd73b20eaf1efb48c22b86e82d8e3cae90f24a990c30cf10f7ef4aa5908",
+      "normalized_sha256": "7b369ee596817f3bf90224551c406aece9d637eef832a06d014251578c56697d",
+      "generated_at_utc": "2026-10-29T14:33:29Z",
+      "latency_seconds": 7.328,
       "usage": {
-        "prompt_tokens": 776,
-        "completion_tokens": 686,
-        "total_tokens": 1462,
-        "completion_tokens_details": {
-          "reasoning_tokens": 573
-        },
+        "prompt_tokens": 783,
+        "completion_tokens": 378,
+        "total_tokens": 1161,
         "prompt_tokens_details": {
-          "cached_tokens": 0
-        }
+          "cached_tokens": 640
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 261
+        },
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 143
       },
       "valid": true,
       "problems": [],
@@ -65,20 +69,22 @@
       "prompt_file": "work/e5-01/iter-01/prompt-error-driven.txt",
       "response_file": "work/candidate/responses/error-driven-3.json",
       "dockerfile": "work/candidate/candidates/error-driven-3.Dockerfile",
-      "sha256": "f96eab61027f3000846b677033afe782723f2e4610412875f3f0fae697043d14",
-      "normalized_sha256": "a488b6f1b4fe8bd6de68094cd06e876667195a810e69aa093d0a4f62a34f1ca2",
-      "generated_at_utc": "2026-10-29T14:25:04Z",
-      "latency_seconds": 16.375,
+      "sha256": "8283bbaa2edbf6ff920297960490e1b0361dfb3c6c14ae59654e1d2b323c2c1c",
+      "normalized_sha256": "6c6d5ebd3068fd30f0f0106b8d0abe166d99c0df81894e79c8a43fc5b5e8ac22",
+      "generated_at_utc": "2026-10-29T14:33:36Z",
+      "latency_seconds": 6.953,
       "usage": {
-        "prompt_tokens": 776,
-        "completion_tokens": 442,
-        "total_tokens": 1218,
-        "completion_tokens_details": {
-          "reasoning_tokens": 336
-        },
+        "prompt_tokens": 783,
+        "completion_tokens": 276,
+        "total_tokens": 1059,
         "prompt_tokens_details": {
-          "cached_tokens": 0
-        }
+          "cached_tokens": 640
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 157
+        },
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 143
       },
       "valid": true,
       "problems": [],
@@ -90,20 +96,22 @@
       "prompt_file": "work/e5-01/iter-01/prompt-context-driven.txt",
       "response_file": "work/candidate/responses/context-driven-1.json",
       "dockerfile": "work/candidate/candidates/context-driven-1.Dockerfile",
-      "sha256": "e17a6910c25da6eb1c5d1fee3c3889cd4a76325ba254f17211228d8a87b5566b",
-      "normalized_sha256": "6d5189f107d4c1fc981d89aac89c377e9dcbb3454e9e622950b50f646cfbf598",
-      "generated_at_utc": "2026-10-29T14:25:23Z",
-      "latency_seconds": 18.625,
+      "sha256": "8283bbaa2edbf6ff920297960490e1b0361dfb3c6c14ae59654e1d2b323c2c1c",
+      "normalized_sha256": "6c6d5ebd3068fd30f0f0106b8d0abe166d99c0df81894e79c8a43fc5b5e8ac22",
+      "generated_at_utc": "2026-10-29T14:33:42Z",
+      "latency_seconds": 6.5,
       "usage": {
-        "prompt_tokens": 899,
-        "completion_tokens": 524,
-        "total_tokens": 1423,
-        "completion_tokens_details": {
-          "reasoning_tokens": 411
-        },
+        "prompt_tokens": 906,
+        "completion_tokens": 297,
+        "total_tokens": 1203,
         "prompt_tokens_details": {
-          "cached_tokens": 0
-        }
+          "cached_tokens": 768
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 178
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 138
       },
       "valid": true,
       "problems": [],
@@ -115,20 +123,22 @@
       "prompt_file": "work/e5-01/iter-01/prompt-context-driven.txt",
       "response_file": "work/candidate/responses/context-driven-2.json",
       "dockerfile": "work/candidate/candidates/context-driven-2.Dockerfile",
-      "sha256": "07be8df2baadc5017b8c66f7a89bae6a7a9a014fe480552e60087f93004342c6",
-      "normalized_sha256": "6c6d5ebd3068fd30f0f0106b8d0abe166d99c0df81894e79c8a43fc5b5e8ac22",
-      "generated_at_utc": "2026-10-29T14:25:42Z",
-      "latency_seconds": 19.031,
+      "sha256": "c2790512f339af9befb0c6a08b0908ffcaa89e0ac818947d5a5e6eaa3369ff6a",
+      "normalized_sha256": "6ee1d1e07b5ca813cf1902baa8ac47d48cf8e47633c371b90525b409b2a83651",
+      "generated_at_utc": "2026-10-29T14:33:49Z",
+      "latency_seconds": 7.203,
       "usage": {
-        "prompt_tokens": 899,
-        "completion_tokens": 517,
-        "total_tokens": 1416,
-        "completion_tokens_details": {
-          "reasoning_tokens": 400
-        },
+        "prompt_tokens": 906,
+        "completion_tokens": 402,
+        "total_tokens": 1308,
         "prompt_tokens_details": {
-          "cached_tokens": 0
-        }
+          "cached_tokens": 768
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 284
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 138
       },
       "valid": true,
       "problems": [],
@@ -140,20 +150,22 @@
       "prompt_file": "work/e5-01/iter-01/prompt-context-driven.txt",
       "response_file": "work/candidate/responses/context-driven-3.json",
       "dockerfile": "work/candidate/candidates/context-driven-3.Dockerfile",
-      "sha256": "07be8df2baadc5017b8c66f7a89bae6a7a9a014fe480552e60087f93004342c6",
-      "normalized_sha256": "6c6d5ebd3068fd30f0f0106b8d0abe166d99c0df81894e79c8a43fc5b5e8ac22",
-      "generated_at_utc": "2026-10-29T14:25:57Z",
-      "latency_seconds": 14.453,
+      "sha256": "c869777ae4cc237734afb205790daed28cf2c5dd29a8dfcdae0115821f57704f",
+      "normalized_sha256": "6d5189f107d4c1fc981d89aac89c377e9dcbb3454e9e622950b50f646cfbf598",
+      "generated_at_utc": "2026-10-29T14:33:56Z",
+      "latency_seconds": 6.671,
       "usage": {
-        "prompt_tokens": 899,
-        "completion_tokens": 357,
-        "total_tokens": 1256,
-        "completion_tokens_details": {
-          "reasoning_tokens": 240
-        },
+        "prompt_tokens": 906,
+        "completion_tokens": 311,
+        "total_tokens": 1217,
         "prompt_tokens_details": {
-          "cached_tokens": 0
-        }
+          "cached_tokens": 768
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 194
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 138
       },
       "valid": true,
       "problems": [],
@@ -161,9 +173,10 @@
     }
   ],
   "selection": {
-    "rule": "R2 多数一致（续行归一化）",
-    "selected": "context-driven-2",
-    "reason": "context-driven-2 与 context-driven-3 续行归一化后完全相同（逐字节相同），构成唯一多数组，取编号最小者；该候选安装 build-essential，提供 make 与 cc，直接修复 make: not found",
+    "rule": "R1 通过 → R2 并列（2:2）→ R3 无法区分 → R4 由 LLM 裁决",
+    "selected": "context-driven-3",
+    "reason": "R1 全部通过；R2 两组各 2 票并列；R3 全部候选都含 make 与 build-essential，无法区分；按 R4 由 LLM 从 6 个候选中选择 context-driven-3：先安装 build-essential，再 COPY 源码并单独 RUN make，依赖安装与源码复制解耦，构建缓存更稳定。",
+    "r4_response_file": "work/candidate/responses/r4-decision.json",
     "decision_file": "work/candidate/decision.json"
   }
 }
