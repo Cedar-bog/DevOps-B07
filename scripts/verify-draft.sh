@@ -18,10 +18,10 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
-: "${HUWEI_HOST:?请在 .env 设置 HUWEI_HOST}"
-: "${HUWEI_USER:?请在 .env 设置 HUWEI_USER}"
-: "${HUWEI_PASSWORD:?请在 .env 设置 HUWEI_PASSWORD}"
-HUWEI_PORT="${HUWEI_PORT:-22}"
+: "${HUAWEI_HOST:?请在 .env 设置 HUAWEI_HOST}"
+: "${HUAWEI_USER:?请在 .env 设置 HUAWEI_USER}"
+: "${HUAWEI_PASSWORD:?请在 .env 设置 HUAWEI_PASSWORD}"
+HUAWEI_PORT="${HUAWEI_PORT:-22}"
 
 command -v sshpass >/dev/null 2>&1 || { echo "缺少 sshpass" >&2; exit 1; }
 
@@ -34,15 +34,15 @@ fi
 mkdir -p "$RUN_DIR"
 
 REMOTE_DIR="/tmp/devops-b07-draft/$RUN_ID"
-SSH_OPTS=(-p "$HUWEI_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
-TARGET="$HUWEI_USER@$HUWEI_HOST"
+SSH_OPTS=(-p "$HUAWEI_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
+TARGET="$HUAWEI_USER@$HUAWEI_HOST"
 BROKEN_TAG="nju-e3-draft-broken:$RUN_ID"
 REFERENCE_TAG="nju-e3-draft-reference:$RUN_ID"
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/draft.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
-ssh_do() { sshpass -p "$HUWEI_PASSWORD" ssh "${SSH_OPTS[@]}" "$TARGET" "$@"; }
+ssh_do() { sshpass -p "$HUAWEI_PASSWORD" ssh "${SSH_OPTS[@]}" "$TARGET" "$@"; }
 
 git_commit="$(git -C "$ROOT" rev-parse HEAD)"
 started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
@@ -186,9 +186,9 @@ ssh_do 'docker info >/dev/null 2>&1' || { echo "远程 docker 不可用（可能
 
 printf 'run_id: %s\n' "$RUN_ID"
 printf '==> build（本地）\n';                       phase_build
-printf '==> upload（tar -> server）\n' "$HUWEI_HOST"
+printf '==> upload（tar -> server）\n' "$HUAWEI_HOST"
 ssh_do "mkdir -p '$REMOTE_DIR'"
-tar -C "$FIXTURE" -cf - . | sshpass -p "$HUWEI_PASSWORD" ssh "${SSH_OPTS[@]}" "$TARGET" "tar -C '$REMOTE_DIR' -xf -"
+tar -C "$FIXTURE" -cf - . | sshpass -p "$HUAWEI_PASSWORD" ssh "${SSH_OPTS[@]}" "$TARGET" "tar -C '$REMOTE_DIR' -xf -"
 printf '==> broken（远程 docker build，预期失败）\n'; phase_broken
 printf '==> reference（远程 docker build + run）\n';  phase_reference
 printf '==> meta\n';                                 write_meta
