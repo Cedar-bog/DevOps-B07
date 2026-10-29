@@ -91,7 +91,7 @@ evidence/e5/
 ## E7 - 论文1验证
 | 编号 | 状态 | 任务                                                           | 负责人 | 产物                                     |
 |------|------|----------------------------------------------------------------|--------|------------------------------------------|
-| 001  |      | 实现 fake LLM 测试替身，按预置候选回复模拟模型输出，供测试注入 |  郑悫  | `services/draft/tests/fake_llm.py`       |
+| 001  | DONE | 实现 fake LLM 测试替身，按预置候选回复模拟模型输出，供测试注入 |  郑悫  | `services/draft/tests/fake_llm.py`       |
 | 002  |      | 覆盖正常修复路径，验证从初始失败到候选成功                     |        | `services/draft/tests/test_pipeline.py`  |
 | 003  |      | 覆盖无效候选，验证改动 CMD 或缺少必要指令的候选                |        | `services/draft/tests/test_candidate.py` |
 | 004  |      | 覆盖候选构建失败，验证该轮不进入运行验证                       |        | `services/draft/tests/test_pipeline.py`  |
