@@ -40,6 +40,7 @@ RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin app \
 
 COPY --chown=app:app services/draft/ /app/
 COPY --chown=app:app fixtures/draft/ /app/fixtures/draft/
+COPY --chown=app:app fixtures/ci-candidates/ /app/fixtures/ci-candidates/
 
 USER app
 WORKDIR /app

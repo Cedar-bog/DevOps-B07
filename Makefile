@@ -148,7 +148,7 @@ build: require-student-id require-remote | $(RUN_DIR)
 	  printf 'docker: %s\n\n' "$$($(DOCKER) --version 2>&1)"
 	} > '$(RUN_DIR)/build.log'
 
-	tar -C '$(ROOT)' -cf - services/draft fixtures/draft requirements-dev.lock \
+	tar -C '$(ROOT)' -cf - services/draft fixtures/draft fixtures/ci-candidates requirements-dev.lock \
 	  | $(REMOTE) --shell "rm -rf '$$STAGE' && mkdir -p '$$STAGE' && tar -C '$$STAGE' -xf -" 2>&1 \
 	  | tee -a '$(RUN_DIR)/build.log'
 	stage_rc=$${PIPESTATUS[1]}
