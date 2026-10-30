@@ -79,13 +79,13 @@ evidence/e5/
 |------|------|-----------------------------------------------------------------------|--------|-------------------------------------|
 | 001  | DONE | 扩展环境变量样例：LLM API 地址、密钥、模型                            |  郑悫  | `.env.example`                      |
 | 002  | DONE | 可注入的 LLM 适配层：读取 API 配置、发送提示词、返回原始回复          |  郑悫  | `services/draft/draft/llm.py`       |
-| 003  |      | 构建指定 Dockerfile，采集退出码与日志，成功时返回镜像 ID              |        | `services/draft/draft/docker.py`    |
-| 004  |      | 运行构建出的镜像，检查退出码与预期输出，记录验证结果                  |        | `services/draft/draft/verify.py`    |
-| 005  |      | 使用当前 Dockerfile、该轮失败日志与项目 README 生成完整提示词         |        | `services/draft/draft/prompt.py`    |
-| 006  |      | 从回复中提取候选 Dockerfile，校验必要指令并选择                       |        | `services/draft/draft/candidate.py` |
-| 007  |      | 自动修复循环，直到成功或达到上限                                      |        | `services/draft/draft/pipeline.py`  |
-| 008  |      | 汇总自动修复循环的每轮结果，创建 work/<timestamp>/ 并写入 result.json |        | `services/draft/draft/result.py`    |
-| 009  |      | 扩展 DRAFT CLI，增加自动修复运行子命令                                |        | `services/draft/draft/cli.py`       |
+| 003  | DONE | 构建指定 Dockerfile，采集退出码与日志，成功时返回镜像 ID              |        | `services/draft/draft/docker.py`    |
+| 004  | DONE | 运行构建出的镜像，检查退出码与预期输出，记录验证结果                  |        | `services/draft/draft/verify.py`    |
+| 005  | DONE | 使用当前 Dockerfile、该轮失败日志与项目 README 生成完整提示词         |        | `services/draft/draft/prompt.py`    |
+| 006  | DONE | 从回复中提取候选 Dockerfile，校验必要指令并选择                       |        | `services/draft/draft/candidate.py` |
+| 007  | DONE | 自动修复循环，直到成功或达到上限                                      |        | `services/draft/draft/pipeline.py`  |
+| 008  | DONE | 汇总自动修复循环的每轮结果，创建 work/<timestamp>/ 并写入 result.json |        | `services/draft/draft/result.py`    |
+| 009  | DONE | 扩展 DRAFT CLI，增加自动修复运行子命令                                |        | `services/draft/draft/cli.py`       |
 | 010  |      | 在 fixtures/draft 上执行一次完整自动修复                              |  郑悫  | `work/<timestamp>/`                 |
 ---
 ## E7 - 论文1验证
