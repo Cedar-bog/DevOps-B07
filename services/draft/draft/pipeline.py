@@ -39,7 +39,7 @@ class RepairOutcome:
 
 
 class SavedCandidates:
-    """Replay saved Dockerfiles through the same loop without a network call."""
+    """Serve saved Dockerfiles through the same loop without a network call."""
 
     prompt_mode = "skipped"
     model = "saved-candidates"
@@ -47,7 +47,7 @@ class SavedCandidates:
     def __init__(self, files):
         self.files = tuple(Path(file).expanduser().resolve() for file in files)
         if not self.files:
-            raise ValueError("no replay Dockerfiles found")
+            raise ValueError("no saved Dockerfiles found")
         self.replies = [f"```Dockerfile\n{file.read_text(encoding='utf-8')}\n```\n" for file in self.files]
         self.cursor = 0
 
@@ -57,12 +57,10 @@ class SavedCandidates:
         return SimpleNamespace(text=reply)
 
 
-def load_repair_llm(*, env_file=None, candidate=None, replay_dir=None):
+def load_repair_llm(*, env_file=None, candidate=None):
     """Resolve a CLI reply source; saved candidates never read LLM settings."""
     if candidate is not None:
         return SavedCandidates([candidate])
-    if replay_dir is not None:
-        return SavedCandidates(sorted(Path(replay_dir).glob("*.Dockerfile")))
     available_env = env_file if env_file is not None and Path(env_file).is_file() else None
     return LLMClient.from_env(env_file=available_env)
 
