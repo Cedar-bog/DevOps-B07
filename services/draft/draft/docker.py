@@ -15,6 +15,10 @@ from uuid import uuid4
 DEFAULT_BUILD_TIMEOUT = 900.0
 LOG_TAIL_LIMIT = 20000
 CLEANUP_TIMEOUT = 60.0
+DEFAULT_BUILD_MEMORY = "2g"
+DEFAULT_BUILD_CPU_PERIOD = "100000"
+DEFAULT_BUILD_CPU_QUOTA = "200000"
+DEFAULT_BUILD_NOFILE = "1024:1024"
 FAILURE_CLASSES = ("NONE", "MISSING_MAKE", "APT_ERROR", "NETWORK", "TIMEOUT", "OTHER")
 _ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
@@ -37,6 +41,11 @@ Runner = Callable[[list[str], Path, float], CommandResult]
 
 def _clean(text: str) -> str:
     return _ANSI.sub("", text).replace("\r", "")
+
+
+def clean_log(text: str) -> str:
+    """Return log text without ANSI escapes or carriage returns."""
+    return _clean(text)
 
 
 def _utc(now=None) -> datetime:
@@ -146,7 +155,15 @@ def build_image(
         raise ValueError("build timeout must be finite and greater than zero")
     started = _utc(now)
     image_tag = tag or f"e6-draft-iter:{started.strftime('%Y%m%dT%H%M%SZ')}-{uuid4().hex[:8]}"
-    command = [docker, "build", "--progress=plain", "-f", dockerfile, "-t", image_tag, "."]
+    command = [
+        docker, "build", "--progress=plain",
+        "--memory", DEFAULT_BUILD_MEMORY,
+        "--cpu-period", DEFAULT_BUILD_CPU_PERIOD,
+        "--cpu-quota", DEFAULT_BUILD_CPU_QUOTA,
+        "--ulimit", f"nofile={DEFAULT_BUILD_NOFILE}",
+        "--security-opt", "no-new-privileges",
+        "-f", dockerfile, "-t", image_tag, ".",
+    ]
     if no_cache:
         command.append("--no-cache")
     result = _invoke(runner or default_runner, command, context, timeout)

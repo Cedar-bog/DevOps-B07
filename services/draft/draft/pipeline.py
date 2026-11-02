@@ -13,7 +13,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from .candidate import CandidateError, check_candidate, extract_candidates, select_candidate
-from .docker import DEFAULT_BUILD_TIMEOUT, DockerError, Runner, build_image
+from .docker import DEFAULT_BUILD_TIMEOUT, DockerError, Runner, build_image, clean_log, remove_image
 from .llm import LLMClient, LLMError, display_endpoint
 from .prompt import PROMPT_VERSION, build_context_prompt, build_error_prompt
 from .result import (
@@ -77,6 +77,17 @@ def _text(target: Path, text: str):
     target.write_text(text, encoding="utf-8", newline="")
 
 
+def _release_image(build, *, docker: str, runner: Runner | None) -> None:
+    """Best-effort image cleanup; evidence keeps only the recorded image ID."""
+    tag = getattr(build, "image_tag", None)
+    if not tag:
+        return
+    try:
+        remove_image(tag, docker=docker, runner=runner)
+    except Exception:
+        pass
+
+
 def _error_terms(log: str) -> list[str]:
     # Use the missing dependency, rather than generic words such as 'error'.
     terms = []
@@ -105,8 +116,8 @@ def _build_record(build, paths, directory):
 
 def _verify_record(verify, paths, directory):
     # stdout is the verification evidence; stderr is kept separately.
-    _text(directory / "verify.log", verify.stdout)
-    _text(directory / "verify-stderr.log", verify.stderr)
+    _text(directory / "verify.log", clean_log(verify.stdout))
+    _text(directory / "verify-stderr.log", clean_log(verify.stderr))
     record = asdict(verify)
     record.pop("stdout")
     record.pop("stderr")
@@ -208,14 +219,18 @@ def run_repair(
         last_failure = initial.log
         write_result(paths, payload)
         if initial.timed_out:
+            _release_image(initial, docker=docker, runner=runner)
             return finish("TIMED_OUT", "EXEC_4002", "Initial build timed out")
         if initial.ok():
             payload["initial"]["verify"] = verify_image(initial, initial_dir, f"{container_prefix}-initial")
             if final_verify.timed_out:
+                _release_image(initial, docker=docker, runner=runner)
                 return finish("TIMED_OUT", "EXEC_4002", "Initial verification timed out")
             if final_verify.ok():
+                _release_image(initial, docker=docker, runner=runner)
                 return finish("SUCCEEDED", None, "Initial Dockerfile already builds and verifies")
             last_failure = f"Verification failed: expected {expected_output!r}, actual {final_verify.stdout!r}, exit_code={final_verify.exit_code}\n{final_verify.stderr}"
+        _release_image(initial, docker=docker, runner=runner)
 
         last_code, last_message = "ENV_3002", "No usable repair candidate"
         for iteration in range(1, max_iterations + 1):
@@ -232,6 +247,7 @@ def run_repair(
             verify_record = None
             fatal = False
             timed_out = False
+            build = None
             try:
                 reply = llm.chat([{"role": "user", "content": prompt}]).text
                 _text(directory / "reply.txt", reply)
@@ -278,6 +294,9 @@ def run_repair(
             except (LLMError, DockerError) as exc:
                 last_code, last_message, fatal = None, str(exc), True
                 build_record["reason"] = str(exc)
+            finally:
+                if build is not None:
+                    _release_image(build, docker=docker, runner=runner)
             evidence = {key: path for key, path in evidence.items() if (paths.root / path).is_file()}
             record = RoundRecord(iteration, digest, selected, rejected, build_record, verify_record, evidence)
             rounds.append(record)

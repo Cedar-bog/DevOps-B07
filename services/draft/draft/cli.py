@@ -89,14 +89,15 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
         print(f"smoke error: {exc}", file=sys.stderr)
         return 1
 
-    payload = json.dumps(result.to_payload(), ensure_ascii=False, indent=2)
+    result_payload = result.to_payload()
     if args.output and args.output != "-":
         target = write_result(result, args.output)
         print(f"smoke result written to {target}", file=sys.stderr)
     else:
-        print(payload)
+        public_payload = {key: value for key, value in result_payload.items() if key != "log_tail"}
+        print(json.dumps(public_payload, ensure_ascii=False, indent=2))
 
-    observed = result.to_payload()["observed"]
+    observed = result_payload["observed"]
     print(
         "smoke: exit_code={exit_code} signature={signature} ok={ok}".format(
             exit_code=observed["exit_code"],
