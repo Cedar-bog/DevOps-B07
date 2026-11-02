@@ -1,5 +1,6 @@
 # 任务分工
-
+> AI 请阅读 [工作约束](AGENT.md)。
+---
 ## 小组成员
 | 学号      | 姓名   | GitHub    |
 |-----------|--------|-----------|
@@ -55,7 +56,7 @@
 ## E5 - 论文1复现
 | 状态 | 负责人 |
 |------|--------|
-|      |        |
+| DONE |  刘雯  |
 #### 任务
 - 复用 E3 fixtures/draft 样例，手动复现初始构建失败
 - 构造包含失败日志与当前 Dockerfile 的修复提示词，保存原始回复
@@ -79,26 +80,25 @@ evidence/e5/
 |------|------|-----------------------------------------------------------------------|--------|-------------------------------------|
 | 001  | DONE | 扩展环境变量样例：LLM API 地址、密钥、模型                            |  郑悫  | `.env.example`                      |
 | 002  | DONE | 可注入的 LLM 适配层：读取 API 配置、发送提示词、返回原始回复          |  郑悫  | `services/draft/draft/llm.py`       |
-| 003  | DONE | 构建指定 Dockerfile，采集退出码与日志，成功时返回镜像 ID              |        | `services/draft/draft/docker.py`    |
-| 004  | DONE | 运行构建出的镜像，检查退出码与预期输出，记录验证结果                  |        | `services/draft/draft/verify.py`    |
-| 005  | DONE | 使用当前 Dockerfile、该轮失败日志与项目 README 生成完整提示词         |        | `services/draft/draft/prompt.py`    |
-| 006  | DONE | 从回复中提取候选 Dockerfile，校验必要指令并选择                       |        | `services/draft/draft/candidate.py` |
-| 007  | DONE | 自动修复循环，直到成功或达到上限                                      |        | `services/draft/draft/pipeline.py`  |
-| 008  | DONE | 汇总自动修复循环的每轮结果，创建 work/<timestamp>/ 并写入 result.json |        | `services/draft/draft/result.py`    |
-| 009  | DONE | 扩展 DRAFT CLI，增加自动修复运行子命令                                |        | `services/draft/draft/cli.py`       |
+| 003  | DONE | 构建指定 Dockerfile，采集退出码与日志，成功时返回镜像 ID              | 姚睿哲 | `services/draft/draft/docker.py`    |
+| 004  | DONE | 运行构建出的镜像，检查退出码与预期输出，记录验证结果                  | 姚睿哲 | `services/draft/draft/verify.py`    |
+| 005  | DONE | 使用当前 Dockerfile、该轮失败日志与项目 README 生成完整提示词         | 姚睿哲 | `services/draft/draft/prompt.py`    |
+| 006  | DONE | 从回复中提取候选 Dockerfile，校验必要指令并选择                       | 姚睿哲 | `services/draft/draft/candidate.py` |
+| 007  | DONE | 自动修复循环，直到成功或达到上限                                      | 姚睿哲 | `services/draft/draft/pipeline.py`  |
+| 008  | DONE | 汇总自动修复循环的每轮结果，创建 work/<timestamp>/ 并写入 result.json | 姚睿哲 | `services/draft/draft/result.py`    |
+| 009  | DONE | 扩展 DRAFT CLI，增加自动修复运行子命令                                | 姚睿哲 | `services/draft/draft/cli.py`       |
 | 010  |      | 在 fixtures/draft 上执行一次完整自动修复                              |  郑悫  | `work/<timestamp>/`                 |
 ---
 ## E7 - 论文1验证
 | 编号 | 状态 | 任务                                                           | 负责人 | 产物                                     |
 |------|------|----------------------------------------------------------------|--------|------------------------------------------|
 | 001  | DONE | 实现 fake LLM 测试替身，按预置候选回复模拟模型输出，供测试注入 |  郑悫  | `services/draft/tests/fake_llm.py`       |
-| 002  |      | 覆盖正常修复路径，验证从初始失败到候选成功                     |        | `services/draft/tests/test_pipeline.py`  |
-| 003  |      | 覆盖无效候选，验证改动 CMD 或缺少必要指令的候选                |        | `services/draft/tests/test_candidate.py` |
-| 004  |      | 覆盖候选构建失败，验证该轮不进入运行验证                       |        | `services/draft/tests/test_pipeline.py`  |
-| 005  |      | 覆盖输出不符，验证运行输出不匹配时该轮失败并继续下一轮         |        | `services/draft/tests/test_pipeline.py`  |
+| 002  | DONE | 覆盖正常修复路径，验证从初始失败到候选成功                     | 姚睿哲 | `services/draft/tests/test_pipeline.py`  |
+| 003  | DONE | 覆盖无效候选，验证改动 CMD 或缺少必要指令的候选                | 姚睿哲 | `services/draft/tests/test_candidate.py` |
+| 004  | DONE | 覆盖候选构建失败，验证该轮不进入运行验证                       | 姚睿哲 | `services/draft/tests/test_pipeline.py`  |
+| 005  | DONE | 覆盖输出不符，验证运行输出不匹配时该轮失败并继续下一轮         | 姚睿哲 | `services/draft/tests/test_pipeline.py`  |
 | 006  |      | 覆盖运行超时，验证超时后终止并清理运行容器                     |        | `services/draft/tests/test_pipeline.py`  |
 | 007  |      | 运行全部测试与场景，汇总通过情况和退出码                       |        | `scripts/run_e7_gate.py`                 |
 | 008  |      | 接入 GitHub Actions，在提交和 PR 上运行 E7 门禁并归档结果      |  郑悫  | `.github/workflows/e7-quality-gate.yml`  |
 | 009  |      | 配置 main 分支保护，将 E7 门禁设为必需检查                     |  郑悫  | -                                        |
-| 010  |      | 创建故意失败的 PR，验证 E7 门禁失败并阻止合并                  |  郑悫  | -                                        |
-| 011  |      | 归档 E7 运行证据                                               |  郑悫  | `evidence/e7/<timestamp>/`               |
+| 010  |      | 归档 E7 运行证据                                               |  郑悫  | `evidence/e7/<timestamp>/`               |
