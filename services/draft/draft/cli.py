@@ -70,9 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
     repair.add_argument("--verify-timeout", type=float, default=DEFAULT_VERIFY_TIMEOUT)
     repair.add_argument("--expected-output", default="hello E3")
     repair.add_argument("--docker", default="docker", help="Docker executable, without shell arguments")
-    source = repair.add_mutually_exclusive_group()
-    source.add_argument("--candidate", type=Path, help="use a saved Dockerfile without calling an LLM")
-    source.add_argument("--replay", action="store_true", help="use fixtures/ci-candidates/*.Dockerfile")
+    repair.add_argument("--candidate", type=Path, help="use a saved Dockerfile without calling an LLM")
     repair.add_argument("--no-cache", action="store_true")
     repair.add_argument("--json", action="store_true", help="print result.json to stdout")
     return parser
@@ -115,7 +113,6 @@ def _cmd_repair(args: argparse.Namespace) -> int:
     try:
         llm = load_repair_llm(
             env_file=_repo_root() / ".env", candidate=args.candidate,
-            replay_dir=_repo_root() / "fixtures" / "ci-candidates" if args.replay else None,
         )
         outcome = run_repair(
             fixture, out_dir=args.out, llm=llm, initial_dockerfile=args.initial_dockerfile,
