@@ -12,10 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
-from .candidate import CandidateError, check_candidate, extract_candidates, select_candidate
+from .candidate import CandidateError, extract_candidates, history_digest, prepare_candidate, select_candidate
 from .docker import DEFAULT_BUILD_TIMEOUT, DockerError, Runner, build_image, clean_log, remove_image
 from .llm import LLMClient, LLMError, display_endpoint
-from .prompt import PROMPT_VERSION, build_context_prompt, build_error_prompt
+from .prompt import PROMPT_VERSION, build_choice_prompt, build_context_prompt, build_error_prompt
 from .result import (
     RESULT_SCHEMA_VERSION, RoundRecord, RunPaths, new_run_dir, prepare_project,
     write_result, write_round,
@@ -88,21 +88,43 @@ def _release_image(build, *, docker: str, runner: Runner | None) -> None:
         pass
 
 
+def _llm_chooser(llm, failure_log: str):
+    """Build the R4 chooser; saved candidates have no model to ask."""
+    if isinstance(llm, SavedCandidates):
+        return None
+
+    def choose(remaining):
+        prompt = build_choice_prompt(remaining, failure_log)
+        reply = llm.chat([{"role": "user", "content": prompt}]).text
+        match = re.search(r"\b([1-9][0-9]*)\b", reply)
+        if not match:
+            raise CandidateError("R4: model did not return a candidate index")
+        return int(match.group(1))
+
+    return choose
+
+
 def _error_terms(log: str) -> list[str]:
-    # Use the missing dependency, rather than generic words such as 'error'.
+    # Extract concrete dependency/package terms, not generic words such as 'error'.
     terms = []
     for pattern in (
         r"(?:/bin/sh:\s*\d+:\s*)?([\w.+-]+): (?:command )?not found",
         r"unable to locate package\s+([\w.+-]+)",
         r"([\w.+-]+): no such file or directory",
+        r"([\w.+-]+)\s+is not specified",
+        r"no matching distribution found for\s+([\w.+-]+)",
+        r"failed to execute\s+([\w.+-]+)",
+        r"file not found[:\s]+([\w./+-]+)",
     ):
         terms.extend(re.findall(pattern, log, re.IGNORECASE))
-    return list(dict.fromkeys(terms))
+    return list(dict.fromkeys(term.lower() for term in terms if term.strip()))
 
 
 def _build_record(build, paths, directory):
     log = directory / "build.log"
-    _text(log, build.log)
+    _text(log, clean_log(build.log))
+    _text(directory / "build-stdout.log", clean_log(build.stdout))
+    _text(directory / "build-stderr.log", clean_log(build.stderr))
     _text(directory / "build-exit-code.txt", f"{build.exit_code}\n")
     return {
         "command": build.command, "exit_code": build.exit_code,
@@ -170,12 +192,15 @@ def run_repair(
     mode = getattr(llm, "prompt_mode", prompt_mode)
     payload = {
         "schema_version": RESULT_SCHEMA_VERSION, "service": "draft", "run_id": paths.root.name,
+        "trace_id": "trace-" + paths.root.name.lower(),
         "status": "FAILED", "error": None, "message": "Repair did not complete",
         "input": {
             "fixture": str(fixture), "initial_dockerfile": initial_dockerfile,
             "initial_sha256": hashlib.sha256(baseline.encode("utf-8")).hexdigest(),
             "prompt_mode": mode, "prompt_version": PROMPT_VERSION,
             "max_iterations": max_iterations, "expected_output": expected_output,
+            "docker": docker, "build_timeout": build_timeout,
+            "verify_timeout": verify_timeout, "no_cache": no_cache,
             "model": getattr(config, "model", getattr(llm, "model", None)),
             "endpoint": display_endpoint(config.endpoint) if config else None,
         },
@@ -207,7 +232,7 @@ def run_repair(
 
     write_result(paths, payload)
     current = baseline
-    used = {hashlib.sha256(baseline.strip("\r\n").encode("utf-8")).hexdigest()}
+    used = {history_digest(baseline)}
     last_failure = ""
     try:
         # The first repair prompt must be grounded in an actual failing build.
@@ -215,12 +240,22 @@ def run_repair(
         initial_dir.mkdir()
         _text(initial_dir / "Dockerfile", baseline)
         initial = build_image(paths.project, docker=docker, timeout=build_timeout, no_cache=no_cache, runner=runner, now=now)
-        payload["initial"] = {"build": _build_record(initial, paths, initial_dir), "verify": None}
+        payload["initial"] = {
+            "build": _build_record(initial, paths, initial_dir),
+            "verify": None,
+            "evidence": {"dockerfile": "initial/Dockerfile"},
+        }
         last_failure = initial.log
         write_result(paths, payload)
         if initial.timed_out:
             _release_image(initial, docker=docker, runner=runner)
             return finish("TIMED_OUT", "EXEC_4002", "Initial build timed out")
+        if not initial.ok() and initial.failure_class != "MISSING_MAKE":
+            _release_image(initial, docker=docker, runner=runner)
+            return finish(
+                "FAILED", "ENV_3002",
+                f"Initial build failed with {initial.failure_class}; expected MISSING_MAKE",
+            )
         if initial.ok():
             payload["initial"]["verify"] = verify_image(initial, initial_dir, f"{container_prefix}-initial")
             if final_verify.timed_out:
@@ -243,7 +278,12 @@ def run_repair(
             )}
             selected, rejected = {}, []
             digest = ""
-            build_record = {"exit_code": None, "failure_class": "OTHER"}
+            build_record = {
+                "command": [], "exit_code": None, "failure_class": "OTHER",
+                "failed_step": None, "timed_out": False, "duration_s": 0.0,
+                "image_id": None, "image_tag": None, "started_at": None,
+                "finished_at": None, "log": None,
+            }
             verify_record = None
             fatal = False
             timed_out = False
@@ -254,7 +294,7 @@ def run_repair(
                 candidates = extract_candidates(reply)
                 valid, checks = [], []
                 for candidate in candidates:
-                    reasons = check_candidate(candidate.text, baseline)
+                    reasons = prepare_candidate(candidate.text, baseline)
                     checks.append({"index": candidate.index, "sha256": candidate.sha256,
                                    "fenced": candidate.fenced, "valid": not reasons, "reasons": reasons,
                                    "text": candidate.text})
@@ -264,12 +304,16 @@ def run_repair(
                         valid.append(candidate)
                 # Persist candidates before selection, including all invalid ones.
                 _text(directory / "candidates.json", json.dumps(checks, ensure_ascii=False, indent=2) + "\n")
-                selection = select_candidate(valid, used_sha256=used, error_terms=_error_terms(last_failure), chooser=chooser)
+                active_chooser = chooser or _llm_chooser(llm, last_failure)
+                selection = select_candidate(
+                    valid, used_sha256=used, error_terms=_error_terms(last_failure),
+                    chooser=active_chooser, baseline=baseline,
+                )
                 rejected.extend({"index": index, "reason": reason} for index, reason in selection.rejected)
                 selected = {"index": selection.candidate.index, "rule": selection.rule, "detail": selection.detail}
                 current = selection.candidate.text
                 digest = selection.candidate.sha256
-                used.add(digest)
+                used.add(selection.candidate.history_key)
                 _text(directory / "Dockerfile", current)
                 evidence["dockerfile"] = f"iter-{iteration:02d}/Dockerfile"
                 _text(current_file, current)

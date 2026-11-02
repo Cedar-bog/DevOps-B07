@@ -10,7 +10,9 @@ from fake_llm import FakeLLM, fenced_dockerfile
 
 def reply(fixture_dir, marker=""):
     text = (fixture_dir / "Dockerfile.reference").read_text(encoding="utf-8")
-    return fenced_dockerfile(text + (f"\n# {marker}\n" if marker else ""))
+    if marker:
+        text = text.replace("RUN make\n", f"RUN echo {marker}\nRUN make\n", 1)
+    return fenced_dockerfile(text)
 
 
 def payload(outcome):
@@ -26,7 +28,7 @@ def test_repair_failure_then_success_keeps_round_evidence(tmp_path, fixture_dir)
     assert len(result.rounds) == 2 and result.rounds[0].verify is None
     assert result.image_id == IMAGE_ID and result.verify.ok()
     assert "make: not found" in llm.prompts[0] and "Tiny Greeting" in llm.prompts[0]
-    assert "# first" in llm.prompts[1]
+    assert "echo first" in llm.prompts[1]
     saved = payload(result)
     assert saved["initial"]["build"]["failure_class"] == "MISSING_MAKE"
     assert saved["final"]["verify"]["container_removed"]

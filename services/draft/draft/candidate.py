@@ -14,6 +14,11 @@ _KNOWN = {
     "FROM", "ARG", "RUN", "COPY", "WORKDIR", "CMD", "ENV", "ENTRYPOINT", "ADD",
     "LABEL", "USER", "EXPOSE", "VOLUME", "STOPSIGNAL", "HEALTHCHECK", "SHELL", "ONBUILD",
 }
+_DANGEROUS_RUN = re.compile(
+    r"(?i)(?:\b(?:rm|mv|cp|chmod|chown|dd|truncate)\s+[^\n;&|]*"
+    r"(?:main\.[ch]|Makefile|/work|\./|(?:^|\s)\.(?:\s|$)))"
+    r"|(?:\b(?:curl|wget)\b[^\n]*\|\s*(?:bash|sh)\b)"
+)
 
 
 class CandidateError(Exception):
@@ -28,6 +33,11 @@ class Candidate:
     normalized: str
     fenced: bool
 
+    @property
+    def history_key(self) -> str:
+        """Canonical key used for R1 history comparison."""
+        return hashlib.sha256(self.normalized.encode("utf-8")).hexdigest()
+
 
 @dataclass(frozen=True)
 class Selection:
@@ -35,6 +45,11 @@ class Selection:
     rule: str
     detail: str
     rejected: tuple[tuple[int, str], ...]
+
+
+def history_digest(text: str) -> str:
+    """Canonical digest for a Dockerfile, shared by candidates and baselines."""
+    return hashlib.sha256(normalize_continuations(_trim(text)).encode("utf-8")).hexdigest()
 
 
 def normalize_continuations(text: str) -> str:
@@ -121,7 +136,7 @@ def _instructions(text: str) -> list[tuple[str, str]]:
     return result
 
 
-def check_candidate(text: str, baseline: str) -> list[str]:
+def prepare_candidate(text: str, baseline: str) -> list[str]:
     instructions, original = _instructions(text), _instructions(baseline)
     reasons = []
     if any(name not in _KNOWN for name, _ in instructions):
@@ -133,13 +148,24 @@ def check_candidate(text: str, baseline: str) -> list[str]:
     if len(sources) != 1 or sources != [args for name, args in original if name == "FROM"]:
         reasons.append("FROM must match baseline exactly; multi-stage builds are unsupported")
     protected = {"WORKDIR", "COPY", "CMD", "ENTRYPOINT"}
-    build_commands = {args for name, args in original if name == "RUN" and re.match(r"make(?:\s|$)", args)}
+    protected_runs = {args for name, args in original if name == "RUN"}
+    build_commands = {
+        args for name, args in original
+        if name == "RUN" and re.match(r"make(?:\s|$)", args)
+    }
+    added_runs = [
+        args for name, args in instructions
+        if name == "RUN" and args not in protected_runs
+    ]
 
     def fixed(items):
-        return [(name, args) for name, args in items if name in protected or (name == "RUN" and args in build_commands)]
+        return [
+            (name, args) for name, args in items
+            if name in protected or (name == "RUN" and args in protected_runs)
+        ]
 
     if fixed(instructions) != fixed(original):
-        reasons.append("WORKDIR, COPY, RUN make, CMD and ENTRYPOINT must retain their values and order")
+        reasons.append("WORKDIR, COPY, RUN, CMD and ENTRYPOINT must retain their values and order")
     for name in ("CMD", "ENTRYPOINT"):
         if [arg for key, arg in instructions if key == name] != [arg for key, arg in original if key == name]:
             reasons.append(f"{name} must match baseline exactly")
@@ -148,17 +174,22 @@ def check_candidate(text: str, baseline: str) -> list[str]:
         if name == "RUN" and args in build_commands:
             build_seen = True
         elif name == "RUN" and build_seen:
-            reasons.append("additional RUN instructions must precede RUN make")
+            reasons.append("additional RUN instructions must precede the build command")
             break
+    if any(_DANGEROUS_RUN.search(args) for args in added_runs):
+        reasons.append("added RUN must not modify project files or pipe downloads into a shell")
     return reasons
+
+
+check_candidate = prepare_candidate
 
 
 def select_candidate(
     candidates: Sequence[Candidate], *, used_sha256: Container[str], error_terms: Sequence[str],
-    chooser: Callable[[Sequence[Candidate]], int] | None = None,
+    chooser: Callable[[Sequence[Candidate]], int] | None = None, baseline: str | None = None,
 ) -> Selection:
-    remaining = [item for item in candidates if item.sha256 not in used_sha256]
-    rejected = [(item.index, "R1: candidate already used") for item in candidates if item.sha256 in used_sha256]
+    remaining = [item for item in candidates if item.history_key not in used_sha256]
+    rejected = [(item.index, "R1: candidate already used") for item in candidates if item.history_key in used_sha256]
     if not remaining:
         raise CandidateError("R1: no unused valid candidates remain")
 
@@ -176,10 +207,21 @@ def select_candidate(
     if largest >= 2 and len(winners) == 1:
         group = winners[0]
         return choose(min(group, key=lambda item: item.index), "R2", f"R2: candidates {[item.index for item in group]} match after continuation normalization")
-    terms = [term.lower() for term in error_terms if term.strip()]
-    matches = [item for item in remaining if any(term in item.text.lower() for term in terms)]
+    terms = [term.lower().strip() for term in error_terms if term.strip()]
+    base = (baseline or "").lower()
+
+    def mentions_error(item: Candidate) -> bool:
+        text = item.text.lower()
+        for term in terms:
+            if term not in text:
+                continue
+            if baseline is None or text.count(term) > base.count(term):
+                return True
+        return False
+
+    matches = [item for item in remaining if mentions_error(item)]
     if len(matches) == 1:
-        return choose(matches[0], "R3", f"R3: only candidate {matches[0].index} mentions an error term")
+        return choose(matches[0], "R3", f"R3: only candidate {matches[0].index} adds an error term")
     index = chooser(tuple(remaining)) if chooser else min(item.index for item in remaining)
     selected = next((item for item in remaining if item.index == index), None)
     if selected is None:
