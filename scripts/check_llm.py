@@ -97,6 +97,8 @@ def load_settings(env_file: Path) -> dict[str, str]:
             "LLM_API_URL must be an absolute http(s) URL, "
             "for example https://api.deepseek.com/v1"
         )
+    if parsed.username or parsed.password:
+        raise ConfigError("LLM_API_URL must not contain credentials")
     return settings
 
 
@@ -118,17 +120,28 @@ def chat_endpoint(api_url: str) -> str:
 
 
 def display_url(api_url: str) -> str:
-    """Return a URL without query or fragment, which may contain secrets."""
+    """Return a URL without credentials, query or fragment."""
     parsed = urllib.parse.urlsplit(api_url)
+    host = parsed.hostname or ""
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    netloc = host
+    if parsed.port is not None:
+        netloc = f"{netloc}:{parsed.port}"
     return urllib.parse.urlunsplit(
-        (parsed.scheme, parsed.netloc, parsed.path, "", "")
+        (parsed.scheme, netloc, parsed.path, "", "")
     )
 
 
 def redact(text: str, secret: str) -> str:
     if secret:
         text = text.replace(secret, "***")
-    return re.sub(r"(?i)(bearer\s+)[^\s\"']+", r"\1***", text)
+    text = re.sub(r"(?i)(bearer\s+)[^\s\"']+", r"\1***", text)
+    return re.sub(
+        r"(?i)(authorization[\"']?\s*[:=]\s*[\"']?)(?:bearer\s+)?[^\s\"',}]+",
+        r"\1***",
+        text,
+    )
 
 
 def _error_message(payload: Any) -> str:
@@ -269,6 +282,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="print a machine-readable JSON result",
     )
+    parser.add_argument(
+        "--show-reply",
+        action="store_true",
+        help="include the model reply in the output",
+    )
     args = parser.parse_args(argv)
 
     if args.timeout <= 0:
@@ -320,6 +338,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("  api_key: set")
             print(f"result: FAILED: {exc}", file=sys.stderr)
         return 1
+
+    if not args.show_reply:
+        result.pop("reply", None)
 
     if args.as_json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

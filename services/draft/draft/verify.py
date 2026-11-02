@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 import re
+import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -15,6 +17,8 @@ DEFAULT_CPU = "2"
 DEFAULT_MEMORY = "1g"
 DEFAULT_PIDS = 256
 CLEANUP_TIMEOUT = 60.0
+CLEANUP_ATTEMPTS = 3
+CLEANUP_DELAY = 0.2
 
 
 @dataclass(frozen=True)
@@ -51,14 +55,22 @@ def outputs_match(actual: str, expected: str) -> bool:
     return normalize_output(actual) == normalize_output(expected)
 
 
-def remove_container(container_name: str, *, docker: str = "docker", runner: Runner | None = None) -> bool:
-    try:
-        result = (runner or default_runner)(
-            [docker, "rm", "-f", container_name], Path.cwd(), CLEANUP_TIMEOUT,
-        )
-        return result.exit_code == 0 and not result.timed_out
-    except OSError:
-        return False
+def remove_container(
+    container_name: str, *, docker: str = "docker", runner: Runner | None = None,
+    attempts: int = CLEANUP_ATTEMPTS, delay: float = CLEANUP_DELAY,
+) -> bool:
+    for attempt in range(max(1, attempts)):
+        try:
+            result = (runner or default_runner)(
+                [docker, "rm", "-f", container_name], Path.cwd(), CLEANUP_TIMEOUT,
+            )
+            if result.exit_code == 0 and not result.timed_out:
+                return True
+        except (OSError, subprocess.SubprocessError):
+            pass
+        if attempt + 1 < attempts:
+            time.sleep(delay)
+    return False
 
 
 def run_image(
@@ -81,7 +93,14 @@ def run_image(
             raise DockerError(f"container ID file already exists: {target}")
         command = [
             docker, "run", "--name", container_name, "--network", network,
+            "--read-only",
+            "--tmpfs", "/tmp",
+            "--cap-drop", "ALL",
+            "--security-opt", "no-new-privileges",
+            "--user", "10001:10001",
+            "--ipc", "none",
             "--cpus", cpus, "--memory", memory, "--pids-limit", str(pids_limit),
+            "--ulimit", "nofile=256:256",
             "--cidfile", str(target), image_id,
         ]
         try:

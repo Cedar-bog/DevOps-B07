@@ -277,20 +277,20 @@ def collect(
     email = _git_value(repo, "user.email")
     student_id = os.environ.get("STUDENT_ID")
     local["identity"] = {
-        "name": name,
-        "email": email,
-        "student_id_env": student_id,
+        "name_set": bool(name),
+        "email_set": bool(email),
+        "student_id_set": bool(student_id),
+        "student_id_matches_name": bool(student_id and name == student_id),
     }
     if not name or not email:
         add("git-identity", "fail", "user.name or user.email is not configured")
     else:
-        detail = f"{name} <{email}>"
         if student_id and name != student_id:
-            add("git-identity", "warn", f"{detail}; STUDENT_ID={student_id} differs from user.name")
+            add("git-identity", "warn", "STUDENT_ID differs from user.name")
         elif not re.fullmatch(r"\d{6,}", name):
-            add("git-identity", "warn", f"{detail}; expected the student ID as user.name")
+            add("git-identity", "warn", "expected the student ID as user.name")
         else:
-            add("git-identity", "ok", detail)
+            add("git-identity", "ok", "user.name and user.email configured; STUDENT_ID matches")
 
     tools: dict[str, Any] = {}
     for tool_name in LOCAL_TOOLS:

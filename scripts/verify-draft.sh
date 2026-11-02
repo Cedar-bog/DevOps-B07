@@ -11,18 +11,30 @@ FIXTURE="$ROOT/fixtures/draft"
 EVIDENCE="$ROOT/evidence/draft"
 
 ENV_FILE="$ROOT/.env"
-if [[ -f "$ENV_FILE" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-  set +a
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "缺少 $ENV_FILE（先复制 .env.example）" >&2
+  exit 2
 fi
+
+# Read only the keys this script needs. Do not source .env: sourcing executes
+# shell code and can expose secrets through xtrace or malformed-line errors.
+env_value() {
+  local key="$1" value
+  value="$(sed -n "s/^[[:space:]]*\(export[[:space:]]*\)\?${key}[[:space:]]*=[[:space:]]*//p" "$ENV_FILE" | tail -n 1 | tr -d '\r')"
+  value="${value%\"}"; value="${value#\"}"
+  value="${value%\'}"; value="${value#\'}"
+  printf '%s' "$value"
+}
+
+HUAWEI_HOST="$(env_value HUAWEI_HOST)"
+HUAWEI_USER="$(env_value HUAWEI_USER)"
+HUAWEI_PASSWORD="$(env_value HUAWEI_PASSWORD)"
+HUAWEI_PORT="$(env_value HUAWEI_PORT)"
+HUAWEI_PORT="${HUAWEI_PORT:-22}"
 
 : "${HUAWEI_HOST:?请在 .env 设置 HUAWEI_HOST}"
 : "${HUAWEI_USER:?请在 .env 设置 HUAWEI_USER}"
 : "${HUAWEI_PASSWORD:?请在 .env 设置 HUAWEI_PASSWORD}"
-HUAWEI_PORT="${HUAWEI_PORT:-22}"
-
 command -v sshpass >/dev/null 2>&1 || { echo "缺少 sshpass" >&2; exit 1; }
 
 RUN_ID="$(date -u '+%Y-%m-%dT%H-%M-%SZ')"
@@ -42,7 +54,7 @@ REFERENCE_TAG="nju-e3-draft-reference:$RUN_ID"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/draft.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
-ssh_do() { sshpass -p "$HUAWEI_PASSWORD" ssh "${SSH_OPTS[@]}" "$TARGET" "$@"; }
+ssh_do() { SSHPASS="$HUAWEI_PASSWORD" sshpass -e ssh "${SSH_OPTS[@]}" "$TARGET" "$@"; }
 
 git_commit="$(git -C "$ROOT" rev-parse HEAD)"
 started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
@@ -188,7 +200,7 @@ printf 'run_id: %s\n' "$RUN_ID"
 printf '==> build（本地）\n';                       phase_build
 printf '==> upload（tar -> server）\n' "$HUAWEI_HOST"
 ssh_do "mkdir -p '$REMOTE_DIR'"
-tar -C "$FIXTURE" -cf - . | sshpass -p "$HUAWEI_PASSWORD" ssh "${SSH_OPTS[@]}" "$TARGET" "tar -C '$REMOTE_DIR' -xf -"
+tar -C "$FIXTURE" -cf - . | SSHPASS="$HUAWEI_PASSWORD" sshpass -e ssh "${SSH_OPTS[@]}" "$TARGET" "tar -C '$REMOTE_DIR' -xf -"
 printf '==> broken（远程 docker build，预期失败）\n'; phase_broken
 printf '==> reference（远程 docker build + run）\n';  phase_reference
 printf '==> meta\n';                                 write_meta

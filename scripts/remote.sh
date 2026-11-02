@@ -13,15 +13,25 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 2
 fi
 
-set -a
-# shellcheck disable=SC1090
-. "$ENV_FILE"
-set +a
+# Read only the keys this wrapper needs. Do not source .env: sourcing executes
+# shell code and can expose secrets through xtrace or malformed-line errors.
+env_value() {
+  local key="$1" value
+  value="$(sed -n "s/^[[:space:]]*\(export[[:space:]]*\)\?${key}[[:space:]]*=[[:space:]]*//p" "$ENV_FILE" | tail -n 1 | tr -d '\r')"
+  value="${value%\"}"; value="${value#\"}"
+  value="${value%\'}"; value="${value#\'}"
+  printf '%s' "$value"
+}
+
+HUAWEI_HOST="$(env_value HUAWEI_HOST)"
+HUAWEI_USER="$(env_value HUAWEI_USER)"
+HUAWEI_PASSWORD="$(env_value HUAWEI_PASSWORD)"
+PORT="$(env_value HUAWEI_PORT)"
+PORT="${PORT:-22}"
 
 : "${HUAWEI_HOST:?remote: HUAWEI_HOST is not set in .env}"
 : "${HUAWEI_USER:?remote: HUAWEI_USER is not set in .env}"
 : "${HUAWEI_PASSWORD:?remote: HUAWEI_PASSWORD is not set in .env}"
-PORT="${HUAWEI_PORT:-22}"
 
 command -v sshpass >/dev/null 2>&1 || {
   echo "remote: sshpass is required" >&2
@@ -50,4 +60,5 @@ else
   COMMAND="${COMMAND% }"
 fi
 
-exec sshpass -p "$HUAWEI_PASSWORD" ssh "${OPTS[@]}" "$HUAWEI_USER@$HUAWEI_HOST" "$COMMAND"
+# -e reads SSHPASS instead of putting the password in argv (visible via ps).
+exec env SSHPASS="$HUAWEI_PASSWORD" sshpass -e ssh "${OPTS[@]}" "$HUAWEI_USER@$HUAWEI_HOST" "$COMMAND"
