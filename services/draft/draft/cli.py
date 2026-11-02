@@ -71,8 +71,10 @@ def build_parser() -> argparse.ArgumentParser:
     repair.add_argument("--expected-output", default="hello E3")
     repair.add_argument("--docker", default="docker", help="Docker executable, without shell arguments")
     repair.add_argument("--candidate", type=Path, help="use a saved Dockerfile without calling an LLM")
+    repair.add_argument("--apt-mirror", default=os.environ.get("APT_MIRROR", "repo.huaweicloud.com"), help="build-only apt mirror hostname")
     repair.add_argument("--no-cache", action="store_true")
     repair.add_argument("--json", action="store_true", help="print result.json to stdout")
+    repair.add_argument("--progress", action="store_true", help="write progress events to stderr")
     return parser
 
 
@@ -111,6 +113,10 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
 
 def _cmd_repair(args: argparse.Namespace) -> int:
     fixture = Path(args.fixture_dir) if args.fixture_dir else _default_fixture_dir()
+
+    def progress(event: dict) -> None:
+        print(json.dumps(event, ensure_ascii=False), file=sys.stderr, flush=True)
+
     try:
         llm = load_repair_llm(
             env_file=_repo_root() / ".env", candidate=args.candidate,
@@ -120,6 +126,8 @@ def _cmd_repair(args: argparse.Namespace) -> int:
             prompt_mode=args.mode, docker=args.docker, max_iterations=args.max_iterations,
             build_timeout=args.build_timeout, verify_timeout=args.verify_timeout,
             expected_output=args.expected_output, no_cache=args.no_cache,
+            apt_mirror=args.apt_mirror,
+            progress=progress if args.progress else None,
         )
     except (ValueError, OSError) as exc:
         print(f"repair configuration error: {exc}", file=sys.stderr)

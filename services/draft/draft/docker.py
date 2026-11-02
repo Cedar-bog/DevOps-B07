@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import math
+import os
 import re
+import signal
 import subprocess
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -81,6 +84,73 @@ def _invoke(runner: Runner, command: list[str], cwd: Path, timeout: float) -> Co
         raise DockerError(f"cannot execute {command[0]}: {exc}") from exc
 
 
+def streaming_runner(
+    command: list[str], cwd: Path, timeout: float,
+    on_line: Callable[[str], None] | None = None,
+) -> CommandResult:
+    """Run a command while forwarding each output line to a callback."""
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("command timeout must be finite and greater than zero")
+    started = time.monotonic()
+    stdout: list[str] = []
+    stderr: list[str] = []
+
+    try:
+        proc = subprocess.Popen(
+            command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace", bufsize=1,
+            start_new_session=True,
+        )
+    except OSError:
+        raise
+
+    def reader(pipe, target: list[str]) -> None:
+        try:
+            for line in iter(pipe.readline, ""):
+                target.append(line)
+                if on_line is not None:
+                    try:
+                        on_line(line.rstrip("\r\n"))
+                    except Exception:
+                        pass
+        finally:
+            pipe.close()
+
+    workers = [
+        threading.Thread(target=reader, args=(proc.stdout, stdout), daemon=True),
+        threading.Thread(target=reader, args=(proc.stderr, stderr), daemon=True),
+    ]
+    for worker in workers:
+        worker.start()
+
+    timed_out = False
+    try:
+        code = proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        code = -1
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            try:
+                proc.kill()
+            except OSError:
+                pass
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+
+    for worker in workers:
+        worker.join(timeout=2)
+
+    if timed_out:
+        stderr.append(f"\nTimeout after {timeout:g}s\n")
+    return CommandResult(
+        code, "".join(stdout), "".join(stderr), time.monotonic() - started, timed_out,
+    )
+
+
 @dataclass(frozen=True)
 class BuildResult:
     command: list[str]
@@ -146,6 +216,7 @@ def build_image(
     context_dir: Path | str, *, dockerfile: str = "Dockerfile", docker: str = "docker",
     tag: str | None = None, timeout: float = DEFAULT_BUILD_TIMEOUT, no_cache: bool = False,
     runner: Runner | None = None, now=None,
+    on_line: Callable[[str], None] | None = None,
 ) -> BuildResult:
     context = Path(context_dir).expanduser().resolve()
     if not context.is_dir() or not (context / dockerfile).is_file():
@@ -160,12 +231,19 @@ def build_image(
         "--cpu-period", DEFAULT_BUILD_CPU_PERIOD,
         "--cpu-quota", DEFAULT_BUILD_CPU_QUOTA,
         "--ulimit", f"nofile={DEFAULT_BUILD_NOFILE}",
-        "--security-opt", "no-new-privileges",
         "-f", dockerfile, "-t", image_tag, ".",
     ]
     if no_cache:
         command.append("--no-cache")
-    result = _invoke(runner or default_runner, command, context, timeout)
+    if runner is not None:
+        result = _invoke(runner, command, context, timeout)
+    elif on_line is not None:
+        try:
+            result = streaming_runner(command, context, timeout, on_line)
+        except OSError as exc:
+            raise DockerError(f"cannot execute {docker}: {exc}") from exc
+    else:
+        result = _invoke(default_runner, command, context, timeout)
     log = _clean(result.stdout + result.stderr)
     image_id = None
     if result.exit_code == 0 and not result.timed_out:

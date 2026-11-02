@@ -87,7 +87,7 @@ evidence/e5/
 | 007  | DONE | 自动修复循环，直到成功或达到上限                                      | 姚睿哲 | `services/draft/draft/pipeline.py`  |
 | 008  | DONE | 汇总自动修复循环的每轮结果，创建 work/<timestamp>/ 并写入 result.json | 姚睿哲 | `services/draft/draft/result.py`    |
 | 009  | DONE | 扩展 DRAFT CLI，增加自动修复运行子命令                                | 姚睿哲 | `services/draft/draft/cli.py`       |
-| 010  |      | 在 fixtures/draft 上执行一次完整自动修复                              |  郑悫  | `work/<timestamp>/`                 |
+| 010  | DONE | 在 fixtures/draft 上执行一次完整自动修复                              |  郑悫  | `work/<timestamp>/`                 |
 ---
 ## E7 - 论文1验证
 | 编号 | 状态 | 任务                                                           | 负责人 | 产物                                     |

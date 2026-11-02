@@ -42,7 +42,14 @@ RUN_ID := $(shell d='$(WORK_ROOT)/$(RUN_TS)'; n=0; while [ -e "$$d" ]; do n=$$((
 RUN_DIR := $(WORK_ROOT)/$(RUN_ID)
 EVIDENCE := work/$(RUN_ID)
 
-.PHONY: all help doctor llm-check build test smoke scan shell clean lock config \
+FIXTURE ?= fixtures/draft
+EXPECTED_OUTPUT ?= hello E3
+MAX_ITERATIONS ?= 3
+BUILD_TIMEOUT ?= 600
+VERIFY_TIMEOUT ?= 120
+APT_MIRROR ?= repo.huaweicloud.com
+
+.PHONY: all help doctor llm-check build test smoke scan shell clean lock config auto-repair \
         require-student-id require-remote require-image require-gid
 
 all: doctor build test smoke scan
@@ -52,18 +59,19 @@ all: doctor build test smoke scan
 
 help:
 	@printf '%s\n' \
-	  '  make doctor    服务器、Git 身份与工具链自检       -> env.json' \
-	  '  make build     构建服务镜像                       -> build.log  image.json  toolchain.lock' \
-	  '  make test      容器内运行本组单元测试             -> test.log' \
-	  '  make smoke     用 E3 样例做冒烟测试               -> smoke.json' \
-	  '  make scan      工作区、Git 历史、镜像的密钥检查   -> secret-scan.txt' \
-	  '  make all       依次执行上面五步，共用同一个证据目录' \
+	  '  make doctor        服务器、Git 身份与工具链自检       -> env.json' \
+	  '  make build         构建服务镜像                       -> build.log  image.json  toolchain.lock' \
+	  '  make test          容器内运行本组单元测试             -> test.log' \
+	  '  make smoke         用 E3 样例做冒烟测试               -> smoke.json' \
+	  '  make scan          工作区、Git 历史、镜像的密钥检查   -> secret-scan.txt' \
+	  '  make all           依次执行上面五步，共用同一个证据目录' \
 	  '' \
-	  '  make llm-check 校验 .env 中的 LLM 配置并调用模型' \
-	  '  make shell     进入服务容器（compose，挂载 docker.sock）' \
-	  '  make clean     删除服务镜像与 smoke 镜像' \
-	  '  make lock      由 requirements-dev.in 重新生成锁文件' \
-	  '  make config    打印本次解析出的变量，用于排查'
+	  '  make auto-repair   在服务器执行真实自动修复' \
+	  '  make llm-check     校验 .env 中的 LLM 配置并调用模型' \
+	  '  make shell         进入服务容器（compose，挂载 docker.sock）' \
+	  '  make clean         删除服务镜像与 smoke 镜像' \
+	  '  make lock          由 requirements-dev.in 重新生成锁文件' \
+	  '  make config        打印本次解析出的变量，用于排查'
 
 config:
 	@printf '%s\n' \
@@ -204,6 +212,16 @@ scan: require-remote | $(RUN_DIR)
 	printf '==> scan    证据：%s/secret-scan.txt\n' '$(EVIDENCE)'
 	STUDENT_ID='$(STUDENT_ID)' $(PYTHON) scripts/secret_scan.py \
 	  --docker '$(DOCKER)' --output '$(RUN_DIR)/secret-scan.txt'
+
+auto-repair: require-remote
+	@cd $(ROOT) && \
+	  FIXTURE='$(FIXTURE)' \
+	  EXPECTED_OUTPUT='$(EXPECTED_OUTPUT)' \
+	  MAX_ITERATIONS='$(MAX_ITERATIONS)' \
+	  BUILD_TIMEOUT='$(BUILD_TIMEOUT)' \
+	  VERIFY_TIMEOUT='$(VERIFY_TIMEOUT)' \
+	  APT_MIRROR='$(APT_MIRROR)' \
+	  bash scripts/auto-repair.sh
 
 shell: require-image require-gid | $(RUN_DIR)
 	@cd $(ROOT)
