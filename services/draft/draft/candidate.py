@@ -21,6 +21,23 @@ _DANGEROUS_RUN = re.compile(
 )
 
 
+def _from_matches(candidate: str, baseline: str) -> bool:
+    """Allow pinning a baseline tag to a digest, but not changing the image."""
+    candidate_parts = candidate.strip().split()
+    baseline_parts = baseline.strip().split()
+    if candidate_parts == baseline_parts:
+        return True
+    if len(candidate_parts) != 1 or len(baseline_parts) != 1:
+        return False
+    candidate_ref, baseline_ref = candidate_parts[0], baseline_parts[0]
+    if "@" in baseline_ref:
+        return False
+    prefix, separator, digest = candidate_ref.partition("@sha256:")
+    if not separator or prefix != baseline_ref or len(digest) != 64:
+        return False
+    return all(char in "0123456789abcdef" for char in digest)
+
+
 class CandidateError(Exception):
     """The reply contains no usable candidate."""
 
@@ -50,6 +67,32 @@ class Selection:
 def history_digest(text: str) -> str:
     """Canonical digest for a Dockerfile, shared by candidates and baselines."""
     return hashlib.sha256(normalize_continuations(_trim(text)).encode("utf-8")).hexdigest()
+
+
+def apt_mirror_variant(text: str, mirror: str | None) -> str | None:
+    """Return a build-only Dockerfile with an apt mirror, or None if unneeded."""
+    if not mirror:
+        return None
+    mirror = mirror.strip()
+    if not re.fullmatch(r"[A-Za-z0-9.-]+", mirror):
+        raise ValueError("apt mirror must be a hostname, for example repo.huaweicloud.com")
+    if not re.search(r"\bapt(?:-get)?\b", text):
+        return None
+    if mirror in text or "mirrors." in text or "repo." in text:
+        return None
+    lines = text.rstrip("\n").splitlines()
+    try:
+        from_index = next(i for i, line in enumerate(lines) if line.strip().upper().startswith("FROM "))
+    except StopIteration:
+        return None
+    insertion = (
+        "RUN sed -i "
+        f"-e 's|deb.debian.org|{mirror}|g' "
+        f"-e 's|security.debian.org|{mirror}|g' "
+        "/etc/apt/sources.list.d/debian.sources"
+    )
+    lines.insert(from_index + 1, insertion)
+    return "\n".join(lines) + "\n"
 
 
 def normalize_continuations(text: str) -> str:
@@ -145,8 +188,13 @@ def prepare_candidate(text: str, baseline: str) -> list[str]:
     if first != "FROM":
         reasons.append("first instruction other than ARG must be FROM")
     sources = [args for name, args in instructions if name == "FROM"]
-    if len(sources) != 1 or sources != [args for name, args in original if name == "FROM"]:
-        reasons.append("FROM must match baseline exactly; multi-stage builds are unsupported")
+    baseline_sources = [args for name, args in original if name == "FROM"]
+    if (
+        len(sources) != 1
+        or len(baseline_sources) != 1
+        or not _from_matches(sources[0], baseline_sources[0])
+    ):
+        reasons.append("FROM must keep the baseline image; only a digest may be added")
     protected = {"WORKDIR", "COPY", "CMD", "ENTRYPOINT"}
     protected_runs = {args for name, args in original if name == "RUN"}
     build_commands = {
@@ -188,6 +236,8 @@ def select_candidate(
     candidates: Sequence[Candidate], *, used_sha256: Container[str], error_terms: Sequence[str],
     chooser: Callable[[Sequence[Candidate]], int] | None = None, baseline: str | None = None,
 ) -> Selection:
+    if not candidates:
+        raise CandidateError("no valid candidates after checks")
     remaining = [item for item in candidates if item.history_key not in used_sha256]
     rejected = [(item.index, "R1: candidate already used") for item in candidates if item.history_key in used_sha256]
     if not remaining:

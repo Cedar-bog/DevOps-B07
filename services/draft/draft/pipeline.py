@@ -5,14 +5,18 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
+import shutil
+import threading
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Callable
 
-from .candidate import CandidateError, extract_candidates, history_digest, prepare_candidate, select_candidate
+from .candidate import CandidateError, apt_mirror_variant, extract_candidates, history_digest, prepare_candidate, select_candidate
 from .docker import DEFAULT_BUILD_TIMEOUT, DockerError, Runner, build_image, clean_log, remove_image
 from .llm import LLMClient, LLMError, display_endpoint
 from .prompt import PROMPT_VERSION, build_choice_prompt, build_context_prompt, build_error_prompt
@@ -21,6 +25,24 @@ from .result import (
     write_result, write_round,
 )
 from .verify import DEFAULT_VERIFY_TIMEOUT, VerifyResult, run_image
+
+_APT_GET_RE = re.compile(r"Get:\d+\s+\S+\s+\[([0-9.]+)\s*([kKMGT]?B)\]", re.IGNORECASE)
+_APT_NEED_RE = re.compile(r"Need to get\s+([0-9,.]+)\s*([kKMGT]?B)", re.IGNORECASE)
+_APT_FETCHED_RE = re.compile(r"Fetched\s+([0-9,.]+)\s*([kKMGT]?B)", re.IGNORECASE)
+_APT_PACKAGE_RE = re.compile(
+    r"(?:Setting up|Unpacking)\s+([A-Za-z0-9+.-]+)(?::[A-Za-z0-9-]+)?\s+\(",
+    re.IGNORECASE,
+)
+_BUILD_STEP_RE = re.compile(r"^#\d+\s+\[(\d+/\d+)\]")
+_BYTE_UNITS = {"b": 1, "kb": 1024, "mb": 1024**2, "gb": 1024**3, "tb": 1024**4}
+
+
+def _to_bytes(amount: str, unit: str) -> float:
+    try:
+        value = float(amount.replace(",", ""))
+    except ValueError:
+        return 0.0
+    return value * _BYTE_UNITS.get(unit.lower(), 1)
 
 
 @dataclass(frozen=True)
@@ -75,6 +97,24 @@ def _stamp(now=None):
 
 def _text(target: Path, text: str):
     target.write_text(text, encoding="utf-8", newline="")
+
+
+def _fixture_stats(path: Path) -> tuple[int, int]:
+    """Count fixture files and bytes, matching prepare_project's exclusions."""
+    count = 0
+    total = 0
+    for root, dirs, files in os.walk(path):
+        dirs[:] = [name for name in dirs if name not in {".git", ".venv", "__pycache__"}]
+        for name in files:
+            if name == ".env" or name.startswith(".env."):
+                continue
+            item = Path(root) / name
+            try:
+                total += item.stat().st_size
+            except OSError:
+                pass
+            count += 1
+    return count, total
 
 
 def _release_image(build, *, docker: str, runner: Runner | None) -> None:
@@ -154,9 +194,79 @@ def run_repair(
     docker: str = "docker", max_iterations: int = 3,
     build_timeout: float = DEFAULT_BUILD_TIMEOUT, verify_timeout: float = DEFAULT_VERIFY_TIMEOUT,
     expected_output: str = "hello E3", no_cache: bool = False, chooser=None,
-    runner: Runner | None = None, now=None,
+    runner: Runner | None = None, now=None, progress: Callable[[dict], None] | None = None,
+    apt_mirror: str | None = None,
 ) -> RepairOutcome:
+    fixture_arg = str(fixture_dir)
     fixture = Path(fixture_dir).expanduser().resolve()
+    apt_mirror = apt_mirror.strip() if isinstance(apt_mirror, str) else apt_mirror
+    apt_mirror = apt_mirror or None
+
+    def emit(event: str, **fields) -> None:
+        if progress is None:
+            return
+        try:
+            progress({"event": event, **fields})
+        except Exception:
+            pass
+
+    def build_with_progress(event: str, iteration: int, **kwargs):
+        if progress is None:
+            return build_image(**kwargs)
+        stop = threading.Event()
+        started = time.monotonic()
+        counters = {"packages": 0, "bytes": 0.0, "seen_packages": set()}
+
+        def on_line(line: str) -> None:
+            text = clean_log(line).strip()
+            if not text:
+                return
+            payload = re.sub(r"^#\d+\s+[0-9.]+\s+", "", text)
+            match = _APT_GET_RE.search(payload)
+            if match:
+                counters["packages"] += 1
+                counters["bytes"] += _to_bytes(match.group(1), match.group(2))
+                emit(
+                    "apt_get", iteration=iteration,
+                    packages=counters["packages"],
+                    bytes=round(counters["bytes"], 1),
+                )
+                return
+            match = _APT_NEED_RE.search(payload)
+            if match:
+                emit("apt_total", iteration=iteration, bytes=round(_to_bytes(match.group(1), match.group(2)), 1))
+                return
+            match = _APT_FETCHED_RE.search(payload)
+            if match:
+                emit("apt_fetched", iteration=iteration, bytes=round(_to_bytes(match.group(1), match.group(2)), 1))
+                return
+            match = _APT_PACKAGE_RE.search(payload)
+            if match:
+                package = match.group(1)
+                if package in counters["seen_packages"]:
+                    return
+                counters["seen_packages"].add(package)
+                emit("apt_package", iteration=iteration, package=package)
+                return
+            match = _BUILD_STEP_RE.match(text)
+            if match:
+                emit("build_step", iteration=iteration, step=match.group(1))
+
+        def beat() -> None:
+            while not stop.wait(15):
+                emit(
+                    event, iteration=iteration, status="running",
+                    elapsed_s=round(time.monotonic() - started, 1),
+                )
+
+        worker = threading.Thread(target=beat, daemon=True)
+        worker.start()
+        try:
+            return build_image(**kwargs, on_line=on_line)
+        finally:
+            stop.set()
+            worker.join(timeout=1)
+
     source = (fixture / initial_dockerfile).resolve()
     if not fixture.is_dir() or not source.is_file():
         raise ValueError(f"fixture directory or initial Dockerfile not found: {source}")
@@ -170,6 +280,8 @@ def run_repair(
         raise ValueError("timeouts must be finite and greater than zero")
     if not docker.strip():
         raise ValueError("docker executable must not be empty")
+    if apt_mirror and not re.fullmatch(r"[A-Za-z0-9.-]+", apt_mirror):
+        raise ValueError("apt mirror must be a hostname, for example repo.huaweicloud.com")
     baseline = source.read_text(encoding="utf-8")
     readme_path = fixture / "README.md"
     readme = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
@@ -190,17 +302,20 @@ def run_repair(
     started_at, started = _stamp(now), time.monotonic()
     config = getattr(llm, "config", None)
     mode = getattr(llm, "prompt_mode", prompt_mode)
+    file_count, total_bytes = _fixture_stats(fixture)
     payload = {
         "schema_version": RESULT_SCHEMA_VERSION, "service": "draft", "run_id": paths.root.name,
         "trace_id": "trace-" + paths.root.name.lower(),
         "status": "FAILED", "error": None, "message": "Repair did not complete",
         "input": {
-            "fixture": str(fixture), "initial_dockerfile": initial_dockerfile,
+            "fixture": fixture_arg, "initial_dockerfile": initial_dockerfile,
             "initial_sha256": hashlib.sha256(baseline.encode("utf-8")).hexdigest(),
+            "file_count": file_count, "total_bytes": total_bytes,
             "prompt_mode": mode, "prompt_version": PROMPT_VERSION,
             "max_iterations": max_iterations, "expected_output": expected_output,
             "docker": docker, "build_timeout": build_timeout,
             "verify_timeout": verify_timeout, "no_cache": no_cache,
+            "apt_mirror": apt_mirror,
             "model": getattr(config, "model", getattr(llm, "model", None)),
             "endpoint": display_endpoint(config.endpoint) if config else None,
         },
@@ -216,6 +331,8 @@ def run_repair(
         payload["error"] = {"code": code, "message": message, "details": {}} if status != "SUCCEEDED" else None
         payload["timing"].update(finished_at=_stamp(now), duration_s=round(time.monotonic() - started, 3))
         result_path = write_result(paths, payload)
+        shutil.rmtree(paths.project, ignore_errors=True)
+        emit("done", status=status, error_code=code, rounds=len(rounds))
         return RepairOutcome(status, code, message, paths, result_path, tuple(rounds), final_image, final_verify)
 
     def verify_image(build, directory, name):
@@ -239,9 +356,17 @@ def run_repair(
         initial_dir = paths.root / "initial"
         initial_dir.mkdir()
         _text(initial_dir / "Dockerfile", baseline)
-        initial = build_image(paths.project, docker=docker, timeout=build_timeout, no_cache=no_cache, runner=runner, now=now)
+        emit("initial_build", status="start")
+        initial = build_with_progress("initial_build", 0, context_dir=paths.project, docker=docker, timeout=build_timeout, no_cache=no_cache, runner=runner, now=now)
+        emit(
+            "initial_build", status="end", exit_code=initial.exit_code,
+            failure_class=initial.failure_class, timed_out=initial.timed_out,
+        )
         payload["initial"] = {
-            "build": _build_record(initial, paths, initial_dir),
+            "build": {
+                **_build_record(initial, paths, initial_dir),
+                "dockerfile": "initial/Dockerfile",
+            },
             "verify": None,
             "evidence": {"dockerfile": "initial/Dockerfile"},
         }
@@ -257,7 +382,12 @@ def run_repair(
                 f"Initial build failed with {initial.failure_class}; expected MISSING_MAKE",
             )
         if initial.ok():
+            emit("initial_verify", status="start")
             payload["initial"]["verify"] = verify_image(initial, initial_dir, f"{container_prefix}-initial")
+            emit(
+                "initial_verify", status="end", exit_code=final_verify.exit_code,
+                output_matches=final_verify.output_matches, timed_out=final_verify.timed_out,
+            )
             if final_verify.timed_out:
                 _release_image(initial, docker=docker, runner=runner)
                 return finish("TIMED_OUT", "EXEC_4002", "Initial verification timed out")
@@ -269,6 +399,7 @@ def run_repair(
 
         last_code, last_message = "ENV_3002", "No usable repair candidate"
         for iteration in range(1, max_iterations + 1):
+            emit("iteration", iteration=iteration, status="start")
             directory = paths.iter_dir(iteration)
             prompt = (build_context_prompt(current, last_failure, readme) if prompt_mode == "context"
                       else build_error_prompt(current, last_failure))
@@ -289,8 +420,10 @@ def run_repair(
             timed_out = False
             build = None
             try:
+                emit("prompt", iteration=iteration, status="start")
                 reply = llm.chat([{"role": "user", "content": prompt}]).text
                 _text(directory / "reply.txt", reply)
+                emit("prompt", iteration=iteration, status="end")
                 candidates = extract_candidates(reply)
                 valid, checks = [], []
                 for candidate in candidates:
@@ -311,21 +444,50 @@ def run_repair(
                 )
                 rejected.extend({"index": index, "reason": reason} for index, reason in selection.rejected)
                 selected = {"index": selection.candidate.index, "rule": selection.rule, "detail": selection.detail}
+                emit(
+                    "selected", iteration=iteration, index=selection.candidate.index,
+                    rule=selection.rule,
+                )
                 current = selection.candidate.text
                 digest = selection.candidate.sha256
                 used.add(selection.candidate.history_key)
                 _text(directory / "Dockerfile", current)
                 evidence["dockerfile"] = f"iter-{iteration:02d}/Dockerfile"
                 _text(current_file, current)
-                build = build_image(paths.project, docker=docker, timeout=build_timeout, no_cache=no_cache, runner=runner, now=now)
+                build_dockerfile = "Dockerfile"
+                variant = apt_mirror_variant(current, apt_mirror) if apt_mirror else None
+                if variant:
+                    build_dockerfile = "Dockerfile.build"
+                    _text(directory / build_dockerfile, variant)
+                    _text(current_file.parent / build_dockerfile, variant)
+                    evidence["build_dockerfile"] = f"iter-{iteration:02d}/{build_dockerfile}"
+                else:
+                    (current_file.parent / "Dockerfile.build").unlink(missing_ok=True)
+                emit("build", iteration=iteration, status="start")
+                build = build_with_progress(
+                    "build", iteration, context_dir=paths.project, dockerfile=build_dockerfile,
+                    docker=docker, timeout=build_timeout, no_cache=no_cache, runner=runner, now=now,
+                )
                 build_record = _build_record(build, paths, directory)
+                build_record["dockerfile"] = f"iter-{iteration:02d}/{build_dockerfile}"
                 timed_out = build.timed_out
+                emit(
+                    "build", iteration=iteration, status="end", exit_code=build.exit_code,
+                    failure_class=build.failure_class, timed_out=build.timed_out,
+                )
                 if not build.ok():
                     last_failure = build.log
                     last_code, last_message = "ENV_3002", "Candidate build failed or image inspection failed"
                 else:
+                    emit("verify", iteration=iteration, status="start")
                     verify_record = verify_image(build, directory, f"{container_prefix}-{iteration:02d}")
                     timed_out = final_verify.timed_out
+                    emit(
+                        "verify", iteration=iteration, status="end",
+                        exit_code=final_verify.exit_code,
+                        output_matches=final_verify.output_matches,
+                        timed_out=final_verify.timed_out,
+                    )
                     last_code = None
                     last_message = "Candidate verification failed"
                     last_failure = f"Verification failed: expected {expected_output!r}, actual {final_verify.stdout!r}, exit_code={final_verify.exit_code}\n{final_verify.stderr}"
@@ -347,6 +509,11 @@ def run_repair(
             payload["rounds"].append(asdict(record))
             write_round(paths, record)
             write_result(paths, payload)
+            emit(
+                "iteration", iteration=iteration, status="end",
+                build_exit_code=build_record.get("exit_code"),
+                verification_ok=bool(verify_record is not None and final_verify.ok()),
+            )
             if fatal:
                 return finish("FAILED", last_code, last_message)
             if timed_out:
