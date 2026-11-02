@@ -13,7 +13,6 @@ from typing import Callable
 from uuid import uuid4
 
 DEFAULT_BUILD_TIMEOUT = 900.0
-LOG_TAIL_LIMIT = 20000
 CLEANUP_TIMEOUT = 60.0
 DEFAULT_BUILD_MEMORY = "2g"
 DEFAULT_BUILD_CPU_PERIOD = "100000"
@@ -110,9 +109,9 @@ def classify_failure(log: str, exit_code: int, timed_out: bool) -> str:
     lower = log.lower()
     if "make: not found" in lower or "make: command not found" in lower:
         return "MISSING_MAKE"
-    if any(s in lower for s in ("unable to locate package", "e: ")) or re.search(
-        r"apt-get[^\n]*returned a non-zero code", lower
-    ):
+    if any(s in lower for s in ("unable to locate package",)) or re.search(
+        r"(?m)^(?:#\d+\s+[0-9.]+\s+)?E:\s", log
+    ) or re.search(r"apt-get[^\n]*returned a non-zero code", lower):
         return "APT_ERROR"
     if any(s in lower for s in (
         "temporary failure resolving", "i/o timeout", "connection reset", "tls handshake timeout",
@@ -175,7 +174,7 @@ def build_image(
             log += "\nImage inspection failed: no image ID returned.\n"
     return BuildResult(
         command, result.exit_code, result.stdout, result.stderr, log, image_tag, image_id,
-        locate_failed_step(log) if not image_id else None,
+        locate_failed_step(log) if result.exit_code != 0 or result.timed_out else None,
         "OTHER" if result.exit_code == 0 and not image_id and not result.timed_out else
         classify_failure(log, result.exit_code, result.timed_out),
         result.timed_out, started.strftime("%Y-%m-%dT%H:%M:%SZ"),
