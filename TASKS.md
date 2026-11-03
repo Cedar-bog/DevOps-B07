@@ -90,15 +90,15 @@ evidence/e5/
 | 010  | DONE | 在 fixtures/draft 上执行一次完整自动修复                              |  郑悫  | `work/<timestamp>/`                 |
 ---
 ## E7 - 论文1验证
-| 编号 | 状态 | 任务                                                           | 负责人 | 产物                                     |
-|------|------|----------------------------------------------------------------|--------|------------------------------------------|
-| 001  | DONE | 实现 fake LLM 测试替身，按预置候选回复模拟模型输出，供测试注入 |  郑悫  | `services/draft/tests/fake_llm.py`       |
+| 编号 | 状态   | 任务                                                           | 负责人 | 产物                                     |
+|------|------|----------------------------------------------------------------|-----|------------------------------------------|
+| 001  | DONE | 实现 fake LLM 测试替身，按预置候选回复模拟模型输出，供测试注入 | 郑悫  | `services/draft/tests/fake_llm.py`       |
 | 002  | DONE | 覆盖正常修复路径，验证从初始失败到候选成功                     | 姚睿哲 | `services/draft/tests/test_pipeline.py`  |
 | 003  | DONE | 覆盖无效候选，验证改动 CMD 或缺少必要指令的候选                | 姚睿哲 | `services/draft/tests/test_candidate.py` |
 | 004  | DONE | 覆盖候选构建失败，验证该轮不进入运行验证                       | 姚睿哲 | `services/draft/tests/test_pipeline.py`  |
 | 005  | DONE | 覆盖输出不符，验证运行输出不匹配时该轮失败并继续下一轮         | 姚睿哲 | `services/draft/tests/test_pipeline.py`  |
-| 006  |      | 覆盖运行超时，验证超时后终止并清理运行容器                     |        | `services/draft/tests/test_pipeline.py`  |
-| 007  |      | 运行全部测试与场景，汇总通过情况和退出码                       |        | `scripts/run_e7_gate.py`                 |
-| 008  |      | 接入 GitHub Actions，在提交和 PR 上运行 E7 门禁并归档结果      |  郑悫  | `.github/workflows/e7-quality-gate.yml`  |
-| 009  |      | 配置 main 分支保护，将 E7 门禁设为必需检查                     |  郑悫  | -                                        |
-| 010  |      | 归档 E7 运行证据                                               |  郑悫  | `evidence/e7/<timestamp>/`               |
+| 006  | DONE | 覆盖运行超时，验证超时后终止并清理运行容器                     | 王师师 | `services/draft/tests/test_pipeline.py`  |
+| 007  | DONE | 运行全部测试与场景，汇总通过情况和退出码                       | 王师师 | `scripts/run_e7_gate.py`                 |
+| 008  |      | 接入 GitHub Actions，在提交和 PR 上运行 E7 门禁并归档结果      | 郑悫  | `.github/workflows/e7-quality-gate.yml`  |
+| 009  |      | 配置 main 分支保护，将 E7 门禁设为必需检查                     | 郑悫  | -                                        |
+| 010  |      | 归档 E7 运行证据                                               | 郑悫  | `evidence/e7/<timestamp>/`               |
