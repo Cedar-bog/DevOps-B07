@@ -67,6 +67,21 @@ def test_output_mismatch_continues_then_succeeds(tmp_path, fixture_dir):
     assert "extra" in llm.prompts[1] and "Verification failed" in llm.prompts[1]
 
 
+def test_verification_timeout_removes_container(tmp_path, fixture_dir):
+    timeout = CommandResult(124, "", "verification timed out", 0.1, timed_out=True)
+    runner = FakeDocker([MISSING_MAKE, BUILD_OK], [timeout])
+    outcome = run_repair(
+        fixture_dir, out_dir=tmp_path / "run", llm=FakeLLM([reply(fixture_dir)]),
+        runner=runner, max_iterations=1,
+    )
+    assert outcome.status == "TIMED_OUT" and outcome.error_code == "EXEC_4002"
+    assert outcome.rounds[0].verify["timed_out"] is True
+    assert outcome.rounds[0].verify["container_removed"] is True
+    run_command = next(command for command in runner.commands if command[1] == "run")
+    remove_command = next(command for command in runner.commands if command[1:3] == ["rm", "-f"])
+    assert remove_command[-1] == run_command[run_command.index("--name") + 1]
+
+
 @pytest.mark.parametrize("run_result", [CommandResult(0, "wrong", "", 1), CommandResult(7, "hello E3\n", "failed", 1)])
 def test_verification_failure_has_no_build_error_code(tmp_path, fixture_dir, run_result):
     runner = FakeDocker([MISSING_MAKE, BUILD_OK], [run_result])
