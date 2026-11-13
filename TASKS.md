@@ -127,7 +127,7 @@ evidence/e8/
 ## E9 - MDFixer MVP
 | 编号| 状态| 任务|负责人| 产物|
 |------|------|-------------------------------------------------------------------------|:----:|--------------------------------------------------------------------------------|
-| 001| | 服务骨架与命令行入口 |郑悫| `services/md-fixer/mdfixer/cli.py` |
+| 001| DONE| 服务骨架与命令行入口 |郑悫| `services/md-fixer/mdfixer/cli.py` |
 | 002| | Makefile 解析与声明图构建 || `services/md-fixer/mdfixer/makefile.py` |
 | 003| | 声明风格识别：直接、宏、混合、隐式 || `services/md-fixer/mdfixer/style.py` |
 | 004| | MD 报告校验与错误定位：只消费 MISSING，校验提交与字段，定位目标与缺失依赖 || `services/md-fixer/mdfixer/report.py` |
