@@ -7,6 +7,7 @@ import pytest
 
 from mdfixer.guard import RepairError
 from mdfixer.llm import LLMAdapter
+from mdfixer.makefile import parse_makefile
 from mdfixer.patch import generate_patch
 
 
@@ -51,6 +52,13 @@ def test_simple_implicit_patch_matches_e3_reference(project, fixture_root, snaps
     assert unused_llm.calls == []
     check = subprocess.run(["git", "-C", str(root), "apply", "--check", "-"], input=result.git_patch.encode(), capture_output=True)
     assert check.returncode == 0, check.stderr.decode()
+
+
+def test_generated_implicit_candidate_can_be_parsed_for_structure(project):
+    root, report = project("implicit")
+    candidate = generate_patch(root, report).candidate_text
+    document = parse_makefile(candidate, allow_includes=True)
+    assert any(rule.targets == ("%.o",) for rule in document.rules)
 
 
 def test_implicit_multiple_missings_share_one_depfile_scheme(project):

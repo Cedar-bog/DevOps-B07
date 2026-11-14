@@ -5,6 +5,10 @@ continuations, comments, order-only prerequisites and single pattern rules.
 Includes, conditionals, eval/functions, target-specific assignments and other
 dynamic declarations are rejected rather than executed or silently guessed.
 Recipes are retained as opaque text.
+
+``allow_includes`` is only for parsing a repaired candidate after generation.
+Included files are not resolved; E10 rechecking must still run Make so that
+compiler-generated .d files are loaded.
 """
 
 from __future__ import annotations
@@ -158,7 +162,7 @@ class Makefile:
         return rule
 
 
-def parse_makefile(text: str) -> Makefile:
+def parse_makefile(text: str, *, allow_includes: bool = False) -> Makefile:
     document = Makefile(text)
     lines = text.splitlines()
     raw_rules: list[tuple[str, str, int, int, list[int]]] = []
@@ -198,6 +202,8 @@ def parse_makefile(text: str) -> Makefile:
             document.variables[name] = Variable(name, operator, value, start, index, simple, expression)
             continue
         if declaration.startswith(("include ", "-include ", "sinclude ", "ifeq", "ifneq", "ifdef", "ifndef", "else", "endif", "define ", "endef", "export ", "override ", "vpath ")):
+            if allow_includes and declaration.startswith(("include ", "-include ", "sinclude ")):
+                continue
             raise RepairError("UNSUPPORTED_TARGET", "includes, conditionals and directives are unsupported")
         # Colons inside a substitution reference are not rule separators.
         masked = _REF.sub("VAR", declaration)
