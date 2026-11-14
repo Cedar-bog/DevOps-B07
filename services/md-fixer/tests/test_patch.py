@@ -100,23 +100,47 @@ def test_empty_or_redundant_only_reports_produce_empty_patch(project):
     assert result.plan.changes == ()
 
 
-@pytest.mark.parametrize("text", ["main.o other.o: main.c\n", "main.o: main.c\nmain.o: unused.h\n"])
-def test_unsupported_target_does_not_modify_source(project, snapshot, text):
-    # Construct the first declaration manually for the multi-target input.
-    root, report = project(text=text.replace("main.o other.o", "main.o"))
-    if "other.o" in text:
-        (root / "Makefile").write_text(text)
-        subprocess.run(["git", "-C", str(root), "add", "."], check=True, capture_output=True)
-        subprocess.run(["git", "-C", str(root), "-c", "user.name=E9 Test", "-c", "user.email=e9@example.invalid", "-c", "commit.gpgsign=false", "commit", "-qm", "multi target"], check=True, capture_output=True)
-        sha = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"]).decode().strip()
-        report["repository"]["commit"] = sha
-        for finding in report["findings"]:
-            finding["commit"] = sha
-        report["findings"][0]["position"]["declaration"] = text.splitlines()[0]
+@pytest.mark.parametrize("text", ["main.o: main.c\nmain.o: unused.h\n"])
+def test_duplicate_target_declarations_are_rejected(project, snapshot, text):
+    root, report = project(text=text)
     before = snapshot(root)
     with pytest.raises(RepairError) as caught:
         generate_patch(root, report)
     assert caught.value.code == "UNSUPPORTED_TARGET"
+    assert snapshot(root) == before
+
+
+def test_multi_target_rule_is_patched_once_for_all_targets(project, snapshot):
+    root, report = project(text="main.o other.o: main.c\n\tcc -c $< -o $@\n")
+    before = snapshot(root)
+    result = generate_patch(root, report)
+    assert result.candidate_text == "main.o other.o: main.c config.h\n\tcc -c $< -o $@\n"
+    assert result.plan.changes[0].affected_targets == ("main.o", "other.o")
+    assert snapshot(root) == before
+
+
+def test_multi_target_macro_is_edited_once_for_all_targets(project, snapshot):
+    root, report = project(text="DEPS = main.c\nmain.o other.o: $(DEPS)\n")
+    before = snapshot(root)
+    result = generate_patch(root, report)
+    assert result.candidate_text == "DEPS = main.c config.h\nmain.o other.o: $(DEPS)\n"
+    assert result.plan.changes[0].variable == "DEPS"
+    assert result.plan.changes[0].affected_targets == ("main.o", "other.o")
+    assert snapshot(root) == before
+
+
+def test_multi_target_variable_targets_are_patched_together(project, snapshot):
+    root, report = project(text="BINS = app tool\n$(BINS): main.c\n")
+    report["findings"][0]["target"] = "tool"
+    report["findings"][0]["position"] = {
+        "file": "Makefile",
+        "line": 2,
+        "declaration": "$(BINS): main.c",
+    }
+    before = snapshot(root)
+    result = generate_patch(root, report)
+    assert result.candidate_text == "BINS = app tool\n$(BINS): main.c config.h\n"
+    assert result.plan.changes[0].affected_targets == ("app", "tool")
     assert snapshot(root) == before
 
 

@@ -40,7 +40,10 @@ def _recipe_uses(document: Makefile, variable: str) -> bool:
 
 def _variable_for(document: Makefile, finding: Finding, report: Report) -> str | None:
     rule = finding.rule
-    allowed = {item.target for item in report.missing if item.dependency == finding.dependency}
+    allowed = {
+        target for item in report.missing if item.dependency == finding.dependency
+        for target in item.rule.targets
+    }
     candidates = []
     for name, variable in document.variables.items():
         distance = document.distance(f"target:{finding.target}", f"variable:{name}")
@@ -62,7 +65,11 @@ def _check_explicit(before: Makefile, candidate: str, report: Report) -> None:
     after = parse_makefile(candidate)
     if len(before.rules) != len(after.rules):
         raise RepairError("UNSUPPORTED_TARGET", "candidate changed rule structure")
-    allowed = {(finding.target, finding.dependency) for finding in report.missing if not finding.rule.implicit}
+    allowed = {
+        (target, finding.dependency)
+        for finding in report.missing if not finding.rule.implicit
+        for target in finding.rule.targets
+    }
     for old, new in zip(before.rules, after.rules):
         if old.targets != new.targets or old.order_only != new.order_only:
             raise RepairError("UNSUPPORTED_TARGET", "candidate changes unrelated targets or order-only dependencies")
@@ -120,7 +127,7 @@ def generate_patch(
         if key not in edits:
             lines[location - 1] = _append(lines[location - 1], finding.dependency)
             edits.add(key)
-        affected = document.affected_targets(variable) if variable else (finding.target,)
+        affected = document.affected_targets(variable) if variable else finding.rule.targets
         reason = "append to a declaration variable; all affected targets request this dependency" if variable else "append to the existing target prerequisites; preserve variable references and existing dependencies"
         changes.append(Change(finding.finding_id, finding.target, finding.dependency, style.value, "variable" if variable else "target", location, reason, variable, affected))
     candidate = newline.join(lines) + newline

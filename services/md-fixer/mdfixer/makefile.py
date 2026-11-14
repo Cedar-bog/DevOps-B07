@@ -155,8 +155,8 @@ class Makefile:
         if len(matches) != 1:
             raise RepairError("UNSUPPORTED_TARGET", "report position does not identify the requested target")
         rule = matches[0]
-        if len(rule.targets) != 1 or rule.targets[0].startswith("."):
-            raise RepairError("UNSUPPORTED_TARGET", "multi-target and special rules cannot be repaired")
+        if any(target.startswith(".") for target in rule.targets):
+            raise RepairError("UNSUPPORTED_TARGET", "special rules cannot be repaired")
         if any(r is not rule and r.stem(target) is not None for r in self.rules):
             raise RepairError("UNSUPPORTED_TARGET", "ambiguous or split target declarations")
         return rule
