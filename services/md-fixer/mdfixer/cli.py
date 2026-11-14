@@ -10,6 +10,7 @@ from pathlib import Path
 
 from . import SERVICE, __version__
 from .guard import RepairError
+from .llm import LLMAdapter
 from .patch import generate_patch
 from .smoke import find_repo_root, run_smoke, write_result
 
@@ -76,6 +77,11 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--patch-out", default=None, help="write the Git patch to this path")
     generate.add_argument("--plan-out", default=None, help="write the repair plan JSON to this path")
     generate.add_argument("--json", action="store_true", help="print the candidate payload to stdout")
+    generate.add_argument(
+        "--llm-from-env",
+        action="store_true",
+        help="use LLM_API_URL, LLM_API_KEY and LLM_MODEL for complex implicit rules",
+    )
     return parser
 
 
@@ -132,12 +138,14 @@ def _write_output(target: Path, text: str) -> None:
 def _cmd_generate(args: argparse.Namespace) -> int:
     project = Path(args.project).expanduser().resolve()
     try:
+        llm = LLMAdapter.from_env() if args.llm_from_env else None
         result = generate_patch(
             project,
             Path(args.report).expanduser(),
             makefile=args.makefile,
             commit=args.commit,
             configuration_id=args.configuration_id,
+            llm=llm,
         )
         if args.patch_out:
             _write_output(_output_path(args.patch_out, project, "patch output"), result.git_patch)
