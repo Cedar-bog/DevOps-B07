@@ -127,3 +127,51 @@ def test_crlf_candidate_retains_newlines_and_patch_uses_lf(project):
     assert "\r" not in result.git_patch
     check = subprocess.run(["git", "-C", str(root), "apply", "--check", "-"], input=result.git_patch.encode(), capture_output=True)
     assert check.returncode == 0, check.stderr.decode()
+
+
+@pytest.mark.parametrize("definition", [
+    "DEPS := main.c | unused.h",
+    "DEPS = main.c | \\\n unused.h",
+    "ORDER = | unused.h\nDEPS = main.c $(ORDER)",
+])
+def test_missing_is_inserted_as_normal_dependency_inside_macros(project, snapshot, definition):
+    root, report = project(text=definition + "\nmain.o: $(DEPS)\n\tcc -c $< -o $@\n")
+    before = snapshot(root)
+    result = generate_patch(root, report)
+    rule = parse_makefile(result.candidate_text).rules[0]
+    assert rule.prerequisites == ("main.c", "config.h")
+    assert rule.order_only == ("unused.h",)
+    assert result.plan.changes[0].style == "macro"
+    assert snapshot(root) == before
+
+
+def test_make_confirms_missing_dependency_is_before_order_only_separator(project, make_query):
+    root, report = project(text="DEPS := main.c | unused.h\nmain.o: $(DEPS)\n\tcc -c $< -o $@\n")
+    result = generate_patch(root, report)
+    database = make_query(root, result.candidate_text)
+    assert "main.o: main.c config.h | unused.h" in database.splitlines()
+
+
+@pytest.mark.parametrize("recipe", ["cc -c $S -o $@", "cc -c $(S) -o $@", "cc -c ${S} -o $@", "cc -c $($(WHICH)) -o $@"])
+def test_recipe_used_or_computed_macro_is_not_modified(project, snapshot, recipe):
+    root, report = project(text="S = main.c\nWHICH = S\nmain.o: $(S)\n\t" + recipe + "\n")
+    before = snapshot(root)
+    with pytest.raises(RepairError) as caught:
+        generate_patch(root, report)
+    assert caught.value.code == "UNSUPPORTED_TARGET"
+    assert snapshot(root) == before
+
+
+def test_hybrid_rule_falls_back_without_changing_short_recipe_reference(project, make_query, snapshot):
+    root, report = project(text="S = main.c\nmain.o: unused.h $(S)\n\tcc -c $S -o $@\n")
+    before = snapshot(root)
+    result = generate_patch(root, report)
+    assert "S = main.c\n" in result.candidate_text
+    assert "main.o: unused.h $(S) config.h\n" in result.candidate_text
+    assert make_query(root, result.candidate_text, preview=True).strip() == "cc -c main.c -o main.o"
+    assert snapshot(root) == before
+
+
+def test_escaped_shell_reference_does_not_block_a_safe_macro_edit(project):
+    root, report = project(text="S = main.c\nmain.o: $(S)\n\techo $$S\n")
+    assert "S = main.c config.h\n" in generate_patch(root, report).candidate_text

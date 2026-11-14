@@ -20,7 +20,39 @@ _REF = re.compile(r"\$\(([A-Za-z_][A-Za-z0-9_]*)(?::([^=():{}\s]*)=([^():{}\s]*)
 
 
 def references(text: str) -> tuple[str, ...]:
-    return tuple(dict.fromkeys(m.group(1) or m.group(4) for m in _REF.finditer(text)))
+    return reference_usage(text)[0]
+
+
+def reference_usage(text: str) -> tuple[tuple[str, ...], bool]:
+    """Read recipe references without evaluating them.
+
+    $$ is a literal dollar, $x is a single-character variable, and automatic
+    variables do not refer to editable declarations. Computed names/functions
+    are marked opaque so callers can conservatively avoid variable edits.
+    """
+    names = []
+    opaque = False
+    index = 0
+    while index < len(text):
+        if text[index] != "$":
+            index += 1
+            continue
+        if text[index:index + 2] == "$$":
+            index += 2
+            continue
+        match = _REF.match(text, index)
+        if match:
+            names.append(match.group(1) or match.group(4))
+            index = match.end()
+        elif index + 1 < len(text) and re.fullmatch(r"[A-Za-z_]", text[index + 1]):
+            names.append(text[index + 1])
+            index += 2
+        elif index + 1 < len(text) and text[index + 1] in "@%<?^+*|":
+            index += 2
+        else:
+            opaque = True
+            index += 1
+    return tuple(dict.fromkeys(names)), opaque
 
 
 def _comment(text: str) -> str:
@@ -84,7 +116,7 @@ class Makefile:
             value = variable.value if variable.simple else self.expand(variable.value, (*stack, name))
             if match.group(2) is not None:
                 old, new = match.group(2), match.group(3)
-                if "%" in old or "%" in new or not old:
+                if any(char in old + new for char in "%|") or not old:
                     raise RepairError("UNSUPPORTED_TARGET", "unsupported substitution reference")
                 value = " ".join(word[:-len(old)] + new if word.endswith(old) else word for word in value.split())
             return value
@@ -181,7 +213,7 @@ def parse_makefile(text: str) -> Makefile:
         document.expand(f"$({variable.name})")  # Reject cycles/functions even in unused declarations.
         document.graph[f"variable:{variable.name}"] = {
             f"variable:{ref}" for ref in references(variable.expression)
-        } | {f"file:{word}" for word in document.expand(f"$({variable.name})").split()}
+        } | {f"file:{word}" for word in document.expand(f"$({variable.name})").replace("|", " ").split()}
     for lhs, rhs, start, end, recipes in raw_rules:
         refs = (*references(lhs), *references(rhs))
         reachable = list(refs)
@@ -195,19 +227,21 @@ def parse_makefile(text: str) -> Makefile:
             if variable is None or variable.line > start:
                 raise RepairError("UNSUPPORTED_TARGET", "late or missing declaration variable")
             reachable.extend(references(variable.expression))
-        if rhs.count("|") > 1:
+        expanded = document.expand(rhs)
+        if expanded.count("|") > 1:
             raise RepairError("UNSUPPORTED_TARGET", "invalid order-only prerequisites")
-        normal, _, order = rhs.partition("|")
+        normal, _, order = expanded.partition("|")
+        normal_text = rhs.partition("|")[0].strip()
         targets = tuple(document.expand(lhs).split())
-        prerequisites = tuple(document.expand(normal).split())
-        order_only = tuple(document.expand(order).split())
+        prerequisites = tuple(normal.split())
+        order_only = tuple(order.split())
         if any(t.count("%") > 1 for t in targets):
             raise RepairError("UNSUPPORTED_TARGET", "unsupported pattern")
-        rule = Rule(targets, prerequisites, order_only, lhs, normal.strip(), start, end, tuple(recipes))
+        rule = Rule(targets, prerequisites, order_only, lhs, normal_text, start, end, tuple(recipes))
         document.rules.append(rule)
         for target in targets:
             document.graph.setdefault(f"target:{target}", set()).update(
-                {f"variable:{ref}" for ref in references(normal)}
+                {f"variable:{ref}" for ref in references(normal_text)}
                 | {f"file:{word}" for word in prerequisites}
             )
     return document
