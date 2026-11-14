@@ -62,6 +62,20 @@ def _git(root: Path, *args: str) -> str:
         raise RepairError("MISSING_INPUT", "Git identity and Makefile must be UTF-8") from exc
 
 
+def tracked_path(root: Path, path: Path) -> bool:
+    """Return whether a resolved project file is tracked at HEAD."""
+    try:
+        git_root = Path(_git(root, "rev-parse", "--show-toplevel").strip()).resolve()
+        name = path.resolve().relative_to(git_root).as_posix()
+        result = subprocess.run(
+            ["git", "--no-optional-locks", "-C", str(root), "ls-files", "--error-unmatch", "--", name],
+            capture_output=True, timeout=10, check=False,
+        )
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
 @dataclass(frozen=True)
 class Source:
     root: Path

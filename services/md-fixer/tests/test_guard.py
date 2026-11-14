@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -35,6 +36,25 @@ def test_modified_source_invalidates_the_report_even_if_makefile_is_unchanged(pr
         generate_patch(root, report)
     assert caught.value.code == "STALE_REPORT"
     assert snapshot(root) == before
+
+
+def test_untracked_dependency_is_rejected(project):
+    root, report = project()
+    subprocess.run(["git", "-C", str(root), "rm", "--cached", "config.h"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(root), "-c", "user.name=E9 Test", "-c", "user.email=e9@example.invalid",
+         "-c", "commit.gpgsign=false", "commit", "-qm", "untrack config.h"],
+        check=True, capture_output=True,
+    )
+    sha = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"]).decode().strip()
+    report["repository"]["commit"] = sha
+    for finding in report["findings"]:
+        finding["commit"] = sha
+
+    with pytest.raises(RepairError) as caught:
+        generate_patch(root, report)
+
+    assert caught.value.code == "STALE_REPORT"
 
 
 def test_report_can_be_read_as_an_explicit_json_input(project, tmp_path):
