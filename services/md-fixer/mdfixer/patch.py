@@ -13,16 +13,16 @@ from pathlib import Path
 from typing import Mapping
 
 from .guard import RepairError, read_source
-from .makefile import Makefile, parse_makefile, references
+from .makefile import Makefile, parse_makefile, references, reference_usage
 from .plan import Change, PatchResult, RepairPlan
 from .report import Finding, Report, load_report, validate_report
 from .style import Style, identify_style
 
 
-def _append(line: str, dependency: str, *, rule: bool) -> str:
+def _append(line: str, dependency: str) -> str:
     body, marker, comment = line.partition("#")
     suffix = body[len(body.rstrip()):] if marker else ""
-    if rule and "|" in body:
+    if "|" in body:
         normal, _, order = body.partition("|")
         body = normal.rstrip() + " " + dependency + " |" + order
         suffix = ""
@@ -33,7 +33,8 @@ def _append(line: str, dependency: str, *, rule: bool) -> str:
 
 def _recipe_uses(document: Makefile, variable: str) -> bool:
     def uses(text: str) -> bool:
-        return any(document.distance(f"variable:{ref}", f"variable:{variable}") is not None for ref in references(text))
+        names, opaque = reference_usage(text)
+        return opaque or any(document.distance(f"variable:{ref}", f"variable:{variable}") is not None for ref in names)
     return any(uses(line) for line in document.text.splitlines() if line.startswith("\t")) or any(uses(rule.target_text) for rule in document.rules)
 
 
@@ -44,6 +45,9 @@ def _variable_for(document: Makefile, finding: Finding, report: Report) -> str |
     for name, variable in document.variables.items():
         distance = document.distance(f"target:{finding.target}", f"variable:{name}")
         affected = set(document.affected_targets(name))
+        block = document.text.splitlines()[variable.line - 1:variable.end_line]
+        if "|" in document.expand(f"$({name})") and not any("|" in line.partition("#")[0] for line in block):
+            continue  # A separator hidden behind another reference has no safe insertion point here.
         if distance is not None and affected and affected <= allowed and not _recipe_uses(document, name):
             candidates.append((distance, variable.line, name))
     for _, _, name in sorted(candidates):
@@ -109,10 +113,12 @@ def generate_patch(
         variable = _variable_for(document, finding, validated) if style in {Style.MACRO, Style.HYBRID} else None
         if style == Style.MACRO and variable is None:
             raise RepairError("UNSUPPORTED_TARGET", "no private variable can be edited while preserving macro style")
-        location = document.variables[variable].end_line if variable else rule.end_line
+        first = document.variables[variable].line if variable else rule.line
+        last = document.variables[variable].end_line if variable else rule.end_line
+        location = next((line for line in range(first, last + 1) if "|" in lines[line - 1].partition("#")[0]), last)
         key = (location, finding.dependency)
         if key not in edits:
-            lines[location - 1] = _append(lines[location - 1], finding.dependency, rule=variable is None)
+            lines[location - 1] = _append(lines[location - 1], finding.dependency)
             edits.add(key)
         affected = document.affected_targets(variable) if variable else (finding.target,)
         reason = "append to a declaration variable; all affected targets request this dependency" if variable else "append to the existing target prerequisites; preserve variable references and existing dependencies"

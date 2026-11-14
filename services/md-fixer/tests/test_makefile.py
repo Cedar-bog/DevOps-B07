@@ -1,7 +1,7 @@
 import pytest
 
 from mdfixer.guard import RepairError
-from mdfixer.makefile import parse_makefile
+from mdfixer.makefile import parse_makefile, reference_usage, references
 from mdfixer.style import Style, identify_style
 
 @pytest.mark.parametrize("style,expected", [("target", Style.DIRECT), ("macro", Style.MACRO), ("hybrid", Style.HYBRID), ("implicit", Style.IMPLICIT)])
@@ -45,3 +45,33 @@ def test_unsupported_declarations_fail_explicitly(text, tmp_path):
         parse_makefile(text)
     assert caught.value.code == "UNSUPPORTED_TARGET"
     assert not (tmp_path / "sentinel").exists()
+
+
+@pytest.mark.parametrize("text", [
+    "DEPS := main.c | unused.h\nmain.o: $(DEPS)\n",
+    "ORDER = | unused.h\nDEPS = main.c $(ORDER)\nmain.o: $(DEPS)\n",
+    "DEPS = main.c|unused.h\nmain.o: $(DEPS)\n",
+])
+def test_order_only_separator_is_recognized_after_expansion(text):
+    document = parse_makefile(text)
+    assert document.rules[0].prerequisites == ("main.c",)
+    assert document.rules[0].order_only == ("unused.h",)
+    assert "file:|" not in set().union(*document.graph.values())
+
+
+def test_multiple_expanded_order_only_separators_are_rejected():
+    with pytest.raises(RepairError):
+        parse_makefile("DEPS = main.c | unused.h\nmain.o: $(DEPS) | config.h\n")
+
+
+@pytest.mark.parametrize("text,expected,opaque", [
+    ("cc -c $S -o $@", ("S",), False),
+    ("$(CC) -c ${S} $(S:.c=.o) $< $^", ("CC", "S"), False),
+    ("echo $$S $$(S) $${S}", (), False),
+    ("echo $$$S", ("S",), False),
+    ("echo $($(NAME))", ("NAME",), True),
+    ("echo $(addprefix x,$S)", ("S",), True),
+])
+def test_recipe_reference_scanning_handles_make_dollar_rules(text, expected, opaque):
+    assert references(text) == expected
+    assert reference_usage(text) == (expected, opaque)
