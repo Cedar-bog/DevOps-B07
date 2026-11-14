@@ -222,3 +222,31 @@ def test_repair_payload_requires_recheck_and_keeps_internal_codes_out(project):
         "patch": "diff",
         "reason": "UNSUPPORTED_TARGET: target is not supported",
     }
+
+
+def test_collect_rejections_keeps_supported_changes(project, snapshot):
+    text = (
+        "DEPS = main.c unused.h\n"
+        "main.o: main.c\n"
+        "bad.o: $(DEPS)\n"
+        "clean:\n"
+        "\trm -f $(DEPS)\n"
+    )
+    root, report = project(text=text)
+    bad = deepcopy(report["findings"][0])
+    bad.update(
+        finding_id="bad-target",
+        target="bad.o",
+        position={"file": "Makefile", "line": 3, "declaration": "bad.o: $(DEPS)"},
+    )
+    report["findings"].append(bad)
+    before = snapshot(root)
+
+    result = generate_patch(root, report, collect_rejections=True)
+
+    assert "main.o: main.c config.h\n" in result.candidate_text
+    assert "bad.o: $(DEPS)\n" in result.candidate_text
+    assert len(result.rejected_candidates) == 1
+    assert result.rejected_candidates[0].code == "UNSUPPORTED_TARGET"
+    assert result.rejected_candidates[0].to_payload()["reason"].startswith("UNSUPPORTED_TARGET:")
+    assert snapshot(root) == before

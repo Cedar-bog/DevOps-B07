@@ -115,6 +115,10 @@ def _check_llm_candidate(before: str, after: str, findings: tuple[Finding, ...])
     return candidate.replace("\n", newline)
 
 
+def is_simple_rule(document: Makefile, rule: Rule) -> bool:
+    return _simple(document, rule)
+
+
 def generate_implicit(text: str, document: Makefile, findings: tuple[Finding, ...], *, llm=None) -> tuple[str, list[Change]]:
     simple = tuple(item for item in findings if _simple(document, item.rule))
     complex_findings = tuple(item for item in findings if item not in simple)

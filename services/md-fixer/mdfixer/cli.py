@@ -82,6 +82,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="use LLM_API_URL, LLM_API_KEY and LLM_MODEL for complex implicit rules",
     )
+    generate.add_argument(
+        "--collect-rejections",
+        action="store_true",
+        help="keep supported findings and report rejected targets instead of aborting",
+    )
     return parser
 
 
@@ -146,6 +151,7 @@ def _cmd_generate(args: argparse.Namespace) -> int:
             commit=args.commit,
             configuration_id=args.configuration_id,
             llm=llm,
+            collect_rejections=args.collect_rejections,
         )
         if args.patch_out:
             _write_output(_output_path(args.patch_out, project, "patch output"), result.git_patch)
