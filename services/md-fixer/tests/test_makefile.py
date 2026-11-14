@@ -64,6 +64,16 @@ def test_multiple_expanded_order_only_separators_are_rejected():
         parse_makefile("DEPS = main.c | unused.h\nmain.o: $(DEPS) | config.h\n")
 
 
+def test_include_is_rejected_by_default_but_allowed_for_repaired_candidates():
+    text = "OBJS := main.o\nmain.o: main.c\n-include $(DEPS)\n"
+    with pytest.raises(RepairError) as caught:
+        parse_makefile(text)
+    assert caught.value.code == "UNSUPPORTED_TARGET"
+    document = parse_makefile(text, allow_includes=True)
+    assert document.rules[0].targets == ("main.o",)
+    assert document.rules[0].prerequisites == ("main.c",)
+
+
 @pytest.mark.parametrize("text,expected,opaque", [
     ("cc -c $S -o $@", ("S",), False),
     ("$(CC) -c ${S} $(S:.c=.o) $< $^", ("CC", "S"), False),
