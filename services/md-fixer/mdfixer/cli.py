@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 from . import SERVICE, __version__
+from .guard import RepairError
+from .patch import generate_patch
 from .smoke import find_repo_root, run_smoke, write_result
 
 
@@ -46,6 +48,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="write the JSON result to this path; omit or use '-' to print to stdout",
     )
+
+    generate = sub.add_parser(
+        "generate",
+        help="generate a candidate patch and repair plan from a fixed MD report",
+    )
+    generate.add_argument("--project", required=True, help="project root with a committed HEAD")
+    generate.add_argument("--report", required=True, help="fixed MD report JSON")
+    generate.add_argument("--makefile", default="Makefile", help="Makefile path relative to the project")
+    generate.add_argument("--commit", default=None, help="expected project HEAD commit")
+    generate.add_argument("--configuration-id", default=None, help="expected report configuration")
+    generate.add_argument("--patch-out", default=None, help="write the Git patch to this path")
+    generate.add_argument("--plan-out", default=None, help="write the repair plan JSON to this path")
+    generate.add_argument("--json", action="store_true", help="print the candidate payload to stdout")
     return parser
 
 
@@ -77,6 +92,61 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def _output_path(value: str, project: Path, label: str) -> Path:
+    target = Path(value).expanduser().resolve()
+    if any(
+        part.lower() == ".env" or part.lower().startswith(".env.")
+        for part in target.parts
+    ):
+        raise ValueError(f"{label} must not be a sensitive path")
+    if target.is_relative_to(project):
+        raise ValueError(f"{label} must be outside the project")
+    return target
+
+
+def _write_output(target: Path, text: str) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8", newline="")
+
+
+def _cmd_generate(args: argparse.Namespace) -> int:
+    project = Path(args.project).expanduser().resolve()
+    try:
+        result = generate_patch(
+            project,
+            Path(args.report).expanduser(),
+            makefile=args.makefile,
+            commit=args.commit,
+            configuration_id=args.configuration_id,
+        )
+        if args.patch_out:
+            _write_output(_output_path(args.patch_out, project, "patch output"), result.git_patch)
+        if args.plan_out:
+            plan_text = json.dumps(result.plan.to_payload(), ensure_ascii=False, indent=2) + "\n"
+            _write_output(_output_path(args.plan_out, project, "plan output"), plan_text)
+    except (RepairError, ValueError, OSError) as exc:
+        code = getattr(exc, "code", "INVALID_INPUT")
+        if args.json:
+            print(json.dumps({"status": "REJECTED", "code": code, "message": str(exc)}, ensure_ascii=False))
+        else:
+            print(f"generate rejected: {code}: {exc}", file=sys.stderr)
+        return 2
+
+    payload = result.to_payload()
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        if result.git_patch:
+            print(result.git_patch, end="")
+        print(
+            "generate: {} change(s), patch={} byte(s)".format(
+                len(result.plan.changes), len(result.git_patch)
+            ),
+            file=sys.stderr,
+        )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -88,6 +158,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "smoke":
         return _cmd_smoke(args)
+    if args.command == "generate":
+        return _cmd_generate(args)
     parser.error(f"unknown command: {args.command}")
     return 2
 
