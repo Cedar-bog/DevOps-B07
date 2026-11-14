@@ -1,6 +1,7 @@
 import json
 
 from mdfixer.cli import main
+from mdfixer.llm import LLMAdapter
 
 
 def _report_file(tmp_path, report):
@@ -69,3 +70,27 @@ def test_generate_reports_stale_commit_as_rejection(project, tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "REJECTED"
     assert payload["code"] == "STALE_REPORT"
+
+
+def test_generate_can_wire_llm_from_env(monkeypatch, project, tmp_path, capsys):
+    calls = []
+
+    class FakeAdapter:
+        pass
+
+    def fake_from_env(cls):
+        calls.append(True)
+        return FakeAdapter()
+
+    monkeypatch.setattr(LLMAdapter, "from_env", classmethod(fake_from_env))
+    root, report = project()
+    report_path = _report_file(tmp_path, report)
+
+    code = main([
+        "generate", "--project", str(root), "--report", str(report_path),
+        "--llm-from-env", "--json",
+    ])
+
+    assert code == 0
+    assert calls == [True]
+    assert json.loads(capsys.readouterr().out)["git_patch"]
