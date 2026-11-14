@@ -105,6 +105,32 @@ def test_redundant_findings_still_require_a_position(project):
     assert caught.value.code == "INVALID_REPORT"
 
 
+@pytest.mark.parametrize("key,value,code", [
+    ("target", "../outside.o", "UNSAFE_PATH"),
+    ("dependency", "../outside.h", "UNSAFE_PATH"),
+])
+def test_redundant_paths_are_checked(project, key, value, code):
+    root, report = project()
+    report["findings"][1][key] = value
+    with pytest.raises(RepairError) as caught:
+        validate(root, report)
+    assert caught.value.code == code
+
+
+def test_redundant_position_must_match_the_current_makefile(project):
+    root, report = project()
+    report["findings"][1]["position"]["file"] = "other.mk"
+    with pytest.raises(RepairError) as caught:
+        validate(root, report)
+    assert caught.value.code == "UNSUPPORTED_TARGET"
+    report["findings"][1]["position"] = {
+        "file": "Makefile", "line": 1, "declaration": "wrong declaration",
+    }
+    with pytest.raises(RepairError) as caught:
+        validate(root, report)
+    assert caught.value.code == "STALE_REPORT"
+
+
 def test_top_level_commit_and_actual_implicit_source_are_checked(project):
     root, report = project()
     report["repository"]["commit"] = "0" * 40

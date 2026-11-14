@@ -104,15 +104,15 @@ def validate_report(
         relative_path(position.get("file"))
         if "declaration" in position and not isinstance(position["declaration"], str):
             invalid("position.declaration must be a string")
-        if item["type"] == "REDUNDANT":
-            ignored.append(identity)
-            continue  # REDUNDANT findings are not consumed; position is required but not resolved.
         if relative_path(position.get("file")) != source.name:
             raise RepairError("UNSUPPORTED_TARGET", "finding points to a different Makefile")
         if "declaration" in position and position["declaration"] != source.text.splitlines()[line - 1].strip():
             raise RepairError("STALE_REPORT", "reported declaration no longer matches the Makefile")
         target = relative_path(item["target"])
         dependency = relative_path(item["dependency"])
+        if item["type"] == "REDUNDANT":
+            ignored.append(identity)
+            continue  # REDUNDANT findings are not consumed, but their report identity is checked.
         dependency_file = project_file(source.path.parent, dependency)
         if not dependency_file.is_relative_to(source.root):
             raise RepairError("UNSAFE_PATH", "dependency is outside the project")
