@@ -90,7 +90,7 @@ class Makefile:
             return value
 
         result = _REF.sub(replace, text)
-        if "$" in result or any(c in result for c in "\\;`{}()"):
+        if "$" in result or any(c in result for c in "\\;`{}()*?[]~"):
             raise RepairError("UNSUPPORTED_TARGET", "dynamic Make expressions are unsupported")
         return result
 

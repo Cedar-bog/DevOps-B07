@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
+from urllib.parse import urlsplit
 
 from .guard import RepairError, Source, project_file, relative_path
 from .makefile import Makefile, Rule
@@ -49,6 +50,12 @@ def validate_report(
     repository = payload.get("repository")
     if not isinstance(repository, Mapping) or set(repository) != {"url", "commit"} or not _nonempty(repository.get("url")):
         invalid("repository requires url and commit")
+    try:
+        url = urlsplit(repository["url"])
+        if url.scheme not in {"http", "https"} or not url.netloc or url.username or url.password:
+            invalid("repository.url must be an absolute http(s) URL without credentials")
+    except ValueError as exc:
+        raise RepairError("INVALID_REPORT", "invalid repository URL") from exc
     commit = repository.get("commit")
     if not isinstance(commit, str) or not _SHA.fullmatch(commit):
         invalid("repository.commit must be a full lowercase SHA")
@@ -59,6 +66,8 @@ def validate_report(
         invalid("configuration_id is required")
     if configuration_id is not None and config != configuration_id:
         raise RepairError("STALE_REPORT", "report configuration does not match the requested configuration")
+    if "producer_job_id" in payload and not _nonempty(payload["producer_job_id"]):
+        invalid("producer_job_id must be a nonempty string")
     items = payload.get("findings")
     if not isinstance(items, list):
         invalid("findings must be an array")
@@ -82,6 +91,8 @@ def validate_report(
             invalid("unknown finding type or detector")
         if "configuration_id" in item and item["configuration_id"] != config:
             raise RepairError("STALE_REPORT", "finding configuration differs from the report")
+        if "evidence_uri" in item and not _nonempty(item["evidence_uri"]):
+            invalid("evidence_uri must be a nonempty string")
         if item["type"] == "REDUNDANT":
             ignored.append(identity)
             continue  # The fixed fixture deliberately omits REDUNDANT.position.
@@ -93,6 +104,8 @@ def validate_report(
             invalid("position.line must identify an existing declaration")
         if relative_path(position.get("file")) != source.name:
             raise RepairError("UNSUPPORTED_TARGET", "finding points to a different Makefile")
+        if "declaration" in position and not isinstance(position["declaration"], str):
+            invalid("position.declaration must be a string")
         if "declaration" in position and position["declaration"] != source.text.splitlines()[line - 1].strip():
             raise RepairError("STALE_REPORT", "reported declaration no longer matches the Makefile")
         target = relative_path(item["target"])
@@ -101,6 +114,10 @@ def validate_report(
         if not dependency_file.is_relative_to(source.root):
             raise RepairError("UNSAFE_PATH", "dependency is outside the project")
         rule = document.rule_at(line, target)
+        if rule.implicit:
+            stem = rule.stem(target)
+            for prerequisite in rule.prerequisites:
+                project_file(source.path.parent, prerequisite.replace("%", stem))
         pair = (target, dependency)
         if pair in edges:
             continue  # Distinct detectors may report the same missing edge.
@@ -112,7 +129,7 @@ def validate_report(
 def load_report(path: Path | str) -> dict:
     # Explicit report paths are input artifacts, never automatically discovered.
     path = Path(path)
-    if path.name == ".env" or path.name.startswith(".env."):
+    if any(part.lower() == ".env" or part.lower().startswith(".env.") for part in path.resolve().parts):
         raise RepairError("UNSAFE_PATH", "not a report path")
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
