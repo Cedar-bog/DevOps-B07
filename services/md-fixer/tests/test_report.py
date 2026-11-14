@@ -97,6 +97,14 @@ def test_redundant_findings_are_ignored_but_must_have_current_commit(project):
     assert caught.value.code == "STALE_REPORT"
 
 
+def test_redundant_findings_still_require_a_position(project):
+    root, report = project()
+    del report["findings"][1]["position"]
+    with pytest.raises(RepairError) as caught:
+        validate(root, report)
+    assert caught.value.code == "INVALID_REPORT"
+
+
 def test_top_level_commit_and_actual_implicit_source_are_checked(project):
     root, report = project()
     report["repository"]["commit"] = "0" * 40

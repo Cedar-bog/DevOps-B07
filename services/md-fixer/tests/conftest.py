@@ -41,6 +41,10 @@ def project(tmp_path):
         report["repository"]["commit"] = commit
         for finding in report["findings"]:
             finding["commit"] = commit
+        for finding in report["findings"]:
+            if finding["type"] == "REDUNDANT":
+                # REDUNDANT is ignored; the test project only needs a valid position.
+                finding["position"] = {"file": "Makefile", "line": 1}
         finding = report["findings"][0]
         declaration = next(line for line in content.splitlines() if line.startswith(("main.o:", "%.o:")))
         finding["position"] = {"file": "Makefile", "line": content.splitlines().index(declaration) + 1, "declaration": declaration}
