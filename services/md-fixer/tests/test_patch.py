@@ -7,6 +7,7 @@ import pytest
 from mdfixer.guard import RepairError
 from mdfixer.makefile import parse_makefile
 from mdfixer.patch import generate_patch
+from mdfixer.plan import rejection_from_error
 
 
 @pytest.mark.parametrize("style", ["target", "macro", "hybrid"])
@@ -199,3 +200,25 @@ def test_hybrid_rule_falls_back_without_changing_short_recipe_reference(project,
 def test_escaped_shell_reference_does_not_block_a_safe_macro_edit(project):
     root, report = project(text="S = main.c\nmain.o: $(S)\n\techo $$S\n")
     assert "S = main.c config.h\n" in generate_patch(root, report).candidate_text
+
+
+def test_repair_payload_requires_recheck_and_keeps_internal_codes_out(project):
+    root, report = project()
+    result = generate_patch(root, report)
+    payload = result.to_repair_payload({
+        "build": "SUCCEEDED: make",
+        "test": "SUCCEEDED: ./hello",
+        "detection": "SUCCEEDED: no MISSING findings remain",
+    })
+    assert set(payload) == {"git_patch", "style_description", "recheck", "rejected_candidates"}
+    assert payload["rejected_candidates"] == []
+    assert set(payload["recheck"]) == {"build", "test", "detection"}
+
+    with pytest.raises(ValueError):
+        result.to_repair_payload({})
+
+    rejection = rejection_from_error(RepairError("UNSUPPORTED_TARGET", "target is not supported"), patch="diff")
+    assert rejection.to_payload() == {
+        "patch": "diff",
+        "reason": "UNSUPPORTED_TARGET: target is not supported",
+    }
