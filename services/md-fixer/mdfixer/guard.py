@@ -25,7 +25,7 @@ def relative_path(value: object) -> str:
     if (
         path.is_absolute() or PureWindowsPath(value).drive
         or "\\" in value or ".." in path.parts
-        or any(p in {".git", ".env"} or p.startswith(".env.") for p in path.parts)
+        or any(p.lower() in {".git", ".env"} or p.lower().startswith(".env.") for p in path.parts)
         or not re.fullmatch(r"[A-Za-z0-9_./+@-]+", value)
         or value.startswith("-") or any(p.startswith("-") for p in path.parts)
     ):
@@ -35,7 +35,10 @@ def relative_path(value: object) -> str:
 
 def project_file(root: Path, value: object) -> Path:
     name = relative_path(value)
-    resolved = (root / name).resolve()
+    try:
+        resolved = (root / name).resolve()
+    except (OSError, RuntimeError) as exc:
+        raise RepairError("UNSAFE_PATH", "cannot safely resolve the project path") from exc
     if not resolved.is_relative_to(root.resolve()):
         raise RepairError("UNSAFE_PATH", "path escapes the project through a link")
     if not resolved.is_file():
@@ -53,7 +56,10 @@ def _git(root: Path, *args: str) -> str:
         raise RepairError("MISSING_INPUT", "cannot read project Git identity") from exc
     if result.returncode:
         raise RepairError("MISSING_INPUT", "project must have a committed Git HEAD and Makefile")
-    return result.stdout.decode("utf-8")
+    try:
+        return result.stdout.decode("utf-8")
+    except UnicodeError as exc:
+        raise RepairError("MISSING_INPUT", "Git identity and Makefile must be UTF-8") from exc
 
 
 @dataclass(frozen=True)
@@ -79,9 +85,13 @@ def read_source(
         raise RepairError("MISSING_INPUT", "project directory not found")
     name = relative_path(makefile)
     path = project_file(root, name)
+    if path != root / name:
+        raise RepairError("UNSAFE_PATH", "Makefile paths through links are unsupported")
     head = _git(root, "rev-parse", "--verify", "HEAD").strip()
     if commit is not None and commit != head:
         raise RepairError("STALE_REPORT", "requested commit does not match project HEAD")
+    if _git(root, "diff", "--name-only", "HEAD", "--", ".").strip():
+        raise RepairError("STALE_REPORT", "tracked project inputs differ from the reported commit")
     git_root = Path(_git(root, "rev-parse", "--show-toplevel").strip()).resolve()
     if not path.is_relative_to(git_root):
         raise RepairError("UNSAFE_PATH", "Makefile is outside the checkout")
@@ -96,4 +106,6 @@ def read_source(
         raise RepairError("STALE_REPORT", "Makefile differs from the reported commit")
     if not text or not text.endswith("\n") or "\x00" in text:
         raise RepairError("UNSUPPORTED_TARGET", "Makefile must be nonempty text with a final newline")
+    if "\r\n" in text and "\n" in text.replace("\r\n", ""):
+        raise RepairError("UNSUPPORTED_TARGET", "mixed Makefile newline conventions are unsupported")
     return Source(root, path, name, head, text, hashlib.sha256(raw).hexdigest())

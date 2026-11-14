@@ -87,3 +87,24 @@ def test_local_makefile_edit_is_not_silently_patched(project):
     with pytest.raises(RepairError) as caught:
         validate(root, report)
     assert caught.value.code == "STALE_REPORT"
+
+
+def test_redundant_findings_are_ignored_but_must_have_current_commit(project):
+    root, report = project()
+    report["findings"][1]["commit"] = "0" * 40
+    with pytest.raises(RepairError) as caught:
+        validate(root, report)
+    assert caught.value.code == "STALE_REPORT"
+
+
+def test_top_level_commit_and_actual_implicit_source_are_checked(project):
+    root, report = project()
+    report["repository"]["commit"] = "0" * 40
+    with pytest.raises(RepairError) as caught:
+        validate(root, report)
+    assert caught.value.code == "STALE_REPORT"
+    root, report = project("implicit")
+    report["findings"][0]["target"] = "nonexistent.o"
+    with pytest.raises(RepairError) as caught:
+        validate(root, report)
+    assert caught.value.code == "MISSING_INPUT"
