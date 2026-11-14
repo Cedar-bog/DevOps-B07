@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Mapping
 from urllib.parse import urlsplit
 
-from .guard import RepairError, Source, project_file, relative_path
+from .guard import RepairError, Source, project_file, relative_path, tracked_path
 from .makefile import Makefile, Rule
 
 _SHA = re.compile(r"[0-9a-f]{40}")
@@ -116,11 +116,15 @@ def validate_report(
         dependency_file = project_file(source.path.parent, dependency)
         if not dependency_file.is_relative_to(source.root):
             raise RepairError("UNSAFE_PATH", "dependency is outside the project")
+        if not tracked_path(source.root, dependency_file):
+            raise RepairError("STALE_REPORT", "dependency is not tracked at the reported commit")
         rule = document.rule_at(line, target)
         if rule.implicit:
             stem = rule.stem(target)
             for prerequisite in rule.prerequisites:
-                project_file(source.path.parent, prerequisite.replace("%", stem))
+                prerequisite_file = project_file(source.path.parent, prerequisite.replace("%", stem))
+                if not tracked_path(source.root, prerequisite_file):
+                    raise RepairError("STALE_REPORT", "implicit prerequisite is not tracked at the reported commit")
         pair = (target, dependency)
         if pair in edges:
             continue  # Distinct detectors may report the same missing edge.
