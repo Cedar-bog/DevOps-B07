@@ -135,7 +135,7 @@ evidence/e8/
 | 006| DONE| 显式声明补丁生成：只补 MISSING，保留 REDUNDANT 与原风格，生成补丁与计划，不写源项目 |姚睿哲| `services/md-fixer/mdfixer/patch.py`<br/>`services/md-fixer/mdfixer/plan.py` |
 | 007| DONE| 隐式声明补丁生成：简单模式规则生成 .d 方案，复杂规则交由 LLM |姚睿哲| `services/md-fixer/mdfixer/implicit.py`<br/>`services/md-fixer/mdfixer/llm.py` |
 | 008| DONE| 单元测试：解析、风格、报告校验、补丁、拒绝与源项目保护 |姚睿哲| `services/md-fixer/tests/` |
-| 009| | 运行证据：在四种样例风格上生成补丁与计划，保存命令、输入与结果 |郑悫| `evidence/e9/<timestamp>/` |
+| 009| DONE| 运行证据：在四种样例风格上生成补丁与计划，保存命令、输入与结果 |郑悫| `evidence/e9/<timestamp>/` |
 ---
 ## E10 - MDFixer 验证
 | 编号| 状态| 任务|负责人| 产物|
