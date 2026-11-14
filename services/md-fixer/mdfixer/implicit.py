@@ -6,7 +6,7 @@ import re
 
 from .guard import RepairError, relative_path
 from .llm import LLMAdapter
-from .makefile import Makefile, Rule
+from .makefile import Makefile, Rule, references, reference_usage
 from .plan import Change
 from .report import Finding
 
@@ -18,6 +18,8 @@ def _simple(document: Makefile, rule: Rule) -> bool:
         return False
     if document.expand("$(CC)") not in {"cc", "gcc", "clang"}:
         return False
+    if any(reference_usage(line)[1] for line in document.text.splitlines() if line.startswith("\t")):
+        return False  # Computed recipe names could alias a newly introduced variable.
     recipe = document.text.splitlines()[rule.recipes[0] - 1]
     if not re.fullmatch(r"\t\$\(CC\) (?:\$\(CPPFLAGS\) )?\$\(CFLAGS\) -c \$< -o \$@", recipe):
         return False
@@ -29,9 +31,22 @@ def _simple(document: Makefile, rule: Rule) -> bool:
 
 
 def _fresh(document: Makefile, name: str) -> str:
-    while name in document.variables or f"$({name})" in document.text or f"${{{name}}}" in document.text:
+    used = set(references(document.text))
+    while name in document.variables or name in used:
         name = "MDFIXER_" + name
     return name
+
+
+def _object_definitions_end(document: Makefile) -> int:
+    """A := depfile list must follow every definition used to expand OBJS."""
+    pending = ["OBJS"]
+    needed: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name not in needed:
+            needed.add(name)
+            pending.extend(references(document.variables[name].expression))
+    return max(document.variables[name].end_line for name in needed)
 
 
 def _depfile_candidate(text: str, document: Makefile, findings: tuple[Finding, ...]) -> tuple[str, list[Change]]:
@@ -53,9 +68,16 @@ def _depfile_candidate(text: str, document: Makefile, findings: tuple[Finding, .
     object_line = document.text.splitlines()[document.variables["OBJS"].line - 1]
     alignment = re.match(r"\s*OBJS(\s+)", object_line)
     spacing = alignment.group(1) if alignment and len(depvar) == 4 else " "
-    insertions.setdefault(document.variables["OBJS"].end_line, []).append(f"{depvar}{spacing}:= {depvalue}")
-    # Insert immediately before clean; this preserves the original default goal.
-    insertions.setdefault(clean.line - 1, []).extend([f"-include $({depvar})", ""])
+    definition_end = _object_definitions_end(document)
+    insertions.setdefault(definition_end, []).append(f"{depvar}{spacing}:= {depvalue}")
+    # Keep the original layout where safe. If clean is the first goal or
+    # precedes the object definitions, include at EOF so the list is initialized
+    # and an included depfile cannot replace the original default goal.
+    default = next(r for r in document.rules if not r.implicit and not r.targets[0].startswith("."))
+    include_at = clean.line - 1
+    if include_at < definition_end or include_at <= default.end_line:
+        include_at = len(lines)
+    insertions.setdefault(include_at, []).extend([f"-include $({depvar})", ""])
     for index in sorted(insertions, reverse=True):
         lines[index:index] = insertions[index]
     changes = [Change(
