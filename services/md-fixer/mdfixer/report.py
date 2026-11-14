@@ -93,19 +93,22 @@ def validate_report(
             raise RepairError("STALE_REPORT", "finding configuration differs from the report")
         if "evidence_uri" in item and not _nonempty(item["evidence_uri"]):
             invalid("evidence_uri must be a nonempty string")
-        if item["type"] == "REDUNDANT":
-            ignored.append(identity)
-            continue  # The fixed fixture deliberately omits REDUNDANT.position.
         position = item.get("position")
         if not isinstance(position, Mapping) or set(position) - {"file", "line", "declaration"}:
-            invalid("MISSING requires a valid position")
+            invalid("finding requires a valid position")
+        if not _nonempty(position.get("file")):
+            invalid("position.file is required")
         line = position.get("line")
         if type(line) is not int or line < 1 or line > len(source.text.splitlines()):
             invalid("position.line must identify an existing declaration")
-        if relative_path(position.get("file")) != source.name:
-            raise RepairError("UNSUPPORTED_TARGET", "finding points to a different Makefile")
+        relative_path(position.get("file"))
         if "declaration" in position and not isinstance(position["declaration"], str):
             invalid("position.declaration must be a string")
+        if item["type"] == "REDUNDANT":
+            ignored.append(identity)
+            continue  # REDUNDANT findings are not consumed; position is required but not resolved.
+        if relative_path(position.get("file")) != source.name:
+            raise RepairError("UNSUPPORTED_TARGET", "finding points to a different Makefile")
         if "declaration" in position and position["declaration"] != source.text.splitlines()[line - 1].strip():
             raise RepairError("STALE_REPORT", "reported declaration no longer matches the Makefile")
         target = relative_path(item["target"])

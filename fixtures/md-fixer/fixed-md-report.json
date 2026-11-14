@@ -26,6 +26,11 @@
       "target": "main.o",
       "dependency": "unused.h",
       "commit": "2b8412f78dcf1e06cc696ec7c656f7dd32f9078c",
+      "position": {
+        "file": "fixtures/md-fixer/Makefile",
+        "line": 14,
+        "declaration": "main.o: main.c unused.h"
+      },
       "detector": "INSTRUCTOR_ORACLE"
     }
   ]
