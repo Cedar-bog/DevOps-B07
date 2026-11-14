@@ -1,6 +1,10 @@
 import json
+from pathlib import Path
 
-from mdfixer.smoke import run_smoke
+import pytest
+
+from mdfixer.cli import main
+from mdfixer.smoke import run_smoke, write_result
 
 
 def test_smoke_passes_on_fixture(fixture_root):
@@ -40,3 +44,32 @@ def test_smoke_rejects_sensitive_report_paths(fixture_root, tmp_path):
     report_check = next(check for check in result.checks if check.name == "report-json")
     assert not report_check.ok
     assert "sensitive" in report_check.detail
+
+
+def test_write_result_rejects_sensitive_paths(fixture_root, tmp_path):
+    result = run_smoke(fixture_root)
+    target = tmp_path / ".env"
+
+    with pytest.raises(ValueError):
+        write_result(result, target)
+
+    assert not target.exists()
+
+
+def test_smoke_cli_rejects_sensitive_output(fixture_root, tmp_path):
+    target = tmp_path / ".env"
+
+    code = main(["smoke", "--output", str(target)])
+
+    assert code == 2
+    assert not target.exists()
+
+
+def test_smoke_cli_rejects_source_output(fixture_root):
+    target = Path(__file__).resolve().parents[3] / "fixtures" / "md-fixer" / "main.c"
+    before = target.read_bytes()
+
+    code = main(["smoke", "--output", str(target)])
+
+    assert code == 2
+    assert target.read_bytes() == before

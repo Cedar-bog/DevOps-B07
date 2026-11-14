@@ -221,6 +221,8 @@ def run_smoke(
 
 def write_result(result: SmokeResult, path: Path | str) -> Path:
     target = Path(path).expanduser()
+    if _sensitive_path(target):
+        raise ValueError("refusing to write a sensitive path")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(
         json.dumps(result.to_payload(), ensure_ascii=False, indent=2) + "\n",

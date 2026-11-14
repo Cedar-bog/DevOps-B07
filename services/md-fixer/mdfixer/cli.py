@@ -21,6 +21,21 @@ def _default_fixture_dir() -> Path:
     return find_repo_root(Path(__file__)) / "fixtures" / "md-fixer"
 
 
+def _smoke_output_path(value: str) -> Path:
+    target = Path(value).expanduser().resolve()
+    if any(
+        part.lower() == ".env" or part.lower().startswith(".env.")
+        for part in target.parts
+    ):
+        raise ValueError("output must not be a sensitive path")
+    repo = find_repo_root(Path(__file__)).resolve()
+    if target.is_relative_to(repo):
+        relative = target.relative_to(repo)
+        if not relative.parts or relative.parts[0] not in {"work", "evidence"}:
+            raise ValueError("output must be outside the source tree or under work/evidence")
+    return target
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog=SERVICE, description="MDFixer service command line."
@@ -75,7 +90,12 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
     payload = result.to_payload()
 
     if args.output and args.output != "-":
-        target = write_result(result, args.output)
+        try:
+            target = _smoke_output_path(args.output)
+            target = write_result(result, target)
+        except (ValueError, OSError) as exc:
+            print(f"smoke output error: {exc}", file=sys.stderr)
+            return 2
         print(f"smoke result written to {target}", file=sys.stderr)
     else:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
