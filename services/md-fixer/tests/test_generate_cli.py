@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 
 from mdfixer.cli import main
 from mdfixer.llm import LLMAdapter
@@ -94,3 +95,32 @@ def test_generate_can_wire_llm_from_env(monkeypatch, project, tmp_path, capsys):
     assert code == 0
     assert calls == [True]
     assert json.loads(capsys.readouterr().out)["git_patch"]
+
+
+def test_generate_collects_rejections(project, tmp_path, capsys):
+    text = (
+        "DEPS = main.c unused.h\n"
+        "main.o: main.c\n"
+        "bad.o: $(DEPS)\n"
+        "clean:\n"
+        "\trm -f $(DEPS)\n"
+    )
+    root, report = project(text=text)
+    bad = deepcopy(report["findings"][0])
+    bad.update(
+        finding_id="bad-target",
+        target="bad.o",
+        position={"file": "Makefile", "line": 3, "declaration": "bad.o: $(DEPS)"},
+    )
+    report["findings"].append(bad)
+    report_path = _report_file(tmp_path, report)
+
+    code = main([
+        "generate", "--project", str(root), "--report", str(report_path),
+        "--collect-rejections", "--json",
+    ])
+
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert "main.o: main.c config.h" in payload["git_patch"]
+    assert payload["rejected_candidates"][0]["reason"].startswith("UNSUPPORTED_TARGET:")
