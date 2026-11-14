@@ -1,9 +1,9 @@
-"""Read-only smoke checks for the MDFixer service.
+"""Minimal read-only smoke checks for the MDFixer fixture.
 
-The check confirms that the E3 MDFixer fixture and its fixed MD report are
-present and internally consistent. It does not build a declaration graph,
-classify declaration styles or generate patches; those belong to later E9
-tasks.
+The smoke check confirms that the fixture files and the fixed MD report are
+present and structurally usable. It deliberately does not follow paths from the
+report, build a declaration graph, generate patches, or read project files.
+Those checks belong to the E9 pipeline.
 """
 
 from __future__ import annotations
@@ -19,15 +19,20 @@ SCHEMA_VERSION = "1.0"
 FIXTURE_NAME = "md-fixer"
 REPORT_NAME = "fixed-md-report.json"
 REQUIRED_FILES = ("Makefile", "main.c", "config.h", "unused.h", REPORT_NAME)
-STYLES = ("target", "macro", "hybrid", "implicit")
-STYLE_FILES = ("Makefile.before", "reference.patch")
+REQUIRED_STYLES = {
+    "target": ("Makefile.before", "reference.patch"),
+    "macro": ("Makefile.before", "reference.patch"),
+    "hybrid": ("Makefile.before", "reference.patch"),
+    "implicit": ("Makefile.before", "reference.patch"),
+}
 EXPECTED_MISSING = ("main.o", "config.h")
 EXPECTED_REDUNDANT = ("main.o", "unused.h")
 
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
+_DETECTORS = {"BUILDCHECKER", "ECHECKER", "INSTRUCTOR_ORACLE"}
 
 
-@dataclass
+@dataclass(frozen=True)
 class Check:
     name: str
     ok: bool
@@ -74,18 +79,15 @@ def find_repo_root(start: Path | None = None) -> Path:
     return Path.cwd()
 
 
-def _root_for_fixture(fixture: Path) -> Path:
-    if fixture.name == FIXTURE_NAME and fixture.parent.name == "fixtures":
-        return fixture.parent.parent
-    return find_repo_root()
-
-
 def _check(checks: list[Check], name: str, ok: bool, detail: str) -> None:
     checks.append(Check(name=name, ok=ok, detail=detail))
 
 
-def _is_commit(value: object) -> bool:
-    return isinstance(value, str) and bool(_COMMIT.match(value))
+def _sensitive_path(path: Path) -> bool:
+    return any(
+        part.lower() == ".env" or part.lower().startswith(".env.")
+        for part in path.resolve().parts
+    )
 
 
 def _finding_present(findings: list, kind: str, target: str, dependency: str) -> bool:
@@ -101,156 +103,77 @@ def _finding_present(findings: list, kind: str, target: str, dependency: str) ->
     return False
 
 
-def _resolve_position_file(fixture: Path, position_file: str) -> Path | None:
-    position = Path(position_file)
-    if position.is_absolute():
-        return position if position.is_file() else None
-    candidates = [fixture.parent.parent / position, _root_for_fixture(fixture) / position]
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
-    return None
-
-
-def _check_report(
-    checks: list[Check],
-    fixture: Path,
-    report_path: Path,
-) -> tuple[list, str | None]:
+def _check_report(checks: list[Check], report_path: Path) -> None:
+    if _sensitive_path(report_path):
+        _check(checks, "report-json", False, "refusing to read a sensitive path")
+        return
     if not report_path.is_file():
         _check(checks, "report-json", False, f"report not found: {report_path}")
-        return [], None
-
+        return
     try:
         payload = json.loads(report_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         _check(checks, "report-json", False, f"cannot parse report: {exc}")
-        return [], None
-
+        return
     if not isinstance(payload, dict):
         _check(checks, "report-json", False, "report root is not a JSON object")
-        return [], None
+        return
     _check(checks, "report-json", True, "report parsed")
 
-    schema_version = payload.get("schema_version")
     _check(
         checks,
         "report-schema-version",
-        schema_version == SCHEMA_VERSION,
-        f"schema_version={schema_version!r}",
+        payload.get("schema_version") == SCHEMA_VERSION,
+        f"schema_version={payload.get('schema_version')!r}",
+    )
+
+    repository = payload.get("repository")
+    top_commit = repository.get("commit") if isinstance(repository, dict) else None
+    _check(
+        checks,
+        "report-commit",
+        isinstance(top_commit, str) and bool(_COMMIT.fullmatch(top_commit)),
+        f"repository commit={top_commit!r}",
     )
 
     findings = payload.get("findings")
     if not isinstance(findings, list):
         _check(checks, "report-findings", False, "findings is not a list")
-        findings = []
-    else:
-        missing_ok = _finding_present(findings, "MISSING", *EXPECTED_MISSING)
-        redundant_ok = _finding_present(findings, "REDUNDANT", *EXPECTED_REDUNDANT)
-        _check(
-            checks,
-            "report-findings",
-            missing_ok and redundant_ok,
-            "expected MISSING {} -> {}: {}; expected REDUNDANT {} -> {}: {}".format(
-                EXPECTED_MISSING[0],
-                EXPECTED_MISSING[1],
-                "present" if missing_ok else "absent",
-                EXPECTED_REDUNDANT[0],
-                EXPECTED_REDUNDANT[1],
-                "present" if redundant_ok else "absent",
-            ),
-        )
-
-    repository = payload.get("repository")
-    top_commit = repository.get("commit") if isinstance(repository, dict) else None
-    finding_commits = [
-        finding.get("commit") for finding in findings if isinstance(finding, dict)
-    ]
-    commit_ok = (
-        _is_commit(top_commit)
-        and bool(finding_commits)
-        and all(commit == top_commit for commit in finding_commits)
-    )
+        return
+    missing_ok = _finding_present(findings, "MISSING", *EXPECTED_MISSING)
+    redundant_ok = _finding_present(findings, "REDUNDANT", *EXPECTED_REDUNDANT)
     _check(
         checks,
-        "report-commit",
-        commit_ok,
-        "repository commit={!r}, finding commits consistent={}".format(
-            top_commit, commit_ok
+        "report-findings",
+        missing_ok and redundant_ok,
+        "MISSING main.o -> config.h: {}; REDUNDANT main.o -> unused.h: {}".format(
+            "present" if missing_ok else "absent",
+            "present" if redundant_ok else "absent",
         ),
     )
 
-    expected = next(
-        (
-            finding
-            for finding in findings
-            if isinstance(finding, dict)
-            and finding.get("type") == "MISSING"
-            and finding.get("target") == EXPECTED_MISSING[0]
-            and finding.get("dependency") == EXPECTED_MISSING[1]
-        ),
-        None,
-    )
-    if expected is None:
-        _check(checks, "report-position", False, "expected MISSING finding not found")
-        return findings, top_commit
-
-    position = expected.get("position")
-    if not isinstance(position, dict):
-        _check(checks, "report-position", False, "MISSING finding has no position")
-        return findings, top_commit
-
-    position_file = position.get("file")
-    line = position.get("line")
-    if not isinstance(position_file, str) or not isinstance(line, int) or line < 1:
-        _check(
-            checks,
-            "report-position",
-            False,
-            f"invalid position: file={position_file!r} line={line!r}",
-        )
-        return findings, top_commit
-
-    target = _resolve_position_file(fixture, position_file)
-    if target is None:
-        _check(
-            checks,
-            "report-position",
-            False,
-            f"position file not found: {position_file}",
-        )
-        return findings, top_commit
-
-    lines = target.read_text(encoding="utf-8").splitlines()
-    if line > len(lines):
-        _check(
-            checks,
-            "report-position",
-            False,
-            f"line {line} exceeds {target} with {len(lines)} lines",
-        )
-        return findings, top_commit
-
-    declaration = position.get("declaration")
-    actual_line = lines[line - 1].strip()
-    if declaration is not None and actual_line != str(declaration).strip():
-        _check(
-            checks,
-            "report-position",
-            False,
-            "line {} of {} is {!r}, report says {!r}".format(
-                line, position_file, actual_line, declaration
-            ),
-        )
-        return findings, top_commit
-
+    valid_fields = True
+    for finding in findings:
+        if not isinstance(finding, dict):
+            valid_fields = False
+            break
+        if finding.get("type") not in {"MISSING", "REDUNDANT"}:
+            valid_fields = False
+        if finding.get("detector") not in _DETECTORS:
+            valid_fields = False
+        commit = finding.get("commit")
+        if not isinstance(commit, str) or not _COMMIT.fullmatch(commit):
+            valid_fields = False
+        if isinstance(top_commit, str) and commit != top_commit:
+            valid_fields = False
     _check(
         checks,
-        "report-position",
-        True,
-        f"{position_file}:{line} -> {actual_line}",
+        "report-fields",
+        valid_fields,
+        "finding types, detectors and commits are consistent"
+        if valid_fields
+        else "finding types, detectors or commits are invalid",
     )
-    return findings, top_commit
 
 
 def run_smoke(
@@ -281,21 +204,17 @@ def run_smoke(
         "present" if not missing_files else f"missing: {', '.join(missing_files)}",
     )
 
-    for style in STYLES:
+    for style, names in REQUIRED_STYLES.items():
         style_dir = fixture / "styles" / style
-        missing_style_files = [
-            name for name in STYLE_FILES if not (style_dir / name).is_file()
-        ]
+        missing_style_files = [name for name in names if not (style_dir / name).is_file()]
         _check(
             checks,
             f"style:{style}",
             not missing_style_files,
-            "present"
-            if not missing_style_files
-            else f"missing: {', '.join(missing_style_files)}",
+            "present" if not missing_style_files else f"missing: {', '.join(missing_style_files)}",
         )
 
-    _check_report(checks, fixture, report_path)
+    _check_report(checks, report_path)
     result.finished_at = _now_iso()
     return result
 
