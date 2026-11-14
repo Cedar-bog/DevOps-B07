@@ -128,13 +128,13 @@ evidence/e8/
 | 编号| 状态| 任务|负责人| 产物|
 |------|------|-------------------------------------------------------------------------|:----:|--------------------------------------------------------------------------------|
 | 001| DONE| 服务骨架与命令行入口 |郑悫| `services/md-fixer/mdfixer/cli.py` |
-| 002| | Makefile 解析与声明图构建 || `services/md-fixer/mdfixer/makefile.py` |
-| 003| | 声明风格识别：直接、宏、混合、隐式 || `services/md-fixer/mdfixer/style.py` |
-| 004| | MD 报告校验与错误定位：只消费 MISSING，校验提交与字段，定位目标与缺失依赖 || `services/md-fixer/mdfixer/report.py` |
-| 005| | 前置拒绝与源项目保护：旧报告、不安全路径、不支持目标 || `services/md-fixer/mdfixer/guard.py` |
-| 006| | 显式声明补丁生成：只补 MISSING，保留 REDUNDANT 与原风格，生成补丁与计划，不写源项目 || `services/md-fixer/mdfixer/patch.py`<br/>`services/md-fixer/mdfixer/plan.py` |
-| 007| | 隐式声明补丁生成：简单模式规则生成 .d 方案，复杂规则交由 LLM || `services/md-fixer/mdfixer/implicit.py`<br/>`services/md-fixer/mdfixer/llm.py` |
-| 008| | 单元测试：解析、风格、报告校验、补丁、拒绝与源项目保护 || `services/md-fixer/tests/` |
+| 002| DONE| Makefile 解析与声明图构建 |姚睿哲| `services/md-fixer/mdfixer/makefile.py` |
+| 003| DONE| 声明风格识别：直接、宏、混合、隐式 |姚睿哲| `services/md-fixer/mdfixer/style.py` |
+| 004| DONE| MD 报告校验与错误定位：只消费 MISSING，校验提交与字段，定位目标与缺失依赖 |姚睿哲| `services/md-fixer/mdfixer/report.py` |
+| 005| DONE| 前置拒绝与源项目保护：旧报告、不安全路径、不支持目标 |姚睿哲| `services/md-fixer/mdfixer/guard.py` |
+| 006| DONE| 显式声明补丁生成：只补 MISSING，保留 REDUNDANT 与原风格，生成补丁与计划，不写源项目 |姚睿哲| `services/md-fixer/mdfixer/patch.py`<br/>`services/md-fixer/mdfixer/plan.py` |
+| 007| DONE| 隐式声明补丁生成：简单模式规则生成 .d 方案，复杂规则交由 LLM |姚睿哲| `services/md-fixer/mdfixer/implicit.py`<br/>`services/md-fixer/mdfixer/llm.py` |
+| 008| DONE| 单元测试：解析、风格、报告校验、补丁、拒绝与源项目保护 |姚睿哲| `services/md-fixer/tests/` |
 | 009| | 运行证据：在四种样例风格上生成补丁与计划，保存命令、输入与结果 |郑悫| `evidence/e9/<timestamp>/` |
 ---
 ## E10 - MDFixer 验证
