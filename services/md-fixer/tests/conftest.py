@@ -46,7 +46,13 @@ def project(tmp_path):
                 # REDUNDANT is ignored; the test project only needs a valid position.
                 finding["position"] = {"file": "Makefile", "line": 1}
         finding = report["findings"][0]
-        declaration = next(line for line in content.splitlines() if line.startswith(("main.o:", "%.o:")))
+        declaration = next(
+            (
+                line for line in content.splitlines()
+                if ":" in line and "=" not in line and ("main.o" in line or "%.o:" in line)
+            ),
+            next(line for line in content.splitlines() if ":" in line and "=" not in line),
+        )
         finding["position"] = {"file": "Makefile", "line": content.splitlines().index(declaration) + 1, "declaration": declaration}
         return root, report
     return create
