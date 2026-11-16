@@ -6,10 +6,36 @@ from pathlib import Path
 import pytest
 
 from mdfixer.build import find_make
-from mdfixer.gate import run_gate
+from mdfixer.gate import run_gate, run_transaction
 from mdfixer.result import scenario_passed
 
 FIXED = Path(__file__).resolve().parents[3] / "fixtures" / "e10" / "Makefile.fixed"
+BROKEN_C_PATCH = (
+    "diff --git a/main.c b/main.c\n"
+    "--- a/main.c\n"
+    "+++ b/main.c\n"
+    "@@ -1,5 +1,5 @@\n"
+    " #include <stdio.h>\n"
+    ' #include "config.h"\n'
+    " \n"
+    "-int main(void)\n"
+    "+int main(void\n"
+    " {\n"
+)
+NEW_MD_PATCH = (
+    "diff --git a/Makefile b/Makefile\n"
+    "--- a/Makefile\n"
+    "+++ b/Makefile\n"
+    "@@ -11,7 +11,7 @@\n"
+    " $(TARGET): $(OBJS)\n"
+    " \t$(CC) $(CFLAGS) -o $@ $^\n"
+    " \n"
+    "-main.o: main.c unused.h\n"
+    "+main.o: main.c config.h\n"
+    " \t$(CC) $(CFLAGS) -c $< -o $@\n"
+    " \n"
+    " clean:\n"
+)
 
 
 def _require_toolchain():
@@ -65,3 +91,40 @@ def test_three_scenario_gate_and_artifacts(e10_project, tmp_path):
         rows = list(csv.DictReader(handle))
     assert [row["scenario"] for row in rows] == ["accept", "reject-test", "reject-patch"]
     assert all(row["passed"] == "True" for row in rows)
+
+
+def test_compile_failure_rolls_back(e10_project):
+    _require_toolchain()
+    root, report = e10_project()
+    original = (root / "Makefile").read_bytes()
+    transaction = run_transaction(
+        root, report, scenario="accept", patch=BROKEN_C_PATCH
+    )
+    validation = transaction.validation
+    assert validation["checks"]["patch_applies"] is True
+    assert validation["checks"]["build"] is False
+    assert validation["accepted"] is False
+    assert validation["rollback"] is True
+    assert validation["source_unchanged"] is True
+    assert validation["error"]
+    assert (root / "Makefile").read_bytes() == original
+
+
+def test_candidate_removing_redundant_edge_rolls_back(e10_project):
+    _require_toolchain()
+    root, report = e10_project()
+    original = (root / "Makefile").read_bytes()
+    transaction = run_transaction(
+        root, report, scenario="accept", patch=NEW_MD_PATCH
+    )
+    validation = transaction.validation
+    assert validation["checks"]["patch_applies"] is True
+    assert validation["checks"]["build"] is True
+    assert validation["checks"]["test"] is True
+    assert validation["checks"]["header_change"] is True
+    assert validation["checks"]["no_missing"] is False
+    assert validation["accepted"] is False
+    assert validation["rollback"] is True
+    assert validation["source_unchanged"] is True
+    assert "REDUNDANT" in validation["error"]
+    assert (root / "Makefile").read_bytes() == original
