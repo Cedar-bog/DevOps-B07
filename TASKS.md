@@ -140,13 +140,13 @@ evidence/e8/
 ## E10 - MDFixer 验证
 | 编号| 状态| 任务|负责人| 产物|
 |------|------|--------------------------------------------------------------------------|:----:|---------------------------------------------------------------------------------|
-| 001| | 独立沙箱与补丁应用：复制项目副本，执行应用检查并应用候选补丁 || `services/md-fixer/mdfixer/sandbox.py` |
-| 002| | 构建与程序验证：clean 构建、运行程序、检查输出 || `services/md-fixer/mdfixer/build.py` |
-| 003| | 增量重建与重检：修改头文件后不 clean 构建，检查重建与 MISSING 消除，保留 REDUNDANT || `services/md-fixer/mdfixer/recheck.py` |
-| 004| | 接受与写回：全部检查通过后写回源项目并记录结果 || `services/md-fixer/mdfixer/accept.py` |
-| 005| | 拒绝与回滚：覆盖测试拒绝与补丁拒绝，确认源文件保持不变 || `services/md-fixer/mdfixer/rollback.py` |
-| 006| | 验证入口与场景编排：正常接受、测试拒绝、补丁拒绝 || `services/md-fixer/mdfixer/gate.py` |
-| 007| | 端到端测试与门禁汇总：运行三类事务，汇总检查结果与退出码 || `services/md-fixer/tests/test_e2e.py`<br/>`services/md-fixer/mdfixer/result.py` |
+| 001| DONE| 独立沙箱与补丁应用：复制项目副本，执行应用检查并应用候选补丁 |刘雯| `services/md-fixer/mdfixer/sandbox.py` |
+| 002| DONE| 构建与程序验证：clean 构建、运行程序、检查输出 |刘雯| `services/md-fixer/mdfixer/build.py` |
+| 003| DONE| 增量重建与重检：修改头文件后不 clean 构建，检查重建与 MISSING 消除，保留 REDUNDANT |刘雯| `services/md-fixer/mdfixer/recheck.py` |
+| 004| DONE| 接受与写回：全部检查通过后写回源项目并记录结果 |刘雯| `services/md-fixer/mdfixer/accept.py` |
+| 005| DONE| 拒绝与回滚：覆盖测试拒绝与补丁拒绝，确认源文件保持不变 |刘雯| `services/md-fixer/mdfixer/rollback.py` |
+| 006| DONE| 验证入口与场景编排：正常接受、测试拒绝、补丁拒绝 |刘雯| `services/md-fixer/mdfixer/gate.py` |
+| 007| DONE| 端到端测试与门禁汇总：运行三类事务，汇总检查结果与退出码 |刘雯| `services/md-fixer/tests/test_e2e.py`<br/>`services/md-fixer/mdfixer/result.py` |
 | 008| | 接入 CI：离线运行 E9 单元测试与 E10 端到端验证，归档结果 |郑悫| `.github/workflows/e8e10-quality-gate.yml` |
 | 009| | 配置 main 分支保护：将 E10 门禁设为必需检查，确认失败阻止合并、修复后恢复通过 |郑悫| - |
 | 010| | 归档 E10 运行证据 |郑悫| `evidence/e10/<timestamp>/` |
