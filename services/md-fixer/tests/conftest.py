@@ -11,6 +11,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[3]
 FIXTURE = REPO / "fixtures" / "md-fixer"
+E10_FIXTURE = REPO / "fixtures" / "e10"
 
 
 @pytest.fixture
@@ -54,6 +55,69 @@ def project(tmp_path):
             next(line for line in content.splitlines() if ":" in line and "=" not in line),
         )
         finding["position"] = {"file": "Makefile", "line": content.splitlines().index(declaration) + 1, "declaration": declaration}
+        return root, report
+    return create
+
+
+@pytest.fixture
+def e10_project(tmp_path):
+    """Committed E10 fixture with an app target and a MISSING config.h edge."""
+    def create():
+        root = tmp_path / f"e10-project-{len(list(tmp_path.iterdir()))}"
+        root.mkdir()
+        for name in ("main.c", "config.h", "unused.h"):
+            shutil.copyfile(E10_FIXTURE / name, root / name)
+        (root / "Makefile").write_bytes((E10_FIXTURE / "Makefile").read_bytes())
+        git(root, "init", "-q")
+        git(root, "add", ".")
+        git(
+            root,
+            "-c", "user.name=E10 Test",
+            "-c", "user.email=e10@example.invalid",
+            "-c", "commit.gpgsign=false",
+            "commit", "-qm", "e10 input",
+        )
+        commit = git(root, "rev-parse", "HEAD")
+        text = (root / "Makefile").read_text(encoding="utf-8")
+        line = next(
+            index
+            for index, value in enumerate(text.splitlines(), 1)
+            if value.startswith("main.o:")
+        )
+        report = {
+            "schema_version": "1.0",
+            "repository": {"url": "https://example.invalid/e10", "commit": commit},
+            "configuration_id": "e10-test",
+            "producer_job_id": "job-e10-test",
+            "findings": [
+                {
+                    "finding_id": "MISSING-main-o-config-h",
+                    "type": "MISSING",
+                    "target": "main.o",
+                    "dependency": "config.h",
+                    "commit": commit,
+                    "position": {
+                        "file": "Makefile",
+                        "line": line,
+                        "declaration": text.splitlines()[line - 1].strip(),
+                    },
+                    "detector": "INSTRUCTOR_ORACLE",
+                },
+                {
+                    "finding_id": "REDUNDANT-main-o-unused-h",
+                    "type": "REDUNDANT",
+                    "target": "main.o",
+                    "dependency": "unused.h",
+                    "commit": commit,
+                    "position": {
+                        "file": "Makefile",
+                        "line": line,
+                        "declaration": text.splitlines()[line - 1].strip(),
+                    },
+                    "detector": "INSTRUCTOR_ORACLE",
+                },
+            ],
+        }
         return root, report
     return create
 
