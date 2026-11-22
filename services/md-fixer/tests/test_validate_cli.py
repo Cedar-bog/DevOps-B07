@@ -13,6 +13,7 @@ def test_validate_reject_patch_cli(e10_project, tmp_path, capsys):
     root, report = e10_project()
     report_path = _write_report(tmp_path, report)
     original = (root / "Makefile").read_bytes()
+    output = tmp_path / "e10-out"
 
     code = main(
         [
@@ -20,6 +21,7 @@ def test_validate_reject_patch_cli(e10_project, tmp_path, capsys):
             "--project", str(root),
             "--report", str(report_path),
             "--only", "reject-patch",
+            "--out", str(output),
             "--json",
         ]
     )
@@ -28,6 +30,10 @@ def test_validate_reject_patch_cli(e10_project, tmp_path, capsys):
     assert payload["scenario"] == "reject-patch"
     assert payload["validation"]["checks"]["patch_applies"] is False
     assert payload["validation"]["source_unchanged"] is True
+    assert payload["exit_code"] == 1
+    assert (output / "reject-patch" / "command.json").is_file()
+    assert (output / "reject-patch" / "stdout.log").is_file()
+    assert (output / "reject-patch" / "stderr.log").is_file()
     assert (root / "Makefile").read_bytes() == original
 
 

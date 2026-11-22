@@ -17,6 +17,7 @@ from .result import (
     CHECKS,
     SCENARIOS,
     gate_payload,
+    scenario_exit_code,
     scenario_passed,
     validation_payload,
     write_json,
@@ -48,6 +49,10 @@ class TransactionResult:
     incremental_log: str = ""
     recheck: dict | None = None
     sandbox: str | None = None
+    commands: tuple[dict, ...] = ()
+    stdout_log: str = ""
+    stderr_log: str = ""
+    exit_code: int = 1
 
     def to_payload(self) -> dict:
         return {
@@ -55,6 +60,8 @@ class TransactionResult:
             "validation": self.validation,
             "recheck": self.recheck,
             "sandbox": self.sandbox,
+            "commands": list(self.commands),
+            "exit_code": self.exit_code,
         }
 
 
@@ -66,7 +73,12 @@ class GateResult:
     output_dir: str | None = None
 
     def to_payload(self) -> dict:
-        return gate_payload(passed=self.passed, rows=self.rows, scenarios=list(self.scenarios))
+        return gate_payload(
+            passed=self.passed,
+            rows=self.rows,
+            scenarios=list(self.scenarios),
+            exit_code=0 if self.passed else 1,
+        )
 
 
 def _payload(report: Mapping | Path | str) -> Mapping:
@@ -248,6 +260,58 @@ def run_transaction(
         if not keep_sandbox:
             remove_sandbox(sandbox)
 
+    commands: list[dict] = []
+    stdout_parts: list[str] = []
+    stderr_parts: list[str] = []
+
+    def record(stage: str, command, exit_code, stdout: str = "", stderr: str = "") -> None:
+        commands.append(
+            {
+                "stage": stage,
+                "command": list(command) if command else [],
+                "exit_code": exit_code,
+            }
+        )
+        if stdout:
+            stdout_parts.append(stdout)
+        if stderr:
+            stderr_parts.append(stderr)
+
+    if applied is not None:
+        record(
+            "apply",
+            applied.command,
+            applied.apply_returncode if applied.apply_returncode is not None else applied.check_returncode,
+            applied.stdout,
+            applied.stderr,
+        )
+    if build is not None:
+        record("clean", build.clean.command, build.clean.returncode, build.clean.stdout, build.clean.stderr)
+        record("build", build.build.command, build.build.returncode, build.build.stdout, build.build.stderr)
+    if program_result is not None:
+        record(
+            "program",
+            (program_result.path or program_result.program,),
+            program_result.returncode,
+            program_result.output,
+            program_result.error or "",
+        )
+    if incremental is not None:
+        record(
+            "incremental-build",
+            incremental.build.command,
+            incremental.build.returncode,
+            incremental.build.stdout,
+            incremental.build.stderr,
+        )
+        record(
+            "incremental-program",
+            (incremental.program.path or incremental.program.program,),
+            incremental.program.returncode,
+            incremental.program.output,
+            incremental.program.error or "",
+        )
+
     recheck = {
         "incremental": incremental.to_payload() if incremental is not None else None,
         "declarations": declaration.to_payload() if declaration is not None else None,
@@ -272,6 +336,10 @@ def run_transaction(
         incremental_log=incremental.log if incremental is not None else "",
         recheck=recheck,
         sandbox=retained,
+        commands=tuple(commands),
+        stdout_log="\n".join(stdout_parts),
+        stderr_log="\n".join(stderr_parts),
+        exit_code=scenario_exit_code(validation),
     )
 
 
@@ -284,6 +352,7 @@ def _row(scenario: str, transaction: TransactionResult) -> dict:
         "accepted": validation["accepted"],
         "source_unchanged": validation["source_unchanged"],
         "rollback": validation["rollback"],
+        "exit_code": transaction.exit_code,
         "passed": scenario_passed(scenario, validation),
         "error": validation.get("error") or "",
     }
@@ -354,6 +423,7 @@ def run_gate(
         {
             "scenario": scenario,
             "passed": scenario_passed(scenario, transactions[scenario].validation),
+            "exit_code": transactions[scenario].exit_code,
             "validation": transactions[scenario].validation,
         }
         for scenario in SCENARIOS
@@ -368,7 +438,19 @@ def run_gate(
                 build_log=transaction.build_log,
                 incremental_log=transaction.incremental_log,
                 recheck=transaction.recheck,
+                commands=transaction.commands,
+                stdout_log=transaction.stdout_log,
+                stderr_log=transaction.stderr_log,
+                exit_code=transaction.exit_code,
             )
-        write_json(output / "gate.json", gate_payload(passed=passed, rows=len(rows), scenarios=scenarios))
+        write_json(
+            output / "gate.json",
+            gate_payload(
+                passed=passed,
+                rows=len(rows),
+                scenarios=scenarios,
+                exit_code=0 if passed else 1,
+            ),
+        )
         write_results_csv(output / "results.csv", rows)
     return GateResult(passed, len(rows), tuple(scenarios), str(output) if output else None)
