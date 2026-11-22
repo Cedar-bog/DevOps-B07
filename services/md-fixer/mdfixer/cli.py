@@ -298,6 +298,10 @@ def _cmd_validate(args: argparse.Namespace) -> int:
                     build_log=transaction.build_log,
                     incremental_log=transaction.incremental_log,
                     recheck=transaction.recheck,
+                    commands=transaction.commands,
+                    stdout_log=transaction.stdout_log,
+                    stderr_log=transaction.stderr_log,
+                    exit_code=transaction.exit_code,
                 )
             if args.json:
                 print(json.dumps(transaction.to_payload(), ensure_ascii=False, indent=2))

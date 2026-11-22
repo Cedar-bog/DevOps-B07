@@ -82,9 +82,13 @@ def test_three_scenario_gate_and_artifacts(e10_project, tmp_path):
 
     gate = json.loads((output / "gate.json").read_text(encoding="utf-8"))
     assert gate["passed"] is True
+    assert gate["exit_code"] == 0
     assert gate["rows"] == 3
     for scenario in ("accept", "reject-test", "reject-patch"):
         assert (output / scenario / "validation.json").is_file()
+        assert (output / scenario / "command.json").is_file()
+        assert (output / scenario / "stdout.log").is_file()
+        assert (output / scenario / "stderr.log").is_file()
         assert (output / scenario / "build.log").is_file()
         assert (output / scenario / "incremental.log").is_file()
         assert (output / scenario / "recheck.json").is_file()
@@ -93,6 +97,7 @@ def test_three_scenario_gate_and_artifacts(e10_project, tmp_path):
         rows = list(csv.DictReader(handle))
     assert [row["scenario"] for row in rows] == ["accept", "reject-test", "reject-patch"]
     assert all(row["passed"] == "True" for row in rows)
+    assert [row["exit_code"] for row in rows] == ["0", "1", "1"]
 
 
 def test_compile_failure_rolls_back(e10_project):

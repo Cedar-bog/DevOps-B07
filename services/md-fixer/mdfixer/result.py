@@ -41,6 +41,10 @@ def validation_payload(
     return payload
 
 
+def scenario_exit_code(validation: dict) -> int:
+    return 0 if validation.get("accepted") is True else 1
+
+
 def scenario_passed(scenario: str, validation: dict) -> bool:
     checks = validation.get("checks", {})
     if scenario == "accept":
@@ -69,10 +73,12 @@ def scenario_passed(scenario: str, validation: dict) -> bool:
     return False
 
 
-def gate_payload(*, passed: bool, rows: int, scenarios: list[dict]) -> dict:
+def gate_payload(*, passed: bool, rows: int, scenarios: list[dict], exit_code: int | None = None) -> dict:
+    code = (0 if passed else 1) if exit_code is None else int(exit_code)
     return {
         "schema_version": "1.0",
         "passed": bool(passed),
+        "exit_code": code,
         "rows": rows,
         "scenarios": scenarios,
     }
@@ -94,7 +100,10 @@ def write_text(path: Path | str, text: str) -> Path:
 
 
 def write_results_csv(path: Path | str, rows: list[dict]) -> Path:
-    fields = ["scenario", *CHECKS, "accepted", "source_unchanged", "rollback", "passed", "error"]
+    fields = [
+        "scenario", *CHECKS, "accepted", "source_unchanged", "rollback",
+        "exit_code", "passed", "error",
+    ]
     buffer = io.StringIO()
     writer = csv.DictWriter(buffer, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
     writer.writeheader()
@@ -111,10 +120,24 @@ def write_scenario_artifacts(
     build_log: str = "",
     incremental_log: str = "",
     recheck: dict | None = None,
+    commands: tuple[dict, ...] | list[dict] = (),
+    stdout_log: str = "",
+    stderr_log: str = "",
+    exit_code: int | None = None,
 ) -> Path:
     target = Path(output_dir) / scenario
     target.mkdir(parents=True, exist_ok=True)
     write_json(target / "validation.json", validation)
+    write_json(
+        target / "command.json",
+        {
+            "scenario": scenario,
+            "exit_code": scenario_exit_code(validation) if exit_code is None else int(exit_code),
+            "commands": list(commands),
+        },
+    )
+    write_text(target / "stdout.log", stdout_log)
+    write_text(target / "stderr.log", stderr_log)
     write_text(target / "build.log", build_log)
     write_text(target / "incremental.log", incremental_log)
     write_json(target / "recheck.json", recheck or {})
