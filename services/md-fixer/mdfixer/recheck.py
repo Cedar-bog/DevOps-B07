@@ -145,7 +145,12 @@ def run_incremental(
     return IncrementalResult(ok, build.ok and program_result.ok and rebuilt, rebuilt, build, program_result, log, error)
 
 
-def _declares(document: Makefile, target: str, dependency: str) -> bool:
+def _declares(
+    document: Makefile, target: str, dependency: str,
+    dep_edges: dict[str, set[str]] | None = None,
+) -> bool:
+    if dep_edges is not None and dependency in dep_edges.get(target, set()):
+        return True
     for rule in document.rules:
         if target in rule.targets and dependency in rule.prerequisites:
             return True
@@ -156,22 +161,55 @@ def _declares(document: Makefile, target: str, dependency: str) -> bool:
     return False
 
 
+def depfile_edges(root: Path | str) -> dict[str, set[str]]:
+    """Read compiler-generated .d files as declared edges, without running Make."""
+    base = Path(root).resolve()
+    edges: dict[str, set[str]] = {}
+    for path in base.rglob("*.d"):
+        if ".git" in path.relative_to(base).parts or not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        text = text.replace("\\\n", " ")
+        for line in text.splitlines():
+            if ":" not in line or line.lstrip().startswith("#"):
+                continue
+            targets, dependencies = line.split(":", 1)
+            names = targets.split()
+            if not names:
+                continue
+            for target in names:
+                target = target.replace("\\", "/")
+                if target.startswith("./"):
+                    target = target[2:]
+                edges.setdefault(target, set()).update(
+                    item.replace("\\", "/").removeprefix("./")
+                    for item in dependencies.split()
+                )
+    return edges
+
+
 def check_declarations(
     makefile_text: str,
     missing: tuple[Finding, ...],
     redundant: tuple[tuple[str, str], ...] = (),
+    *,
+    sandbox: Path | str | None = None,
 ) -> DeclarationCheck:
     try:
         document = parse_makefile(makefile_text, allow_includes=True)
     except RepairError as exc:
         return DeclarationCheck(False, False, False, error=f"{exc.code}: {exc}")
+    dep_edges = depfile_edges(sandbox) if sandbox is not None else None
     remaining = tuple(
         (finding.target, finding.dependency)
         for finding in missing
-        if not _declares(document, finding.target, finding.dependency)
+        if not _declares(document, finding.target, finding.dependency, dep_edges)
     )
     redundant_missing = tuple(
-        edge for edge in redundant if not _declares(document, *edge)
+        edge for edge in redundant if not _declares(document, *edge, dep_edges)
     )
     no_missing = not remaining
     redundant_preserved = not redundant_missing
