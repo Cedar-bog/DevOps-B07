@@ -32,3 +32,15 @@ def test_accept_rejects_stale_snapshot(e10_project):
         accept_candidate(root, candidate, expected_sha256="0" * 64)
     assert error.value.code == "STALE_REPORT"
     assert (root / "Makefile").read_text(encoding="utf-8").startswith("CC      := gcc")
+
+
+def test_accept_preserves_makefile_mode(e10_project):
+    root, _ = e10_project()
+    makefile = root / "Makefile"
+    makefile.chmod(0o644)
+    candidate = FIXED.read_text(encoding="utf-8")
+    expected = read_source(root, "Makefile").sha256
+
+    accept_candidate(root, candidate, expected_sha256=expected)
+
+    assert makefile.stat().st_mode & 0o777 == 0o644

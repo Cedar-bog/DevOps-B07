@@ -30,6 +30,7 @@ class AcceptResult:
 def write_atomic(path: Path | str, data: bytes) -> Path:
     """Replace a file only after the complete new content is on disk."""
     target = Path(path)
+    mode = target.stat().st_mode & 0o777 if target.exists() else 0o644
     temporary = None
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -41,6 +42,7 @@ def write_atomic(path: Path | str, data: bytes) -> Path:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, target)
+        os.chmod(target, mode)
     except OSError as exc:
         if temporary is not None:
             try:
