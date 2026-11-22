@@ -93,6 +93,11 @@ def _object_mtimes(root: Path) -> dict[str, int]:
     }
 
 
+def _affected_objects(root: Path, header: str) -> set[str]:
+    edges = depfile_edges(root)
+    return {target for target, dependencies in edges.items() if header in dependencies}
+
+
 def run_incremental(
     sandbox: Path | str,
     *,
@@ -109,6 +114,7 @@ def run_incremental(
     """Modify a header without cleaning, then require a rebuild and new output."""
     root = Path(sandbox).resolve()
     header_path = project_file(root, header)
+    affected = _affected_objects(root, header)
     before = _object_mtimes(root)
     time.sleep(max(0.0, settle_seconds))
     try:
@@ -125,7 +131,12 @@ def run_incremental(
 
     build = run_make(root, target, timeout=timeout, env=env)
     after = _object_mtimes(root)
-    rebuilt = any(before.get(name) != mtime or name not in before for name, mtime in after.items())
+    if affected:
+        rebuilt = all(
+            name in after and before.get(name) != after[name] for name in affected
+        )
+    else:
+        rebuilt = any(before.get(name) != mtime or name not in before for name, mtime in after.items())
     program_result = (
         run_program(root, program, new_value, timeout=timeout, env=env)
         if build.ok
@@ -142,7 +153,9 @@ def run_incremental(
     log = "\n".join(
         [f"# changed {header}: {macro} {old_value} -> {new_value}", build.log, program_result.log]
     )
-    return IncrementalResult(ok, build.ok and program_result.ok and rebuilt, rebuilt, build, program_result, log, error)
+    return IncrementalResult(
+        ok, build.ok and rebuilt, rebuilt, build, program_result, log, error
+    )
 
 
 def _declares(

@@ -68,7 +68,9 @@ def test_three_scenario_gate_and_artifacts(e10_project, tmp_path):
 
     reject_test = scenarios["reject-test"]["validation"]
     assert reject_test["accepted"] is False
+    assert reject_test["checks"]["build"] is True
     assert reject_test["checks"]["test"] is False
+    assert reject_test["checks"]["header_change"] is True
     assert reject_test["source_unchanged"] is True
     assert reject_test["rollback"] is True
 
