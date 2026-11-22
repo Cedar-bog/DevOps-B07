@@ -28,3 +28,16 @@ def test_sandbox_rejects_invalid_patch(e10_project):
         assert result.error
     finally:
         remove_sandbox(sandbox)
+
+
+def test_sandbox_does_not_copy_env_files(e10_project):
+    root, _ = e10_project()
+    (root / ".env").write_text("TEST_ONLY_MARKER=1\n", encoding="utf-8")
+    (root / ".env.local").write_text("TEST_ONLY_MARKER=2\n", encoding="utf-8")
+    sandbox = create_sandbox(root)
+    try:
+        assert not (sandbox / ".env").exists()
+        assert not (sandbox / ".env.local").exists()
+        assert (root / ".env").exists()
+    finally:
+        remove_sandbox(sandbox)

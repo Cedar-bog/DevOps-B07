@@ -2,7 +2,7 @@ import shutil
 
 import pytest
 
-from mdfixer.build import clean_build, find_make, run_program
+from mdfixer.build import clean_build, find_make, run_program, safe_env
 from mdfixer.guard import read_source
 from mdfixer.makefile import parse_makefile
 from mdfixer.patch import generate_patch
@@ -65,3 +65,11 @@ def test_advance_header_reports_no_match(tmp_path):
     header.write_text("#define OTHER 1\n", encoding="utf-8")
     assert not advance_header(header)
     assert header.read_text(encoding="utf-8") == "#define OTHER 1\n"
+
+
+def test_safe_env_drops_service_secrets():
+    values = safe_env({"PATH": "/bin", "LC_ALL": "C", "LLM_API_KEY": "secret", "HUAWEI_PASSWORD": "secret"})
+    assert values["PATH"] == "/bin"
+    assert values["LC_ALL"] == "C"
+    assert "LLM_API_KEY" not in values
+    assert "HUAWEI_PASSWORD" not in values
