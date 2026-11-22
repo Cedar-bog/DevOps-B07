@@ -122,6 +122,11 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--patch", default=None, help="candidate patch used by a rejection scenario")
     validate.add_argument("--out", default=None, help="write gate artifacts under this directory")
     validate.add_argument("--json", action="store_true", help="print the validation payload to stdout")
+    validate.add_argument(
+        "--llm-from-env",
+        action="store_true",
+        help="use LLM_API_URL, LLM_API_KEY and LLM_MODEL for complex implicit rules",
+    )
     return parser
 
 
@@ -271,6 +276,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
             "commit": args.commit,
             "configuration_id": args.configuration_id,
             "timeout": args.timeout,
+            "llm": LLMAdapter.from_env() if args.llm_from_env else None,
         }
         if args.only:
             if args.only == "accept" and args.patch:

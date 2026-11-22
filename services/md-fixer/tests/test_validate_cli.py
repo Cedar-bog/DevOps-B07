@@ -1,6 +1,7 @@
 import json
 
 from mdfixer.cli import main
+from mdfixer.llm import LLMAdapter
 
 
 def _write_report(tmp_path, report):
@@ -52,3 +53,33 @@ def test_validate_rejects_output_inside_project(e10_project, tmp_path, capsys):
     )
     assert code == 2
     assert "outside the project" in capsys.readouterr().err
+
+
+def test_validate_can_wire_llm_from_env(monkeypatch, e10_project, tmp_path, capsys):
+    calls = []
+
+    class FakeAdapter:
+        pass
+
+    def fake_from_env(cls):
+        calls.append(True)
+        return FakeAdapter()
+
+    monkeypatch.setattr(LLMAdapter, "from_env", classmethod(fake_from_env))
+    root, report = e10_project()
+    report_path = _write_report(tmp_path, report)
+
+    code = main(
+        [
+            "validate",
+            "--project", str(root),
+            "--report", str(report_path),
+            "--only", "reject-patch",
+            "--llm-from-env",
+            "--json",
+        ]
+    )
+
+    assert code == 0
+    assert calls == [True]
+    assert json.loads(capsys.readouterr().out)["scenario"] == "reject-patch"
