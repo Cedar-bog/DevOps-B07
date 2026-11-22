@@ -89,8 +89,25 @@ def find_make(env: dict[str, str] | None = None) -> str:
     return executable
 
 
-def _make_env(env: dict[str, str] | None) -> dict[str, str]:
+_SAFE_ENV = {
+    "PATH", "HOME", "TMPDIR", "TMP", "TEMP", "SHELL", "LANG",
+    "CC", "CFLAGS", "CPPFLAGS", "LDFLAGS", "MAKE", "MAKEFLAGS", "MFLAGS",
+    "MDFIXER_MAKE", "SystemRoot", "COMSPEC", "PATHEXT", "WINDIR",
+    "USERPROFILE", "HOMEDRIVE", "HOMEPATH",
+}
+
+
+def safe_env(env: dict[str, str] | None = None) -> dict[str, str]:
+    """Return only build-related variables, never service secrets."""
     values = dict(os.environ if env is None else env)
+    return {
+        key: value for key, value in values.items()
+        if key in _SAFE_ENV or key.startswith("LC_")
+    }
+
+
+def _make_env(env: dict[str, str] | None) -> dict[str, str]:
+    values = safe_env(env)
     # A SHELL environment variable makes mingw32-make bypass the command-line
     # override below; keep the environment free of it.
     if os.name == "nt":
@@ -184,7 +201,7 @@ def run_program(
             errors="replace",
             timeout=timeout,
             check=False,
-            env=env,
+            env=_make_env(env),
         )
     except subprocess.TimeoutExpired:
         return ProgramResult(
