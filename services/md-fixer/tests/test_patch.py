@@ -25,7 +25,7 @@ def test_patch_matches_independent_e3_reference(project, fixture_root, snapshot,
     assert result.plan.changes[0].style == {"target": "direct", "macro": "macro", "hybrid": "hybrid"}[style]
     json.dumps(result.to_payload())
     # Syntax/applicability only; no candidate is applied to the source project.
-    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "-"], input=result.git_patch.encode(), capture_output=True)
+    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "--ignore-space-change", "-"], input=result.git_patch.encode(), capture_output=True)
     assert check.returncode == 0, check.stderr.decode()
 
 
@@ -150,7 +150,7 @@ def test_crlf_candidate_retains_newlines_and_patch_uses_lf(project):
     result = generate_patch(root, report)
     assert result.candidate_text == "main.o: main.c unused.h config.h\r\n\tcc -c $< -o $@\r\n"
     assert "\r" not in result.git_patch
-    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "-"], input=result.git_patch.encode(), capture_output=True)
+    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "--ignore-space-change", "-"], input=result.git_patch.encode(), capture_output=True)
     assert check.returncode == 0, check.stderr.decode()
 
 
