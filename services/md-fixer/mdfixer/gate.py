@@ -157,6 +157,7 @@ def run_transaction(
     env: dict[str, str] | None = None,
     keep_sandbox: bool = False,
     sandbox_dir: Path | str | None = None,
+    llm=None,
 ) -> TransactionResult:
     """Run one candidate transaction. Only a fully passing candidate is written back."""
     project = Path(project_root).resolve()
@@ -179,6 +180,7 @@ def run_transaction(
             makefile=makefile,
             commit=source.commit,
             configuration_id=configuration_id,
+            llm=llm,
         )
         git_patch = generated.git_patch
         candidate_text = generated.candidate_text
@@ -378,6 +380,7 @@ def run_gate(
     timeout: int = 120,
     env: dict[str, str] | None = None,
     keep_sandbox: bool = False,
+    llm=None,
 ) -> GateResult:
     """Run reject-test, reject-patch and accept scenarios on independent copies."""
     project = Path(project_root).resolve()
@@ -412,6 +415,7 @@ def run_gate(
                 timeout=timeout,
                 env=env,
                 keep_sandbox=keep_sandbox,
+                llm=llm,
             )
         finally:
             if copied:
