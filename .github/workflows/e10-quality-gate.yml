@@ -1,4 +1,4 @@
-name: E8-E10 Quality Gate
+name: E10 Quality Gate
 
 on:
   push:
@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: e8e10-quality-gate-${{ github.workflow }}-${{ github.ref }}
+  group: e10-quality-gate-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   gate:
-    name: e8e10-quality-gate
+    name: e10-quality-gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -83,7 +83,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## E8-E10 Quality Gate"
+            echo "## E10 Quality Gate"
             echo ""
             echo "- commit: \`${GITHUB_SHA}\`"
             echo "- event: \`${GITHUB_EVENT_NAME}\`"
@@ -96,7 +96,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: e8e10-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          name: e10-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: work/ci/
           if-no-files-found: warn
           retention-days: 14
