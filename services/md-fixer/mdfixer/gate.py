@@ -218,6 +218,7 @@ def run_transaction(
                     _read_sandbox_makefile(sandbox, makefile),
                     validated.missing,
                     redundant,
+                    sandbox=sandbox,
                 )
                 checks["no_missing"] = declaration.ok
         accepted = all(checks.values())

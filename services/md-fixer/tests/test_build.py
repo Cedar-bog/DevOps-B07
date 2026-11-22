@@ -7,7 +7,7 @@ from mdfixer.guard import read_source
 from mdfixer.makefile import parse_makefile
 from mdfixer.patch import generate_patch
 from mdfixer.recheck import advance_header, check_declarations, run_incremental
-from mdfixer.report import validate_report
+from mdfixer.report import Finding, validate_report
 from mdfixer.sandbox import apply_candidate, create_sandbox, remove_sandbox
 
 
@@ -65,6 +65,20 @@ def test_advance_header_reports_no_match(tmp_path):
     header.write_text("#define OTHER 1\n", encoding="utf-8")
     assert not advance_header(header)
     assert header.read_text(encoding="utf-8") == "#define OTHER 1\n"
+
+
+def test_check_declarations_reads_compiler_depfiles(tmp_path):
+    text = "OBJS := main.o\n%.o: %.c\n\tcc -c $< -o $@\n-include $(DEPS)\n"
+    document = parse_makefile(text, allow_includes=True)
+    rule = document.rules[0]
+    finding = Finding("missing", "main.o", "config.h", rule.line, rule)
+    (tmp_path / "main.d").write_text("main.o: main.c config.h\n", encoding="utf-8")
+
+    with_depfile = check_declarations(text, (finding,), sandbox=tmp_path)
+    without_depfile = check_declarations(text, (finding,))
+
+    assert with_depfile.no_missing
+    assert not without_depfile.no_missing
 
 
 def test_safe_env_drops_service_secrets():
