@@ -110,6 +110,24 @@ def test_compile_failure_rolls_back(e10_project):
     assert (root / "Makefile").read_bytes() == original
 
 
+def test_reject_test_requires_successful_build(e10_project):
+    _require_toolchain()
+    root, report = e10_project()
+    original = (root / "Makefile").read_bytes()
+    transaction = run_transaction(
+        root,
+        report,
+        scenario="reject-test",
+        expected_output="99",
+        patch=BROKEN_C_PATCH,
+    )
+    validation = transaction.validation
+    assert validation["checks"]["build"] is False
+    assert validation["checks"]["test"] is False
+    assert not scenario_passed("reject-test", validation)
+    assert (root / "Makefile").read_bytes() == original
+
+
 def test_candidate_removing_redundant_edge_rolls_back(e10_project):
     _require_toolchain()
     root, report = e10_project()

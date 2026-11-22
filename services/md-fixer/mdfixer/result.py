@@ -53,6 +53,7 @@ def scenario_passed(scenario: str, validation: dict) -> bool:
     if scenario == "reject-test":
         return (
             validation.get("accepted") is False
+            and checks.get("build") is True
             and checks.get("test") is False
             and validation.get("source_unchanged") is True
             and validation.get("rollback") is True
