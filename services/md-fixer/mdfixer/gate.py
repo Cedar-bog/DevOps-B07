@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -158,8 +158,14 @@ def run_transaction(
     keep_sandbox: bool = False,
     sandbox_dir: Path | str | None = None,
     llm=None,
+    recheck: Callable[[Path, tuple, tuple], DeclarationCheck] | None = None,
 ) -> TransactionResult:
-    """Run one candidate transaction. Only a fully passing candidate is written back."""
+    """Run one candidate transaction. Only a fully passing candidate is written back.
+
+    ``recheck`` can inject a real BuildChecker-backed declaration check. The
+    default local check reads the patched Makefile and compiler .d files; it
+    does not run the A07 BuildChecker service.
+    """
     project = Path(project_root).resolve()
     source = read_source(project, makefile, commit=commit)
     try:
@@ -228,11 +234,15 @@ def run_transaction(
                     env=env,
                 )
                 checks["header_change"] = incremental.header_change
-                declaration = check_declarations(
-                    _read_sandbox_makefile(sandbox, makefile),
-                    validated.missing,
-                    redundant,
-                    sandbox=sandbox,
+                declaration = (
+                    recheck(sandbox, validated.missing, redundant)
+                    if recheck is not None
+                    else check_declarations(
+                        _read_sandbox_makefile(sandbox, makefile),
+                        validated.missing,
+                        redundant,
+                        sandbox=sandbox,
+                    )
                 )
                 checks["no_missing"] = declaration.ok
         accepted = all(checks.values())
@@ -381,6 +391,7 @@ def run_gate(
     env: dict[str, str] | None = None,
     keep_sandbox: bool = False,
     llm=None,
+    recheck: Callable[[Path, tuple, tuple], DeclarationCheck] | None = None,
 ) -> GateResult:
     """Run reject-test, reject-patch and accept scenarios on independent copies."""
     project = Path(project_root).resolve()
@@ -416,6 +427,7 @@ def run_gate(
                 env=env,
                 keep_sandbox=keep_sandbox,
                 llm=llm,
+                recheck=recheck,
             )
         finally:
             if copied:

@@ -1,9 +1,11 @@
 """E10 incremental rebuild and declaration recheck.
 
 The incremental check changes one header without cleaning, requires Make to
-rebuild the affected object, and compares the new program output. The static
-recheck then confirms that every consumed MISSING edge is declared while every
-ignored REDUNDANT edge is still present.
+rebuild the affected object, and compares the new program output. The default
+static recheck confirms that every consumed MISSING edge is declared while every
+ignored REDUNDANT edge is still present; it reads compiler .d files but does not
+invoke the A07 BuildChecker service. A real BuildChecker can be injected through
+the gate's ``recheck`` callback.
 """
 
 from __future__ import annotations

@@ -135,6 +135,26 @@ def test_reject_test_requires_successful_build(e10_project):
     assert (root / "Makefile").read_bytes() == original
 
 
+def test_recheck_hook_can_reject_a_candidate(e10_project):
+    _require_toolchain()
+    root, report = e10_project()
+    original = (root / "Makefile").read_bytes()
+
+    def external_recheck(sandbox, missing, redundant):
+        from mdfixer.recheck import DeclarationCheck
+        return DeclarationCheck(False, False, False, error="external BuildChecker rejected")
+
+    transaction = run_transaction(
+        root, report, scenario="accept", recheck=external_recheck
+    )
+    validation = transaction.validation
+    assert validation["accepted"] is False
+    assert validation["rollback"] is True
+    assert validation["source_unchanged"] is True
+    assert "external BuildChecker" in validation["error"]
+    assert (root / "Makefile").read_bytes() == original
+
+
 def test_candidate_removing_redundant_edge_rolls_back(e10_project):
     _require_toolchain()
     root, report = e10_project()
