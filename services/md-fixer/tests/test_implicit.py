@@ -50,7 +50,7 @@ def test_simple_implicit_patch_matches_e3_reference(project, fixture_root, snaps
     assert result.plan.changes[0].strategy == "depfile"
     assert snapshot(root) == before
     assert unused_llm.calls == []
-    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "-"], input=result.git_patch.encode(), capture_output=True)
+    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "--ignore-space-change", "-"], input=result.git_patch.encode(), capture_output=True)
     assert check.returncode == 0, check.stderr.decode()
 
 

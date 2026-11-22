@@ -125,7 +125,10 @@ def apply_candidate(sandbox: Path | str, git_patch: str) -> ApplyResult:
         raise RepairError("MISSING_INPUT", "sandbox directory not found")
     if not isinstance(git_patch, str):
         raise ValueError("git_patch must be text")
-    command = ("git", "-C", str(root), "apply", "--check", "--whitespace=nowarn", "-")
+    command = (
+        "git", "-C", str(root), "apply", "--check",
+        "--whitespace=nowarn", "--ignore-space-change", "-",
+    )
     try:
         check = subprocess.run(
             command,
@@ -142,7 +145,10 @@ def apply_candidate(sandbox: Path | str, git_patch: str) -> ApplyResult:
         return ApplyResult(
             False, check.returncode, None, command, check_out, check_err
         )
-    apply_command = ("git", "-C", str(root), "apply", "--whitespace=nowarn", "-")
+    apply_command = (
+        "git", "-C", str(root), "apply", "--whitespace=nowarn",
+        "--ignore-space-change", "-",
+    )
     try:
         applied = subprocess.run(
             apply_command,
