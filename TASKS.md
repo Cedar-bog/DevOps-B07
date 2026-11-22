@@ -147,7 +147,7 @@ evidence/e8/
 | 005| DONE| 拒绝与回滚：覆盖测试拒绝与补丁拒绝，确认源文件保持不变 |刘雯| `services/md-fixer/mdfixer/rollback.py` |
 | 006| DONE| 验证入口与场景编排：正常接受、测试拒绝、补丁拒绝 |刘雯| `services/md-fixer/mdfixer/gate.py` |
 | 007| DONE| 端到端测试与门禁汇总：运行三类事务，汇总检查结果与退出码 |刘雯| `services/md-fixer/tests/test_e2e.py`<br/>`services/md-fixer/mdfixer/result.py` |
-| 008| | 接入 CI：离线运行 E9 单元测试与 E10 端到端验证，归档结果 |郑悫| `.github/workflows/e8e10-quality-gate.yml` |
-| 009| | 配置 main 分支保护：将 E10 门禁设为必需检查，确认失败阻止合并、修复后恢复通过 |郑悫| - |
-| 010| | 归档 E10 运行证据 |郑悫| `evidence/e10/<timestamp>/` |
+| 008| DONE| 接入 CI：离线运行 E9 单元测试与 E10 端到端验证，归档结果 |郑悫| `.github/workflows/e8e10-quality-gate.yml` |
+| 009| DONE| 配置 main 分支保护：将 E10 门禁设为必需检查，确认失败阻止合并、修复后恢复通过 |郑悫| - |
+| 010| DONE| 归档 E10 运行证据 |郑悫| `evidence/e10/<timestamp>/` |
 ---
