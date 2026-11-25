@@ -3,7 +3,7 @@
 The smoke check confirms that the fixture files and the fixed MD report are
 present and structurally usable. It deliberately does not follow paths from the
 report, build a declaration graph, generate patches, or read project files.
-Those checks belong to the E9 pipeline.
+Those checks belong to the generation and validation pipeline.
 """
 
 from __future__ import annotations

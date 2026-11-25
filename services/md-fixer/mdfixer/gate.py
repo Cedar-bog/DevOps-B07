@@ -1,4 +1,4 @@
-"""E10 transaction gate: sandbox, build, recheck, accept or roll back."""
+"""Transaction gate: sandbox, build, recheck, accept or roll back."""
 
 from __future__ import annotations
 

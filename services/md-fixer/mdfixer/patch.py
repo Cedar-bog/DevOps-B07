@@ -1,8 +1,8 @@
-"""Read-only E9 entry point: generate_patch(project_root, report, ...).
+"""Read-only entry point: generate_patch(project_root, report, ...).
 
 Returns an in-memory Git patch, candidate text and explainable RepairPlan.
-It neither saves artifacts nor applies/builds/accepts a candidate. Callers in
-E9-009 and E10 own those operations. Paths in the report are project-relative;
+It neither saves artifacts nor applies/builds/accepts a candidate. The caller
+owns those operations. Paths in the report are project-relative;
 target/dependency paths are relative to the selected Makefile's directory.
 """
 

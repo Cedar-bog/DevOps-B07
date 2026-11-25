@@ -1,4 +1,4 @@
-"""E10 sandbox preparation and candidate application.
+"""Sandbox preparation and candidate application.
 
 The source project is never modified here. A transaction copies the project,
 checks the candidate with ``git apply --check``, then applies it to the copy.

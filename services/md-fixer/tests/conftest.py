@@ -1,4 +1,4 @@
-"""Committed temporary projects; the shared E3 fixtures remain untouched."""
+"""Committed temporary projects; the shared fixtures remain untouched."""
 
 import json
 import os
@@ -61,7 +61,7 @@ def project(tmp_path):
 
 @pytest.fixture
 def e10_project(tmp_path):
-    """Committed E10 fixture with an app target and a MISSING config.h edge."""
+    """Committed fixture with an app target and a MISSING config.h edge."""
     def create():
         root = tmp_path / f"e10-project-{len(list(tmp_path.iterdir()))}"
         root.mkdir()

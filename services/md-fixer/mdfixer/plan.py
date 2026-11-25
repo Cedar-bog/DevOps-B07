@@ -1,4 +1,4 @@
-"""E9 candidate handoff records; acceptance/recheck belong to E10."""
+"""Candidate handoff records; acceptance and recheck are owned by the validation stage."""
 
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ class PatchResult:
         }
 
     def to_repair_payload(self, recheck: Mapping[str, str]) -> dict:
-        """Build the REPAIR output after E10 has performed real checks."""
+        """Build the REPAIR output after real checks have completed."""
         values = {}
         for key in ("build", "test", "detection"):
             value = recheck.get(key) if isinstance(recheck, Mapping) else None

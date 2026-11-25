@@ -1,4 +1,4 @@
-"""E10 incremental rebuild and declaration recheck.
+"""Incremental rebuild and declaration recheck.
 
 The incremental check changes one header without cleaning, requires Make to
 rebuild the affected object, and compares the new program output. The default

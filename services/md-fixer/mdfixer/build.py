@@ -1,4 +1,4 @@
-"""E10 clean build and program checks inside a sandbox."""
+"""Clean build and program checks inside a sandbox."""
 
 from __future__ import annotations
 
