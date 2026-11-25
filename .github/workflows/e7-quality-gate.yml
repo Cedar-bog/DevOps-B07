@@ -38,7 +38,7 @@ jobs:
           mkdir -p "$RUN_DIR"
           echo "EVIDENCE_DIR=$RUN_DIR" >> "$GITHUB_ENV"
           git rev-parse HEAD > "$RUN_DIR/commit.txt"
-          echo "python scripts/run_e7_gate.py" > "$RUN_DIR/command.txt"
+          echo "python scripts/gates/run_e7_gate.py" > "$RUN_DIR/command.txt"
           {
             echo "event=${GITHUB_EVENT_NAME}"
             echo "ref=${GITHUB_REF}"
@@ -56,7 +56,7 @@ jobs:
         run: |
           set -o pipefail
           PYTEST_ADDOPTS="--junitxml=${EVIDENCE_DIR}/junit.xml" \
-            python scripts/run_e7_gate.py 2>&1 | tee "${EVIDENCE_DIR}/gate.log"
+            python scripts/gates/run_e7_gate.py 2>&1 | tee "${EVIDENCE_DIR}/gate.log"
           code=$?
           echo "GATE_EXIT_CODE=$code" >> "$GITHUB_ENV"
           exit "$code"

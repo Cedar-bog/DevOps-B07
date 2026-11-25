@@ -2,7 +2,7 @@
 # Run one complete DRAFT repair on the remote server.
 #
 # Requirements:
-#   - the server is reachable through scripts/remote.sh
+#   - the server is reachable through scripts/remote/remote.sh
 #   - the server has Docker
 #   - the local .env contains LLM_API_URL, LLM_API_KEY and LLM_MODEL
 #
@@ -10,8 +10,8 @@
 # temporary .env under the remote run directory, and removed on exit.
 set -Eeuo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REMOTE="$ROOT/scripts/remote.sh"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REMOTE="$ROOT/scripts/remote/remote.sh"
 ENV_FILE="$ROOT/.env"
 FIXTURE="${FIXTURE:-fixtures/draft}"
 EXPECTED_OUTPUT="${EXPECTED_OUTPUT:-hello E3}"
@@ -49,7 +49,7 @@ trap cleanup EXIT
 
 [ -f "$ENV_FILE" ] || fail "missing $ENV_FILE"
 [ -d "$ROOT/$FIXTURE" ] || fail "fixture not found: $FIXTURE"
-[ -x "$REMOTE" ] || fail "remote wrapper is not executable: scripts/remote.sh"
+[ -x "$REMOTE" ] || fail "remote wrapper is not executable: scripts/remote/remote.sh"
 [ ! -e "$RUN_DIR" ] || fail "evidence directory already exists: work/$RUN_ID"
 mkdir -p "$RUN_DIR"
 
@@ -100,7 +100,7 @@ set +e
   --apt-mirror '$APT_MIRROR' \
   --progress" 2>&1 \
   | tee "$RUN_DIR/run.log" \
-  | python3 "$ROOT/scripts/progress_filter.py"
+  | python3 "$ROOT/scripts/lib/progress_filter.py"
 RC=${PIPESTATUS[0]}
 set -e
 log "      exit_code: $RC"

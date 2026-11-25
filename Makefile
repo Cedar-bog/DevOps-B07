@@ -21,8 +21,8 @@ ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
 PYTHON ?= python3
 UV ?= uv
-REMOTE ?= $(ROOT)/scripts/remote.sh
-DOCKER ?= $(ROOT)/scripts/remote-docker.sh
+REMOTE ?= $(ROOT)/scripts/remote/remote.sh
+DOCKER ?= $(ROOT)/scripts/remote/remote-docker.sh
 COMPOSE ?= $(DOCKER) compose
 SERVICE := draft
 DOCKERFILE := services/draft/Dockerfile
@@ -111,7 +111,7 @@ require-remote:
 	  exit 1
 	fi
 	@if [ ! -x '$(REMOTE)' ] || [ ! -x '$(DOCKER)' ]; then
-	  printf '%s\n' '远程脚本缺失或不可执行：scripts/remote.sh / scripts/remote-docker.sh'
+	  printf '%s\n' '远程脚本缺失或不可执行：scripts/remote/remote.sh / scripts/remote/remote-docker.sh'
 	  exit 1
 	fi
 	@if ! command -v sshpass >/dev/null 2>&1; then
@@ -129,12 +129,12 @@ doctor: | $(RUN_DIR)
 	@cd $(ROOT)
 	printf '==> doctor  证据：%s/env.json\n' '$(EVIDENCE)'
 	STUDENT_ID='$(STUDENT_ID)' DOCKER_GID='$(DOCKER_GID)' \
-	  $(PYTHON) scripts/doctor.py --docker '$(DOCKER)' --ssh '$(REMOTE)' \
+	  $(PYTHON) scripts/ops/doctor.py --docker '$(DOCKER)' --ssh '$(REMOTE)' \
 	    --docker-gid '$(DOCKER_GID)' --output '$(RUN_DIR)/env.json'
 
 llm-check:
 	@cd $(ROOT)
-	$(PYTHON) scripts/check_llm.py
+	$(PYTHON) scripts/ops/check_llm.py
 
 build: require-student-id require-remote | $(RUN_DIR)
 	@set +e
@@ -210,7 +210,7 @@ smoke: require-image require-gid | $(RUN_DIR)
 scan: require-remote | $(RUN_DIR)
 	@cd $(ROOT)
 	printf '==> scan    证据：%s/secret-scan.txt\n' '$(EVIDENCE)'
-	STUDENT_ID='$(STUDENT_ID)' $(PYTHON) scripts/secret_scan.py \
+	STUDENT_ID='$(STUDENT_ID)' $(PYTHON) scripts/ops/secret_scan.py \
 	  --docker '$(DOCKER)' --output '$(RUN_DIR)/secret-scan.txt'
 
 auto-repair: require-remote
@@ -221,7 +221,7 @@ auto-repair: require-remote
 	  BUILD_TIMEOUT='$(BUILD_TIMEOUT)' \
 	  VERIFY_TIMEOUT='$(VERIFY_TIMEOUT)' \
 	  APT_MIRROR='$(APT_MIRROR)' \
-	  bash scripts/auto-repair.sh
+	  bash scripts/verify/auto-repair.sh
 
 shell: require-image require-gid | $(RUN_DIR)
 	@cd $(ROOT)

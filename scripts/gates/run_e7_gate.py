@@ -15,7 +15,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--python", default=sys.executable, help="Python executable")
     args = parser.parse_args()
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
 
     failures = 0
     with tempfile.TemporaryDirectory(prefix="e7-pytest-") as temp_dir:

@@ -26,7 +26,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Sequence
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 REQUIRED = ("LLM_API_URL", "LLM_API_KEY", "LLM_MODEL")
 DEFAULT_TIMEOUT = 30.0
 MAX_ERROR_CHARS = 600
