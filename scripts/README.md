@@ -12,6 +12,8 @@ scripts/
 ├─── remote/                    # 远程执行
 │   ├─── remote.sh                  # 远程命令包装
 │   └─── remote-docker.sh           # 远程 Docker 包装
+├─── deploy/                    # 部署
+│   └─── deploy-draft.sh            # DRAFT 镜像构建与部署
 ├─── ops/                       # 运维与检查
 │   ├─── doctor.py                  # 环境自检
 │   ├─── secret_scan.py             # 密钥扫描
