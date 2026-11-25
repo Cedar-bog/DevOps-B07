@@ -31,8 +31,8 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [
             "git", "-C", str(root),
-            "-c", "user.name=E11 Evidence",
-            "-c", "user.email=e11@example.invalid",
+            "-c", "user.name=B07 Evidence",
+            "-c", "user.email=b07@example.invalid",
             "-c", "commit.gpgsign=false",
             *args,
         ],

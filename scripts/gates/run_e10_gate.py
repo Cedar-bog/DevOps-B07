@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the E10 three-scenario gate and write CI-ready artifacts."""
+"""Run the three-scenario gate and write CI-ready artifacts."""
 
 from __future__ import annotations
 
@@ -58,10 +58,10 @@ def _prepare_project(out: Path) -> tuple[Path, dict]:
     project = out / "project"
     shutil.copytree(FIXTURE, project)
     if any(item.returncode for item in (git(project, "init", "-q"), git(project, "add", "."))):
-        raise RuntimeError("cannot initialize the E10 project")
+        raise RuntimeError("cannot initialize the gate project")
     commit_result = git(project, "commit", "-qm", "e10 input")
     if commit_result.returncode:
-        raise RuntimeError(commit_result.stderr.strip() or "cannot commit the E10 project")
+        raise RuntimeError(commit_result.stderr.strip() or "cannot commit the gate project")
     commit = git(project, "rev-parse", "HEAD").stdout.strip()
     text = (project / "Makefile").read_text(encoding="utf-8")
     line = next(
