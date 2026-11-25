@@ -185,7 +185,7 @@ class JobStore:
             ).fetchall()
             for row in rows:
                 error = {
-                    "code": "ANALYSIS_5001",
+                    "code": "REPAIR_6000",
                     "message": "service restarted before the job finished",
                     "details": {},
                 }

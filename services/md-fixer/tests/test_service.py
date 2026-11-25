@@ -1,7 +1,9 @@
 import copy
+import hashlib
 import json
 import shutil
 import subprocess
+import urllib.error
 from pathlib import Path
 
 import pytest
@@ -26,8 +28,21 @@ def request() -> dict:
             "commit": "a" * 40,
             "md_report_uri": "artifact://pair07/test/report.json",
             "makefile": "Makefile",
-            "env": {"build": "make app", "verify": "./app"},
-            "verify": "./app",
+            "env": {
+                "build": "make app",
+                "verify": "./app",
+                "verify_expected_output": "1",
+            },
+            "recheck": {
+                "header": "config.h",
+                "macro": "VALUE",
+                "old_value": "1",
+                "new_value": "2",
+                "target": "app",
+                "program": "./app",
+                "expected_output": "2",
+                "timeout_seconds": 120,
+            },
             "idempotency_key": "repair-test-1",
         },
     }
@@ -35,7 +50,8 @@ def request() -> dict:
 
 def test_validate_request_accepts_contract_shape():
     data = validate_request(request())
-    assert data["env"] == {"build": "make app", "verify": "./app"}
+    assert data["env"]["build"] == "make app"
+    assert data["recheck"]["macro"] == "VALUE"
     assert data["commit"] == "a" * 40
 
 
@@ -49,8 +65,7 @@ def test_validate_request_accepts_contract_shape():
         lambda p: p["input"]["repository"].update(url="file:///tmp/repo"),
         lambda p: p["input"].update(md_report_uri="fixed-md.json"),
         lambda p: p["input"].update(makefile=""),
-        lambda p: p["input"]["env"].update(verify="make test"),
-        lambda p: p["input"].update(verify="make test"),
+        lambda p: p["input"]["env"].update(verify=""),
         lambda p: p["input"].update(idempotency_key=""),
         lambda p: p["input"].update(unknown=True),
     ],
@@ -108,7 +123,7 @@ def test_job_store_idempotency_and_recovery(tmp_path: Path):
     assert store.recover_interrupted() == 1
     recovered = store.get("job-1")
     assert recovered["status"] == "FAILED"
-    assert recovered["error"]["code"] == "ANALYSIS_5001"
+    assert recovered["error"]["code"] == "REPAIR_6000"
 
 
 def _git(root: Path, *args: str) -> str:
@@ -187,4 +202,110 @@ def test_contract_runner_accepts_fixture(tmp_path: Path, monkeypatch):
     assert output["recheck"]["build"].startswith("SUCCEEDED")
     assert output["recheck"]["test"].startswith("SUCCEEDED")
     assert output["recheck"]["detection"].startswith("SUCCEEDED")
+    assert output["accepted"] is True
+    assert output["validation"] == {
+        "patch_applies": True,
+        "build": True,
+        "test": True,
+        "header_change": True,
+        "no_missing": True,
+        "redundant_preserved": True,
+    }
+    assert output["recheck"]["incremental"]["ok"] is True
     assert output["rejected_candidates"] == []
+
+
+def test_validate_request_rejects_bad_recheck_and_hash():
+    payload = request()
+    payload["input"]["recheck"].pop("macro")
+    with pytest.raises(ValueError):
+        validate_request(payload)
+
+    payload = request()
+    payload["input"]["md_report_sha256"] = "not-a-sha"
+    with pytest.raises(ValueError):
+        validate_request(payload)
+
+    payload = request()
+    payload["input"]["time_limit"] = 0
+    with pytest.raises(ValueError):
+        validate_request(payload)
+
+
+def test_report_hash_is_checked(tmp_path: Path):
+    report = {
+        "schema_version": "1.0",
+        "repository": {"url": "https://example.com/repo.git", "commit": "a" * 40},
+        "configuration_id": "test",
+        "findings": [],
+    }
+    artifact = tmp_path / "artifacts" / "pair07" / "test" / "report.json"
+    artifact.parent.mkdir(parents=True)
+    raw = json.dumps(report).encode("utf-8")
+    artifact.write_bytes(raw)
+    digest = hashlib.sha256(raw).hexdigest()
+
+    loaded = service_runner._resolve_report(
+        tmp_path,
+        "artifact://pair07/test/report.json",
+        digest,
+        None,
+    )
+    assert loaded["configuration_id"] == "test"
+
+    with pytest.raises(service_runner.ServiceError) as exc:
+        service_runner._resolve_report(
+            tmp_path,
+            "artifact://pair07/test/report.json",
+            "0" * 64,
+            None,
+        )
+    assert exc.value.code == "REPAIR_6004"
+
+
+def test_artifact_path_limits_pair(tmp_path: Path):
+    from mdfixer.api import MdfixerService
+
+    service = MdfixerService(tmp_path)
+    artifact = tmp_path / "artifacts" / "pair07" / "job-1" / "patch.diff"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("diff", encoding="utf-8")
+    assert service.artifact_path("pair07", "job-1", "patch.diff") == artifact
+    with pytest.raises(PermissionError):
+        service.artifact_path("other", "job-1", "patch.diff")
+    with pytest.raises(FileNotFoundError):
+        service.artifact_path("pair07", "job-1", "missing.diff")
+    service.stop()
+
+
+def test_artifact_endpoint_serves_file(tmp_path: Path):
+    import threading
+    import urllib.request
+    from http.server import ThreadingHTTPServer
+
+    from mdfixer.api import MdfixerService, _handler
+
+    service = MdfixerService(tmp_path)
+    artifact = tmp_path / "artifacts" / "pair07" / "job-1" / "patch.diff"
+    artifact.parent.mkdir(parents=True)
+    raw = b"diff --git a/Makefile b/Makefile\n"
+    artifact.write_bytes(raw)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(service))
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"http://127.0.0.1:{server.server_port}/v1/artifacts/pair07/job-1/patch.diff"
+        with urllib.request.urlopen(url, timeout=5) as response:
+            assert response.status == 200
+            assert response.read() == raw
+            assert response.headers["X-Artifact-Sha256"] == hashlib.sha256(raw).hexdigest()
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(
+                f"http://127.0.0.1:{server.server_port}/v1/artifacts/other/job-1/patch.diff",
+                timeout=5,
+            )
+        assert exc.value.code == 403
+    finally:
+        server.shutdown()
+        server.server_close()
+        service.stop()

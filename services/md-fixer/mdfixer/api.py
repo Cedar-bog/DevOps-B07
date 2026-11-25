@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import logging.handlers
@@ -15,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Mapping
+from urllib.parse import unquote
 from uuid import uuid4
 
 from . import SERVICE, __version__
@@ -27,6 +29,16 @@ MAX_BODY_BYTES = 1024 * 1024
 JOB_RETENTION = timedelta(hours=24)
 CLEANUP_INTERVAL = 3600
 LOGGER = logging.getLogger("mdfixer.api")
+_JOB_ERROR_CODES = {
+    "ENV_3002",
+    "EXEC_4002",
+    "REPAIR_6000",
+    "REPAIR_6001",
+    "REPAIR_6002",
+    "REPAIR_6003",
+    "REPAIR_6004",
+    "REPAIR_6005",
+}
 
 
 def _json_bytes(payload: Mapping[str, Any]) -> bytes:
@@ -61,8 +73,9 @@ def _llm_from_headers(headers: Mapping[str, str]) -> LLMConfig | None:
 
 
 class MdfixerService:
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(self, data_dir: Path, *, artifact_base_url: str | None = None) -> None:
         self.data_dir = data_dir.resolve()
+        self.artifact_base_url = (artifact_base_url or "").strip() or None
         self.jobs_dir = self.data_dir / "jobs"
         self.logs_dir = self.data_dir / "logs"
         self.artifacts_dir = self.data_dir / "artifacts"
@@ -149,16 +162,17 @@ class MdfixerService:
                     job_id,
                     work_dir,
                     self.data_dir,
+                    artifact_base_url=self.artifact_base_url,
                 )
                 self.store.succeed(job_id, output)
                 LOGGER.info("succeeded %s", job_id)
             except ServiceError as exc:
-                code = exc.code if exc.code in {"ENV_3002", "EXEC_4002", "ANALYSIS_5001"} else "ANALYSIS_5001"
+                code = exc.code if exc.code in _JOB_ERROR_CODES else "REPAIR_6000"
                 status = "TIMED_OUT" if code == "EXEC_4002" else "FAILED"
                 self.store.fail(job_id, code, str(exc), details=exc.details, status=status)
                 LOGGER.warning("failed %s: %s %s", job_id, code, exc)
             except Exception as exc:  # noqa: BLE001 - keep the worker alive
-                self.store.fail(job_id, "ANALYSIS_5001", f"internal error: {exc}")
+                self.store.fail(job_id, "REPAIR_6000", f"internal error: {exc}")
                 LOGGER.exception("internal error for %s", job_id)
 
     def _cleanup_loop(self) -> None:
@@ -177,6 +191,21 @@ class MdfixerService:
         if removed:
             LOGGER.info("cleaned %d expired job(s)", len(removed))
         return len(removed)
+
+    def artifact_path(self, pair: str, job: str, name: str) -> Path:
+        if pair != "pair07":
+            raise PermissionError("pair is not readable")
+        parts = (pair, job, name)
+        if any(not part or part in {".", ".."} or "/" in part or "\\" in part for part in parts):
+            raise FileNotFoundError("artifact not found")
+        path = (self.artifacts_dir / pair / job / name).resolve()
+        try:
+            path.relative_to(self.artifacts_dir)
+        except ValueError as exc:
+            raise FileNotFoundError("artifact not found") from exc
+        if not path.is_file():
+            raise FileNotFoundError("artifact not found")
+        return path
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -201,6 +230,28 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/health":
             self._send_json(200, {"status": "ok", "service": SERVICE, "version": __version__})
+            return
+        if path.startswith("/v1/artifacts/"):
+            parts = [unquote(part) for part in path.removeprefix("/v1/artifacts/").split("/")]
+            if len(parts) != 3:
+                self._error(404, "artifact not found", "NOT_FOUND")
+                return
+            try:
+                artifact = self.service.artifact_path(*parts)
+            except PermissionError:
+                self._error(403, "artifact access denied", "FORBIDDEN")
+                return
+            except FileNotFoundError:
+                self._error(404, "artifact not found", "NOT_FOUND")
+                return
+            raw = artifact.read_bytes()
+            self.send_response(200)
+            content_type = "application/json; charset=utf-8" if artifact.suffix == ".json" else "application/octet-stream"
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(raw)))
+            self.send_header("X-Artifact-Sha256", hashlib.sha256(raw).hexdigest())
+            self.end_headers()
+            self.wfile.write(raw)
             return
         if path.startswith("/v1/jobs/"):
             job_id = path.removeprefix("/v1/jobs/")
@@ -246,7 +297,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         except Exception as exc:  # noqa: BLE001
             LOGGER.exception("submit failed")
-            self._error(500, f"internal error: {exc}", "ANALYSIS_5001")
+            self._error(500, f"internal error: {exc}", "REPAIR_6000")
             return
         self._send_json(202, job)
 
@@ -264,12 +315,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("MDFIXER_DATA_DIR", "/data"),
         help="job, artifact and log directory",
     )
+    parser.add_argument(
+        "--artifact-base-url",
+        default=os.environ.get("MDFIXER_ARTIFACT_BASE_URL", ""),
+        help="HTTP prefix for artifact:// resolution, for example http://127.0.0.1:8080/v1/artifacts",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    service = MdfixerService(Path(args.data_dir))
+    service = MdfixerService(Path(args.data_dir), artifact_base_url=args.artifact_base_url)
     service.start()
     server = ThreadingHTTPServer((args.host, args.port), _handler(service))
     server.daemon_threads = True

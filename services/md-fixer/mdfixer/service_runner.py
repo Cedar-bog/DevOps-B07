@@ -8,12 +8,16 @@ return a patch plus declarative recheck results.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
 import shutil
 import subprocess
 import time
+import urllib.error
 import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -23,25 +27,46 @@ from .guard import RepairError, read_source
 from draft.llm import LLMClient
 from .makefile import parse_makefile
 from .patch import generate_patch
-from .recheck import check_declarations
-from .report import load_report, validate_report
+from .recheck import check_declarations, run_incremental
+from .report import validate_report
 from .sandbox import apply_candidate, create_sandbox, remove_sandbox
 
 MAX_REPO_BYTES = 500 * 1024 * 1024
 MAX_REPO_FILES = 100_000
+MAX_REPORT_BYTES = 16 * 1024 * 1024
 CLONE_TIMEOUT = 300.0
 COMMAND_TIMEOUT = 900.0
 TASK_TIMEOUT = 1800.0
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
 _TRACE = re.compile(r"^trace-[a-z0-9-]+$")
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _INPUT_KEYS = {
     "repository",
     "commit",
     "md_report_uri",
     "makefile",
     "env",
-    "verify",
     "idempotency_key",
+}
+_OPTIONAL_INPUT_KEYS = {"md_report_sha256", "recheck", "time_limit"}
+_ENV_KEYS = {"build", "verify"}
+_OPTIONAL_ENV_KEYS = {"verify_expected_output"}
+_RECHECK_KEYS = {
+    "header",
+    "macro",
+    "old_value",
+    "new_value",
+    "target",
+    "program",
+    "expected_output",
+    "timeout_seconds",
+}
+_REPAIR_CODE_BY_REASON = {
+    "INVALID_REPORT": "REPAIR_6001",
+    "STALE_REPORT": "REPAIR_6002",
+    "UNSUPPORTED_TARGET": "REPAIR_6005",
+    "UNSAFE_PATH": "REPAIR_6005",
+    "MISSING_INPUT": "REPAIR_6005",
 }
 
 
@@ -105,8 +130,13 @@ def validate_request(payload: object) -> dict[str, Any]:
         raise ValidationError("trace_id must match ^trace-[a-z0-9-]+$")
 
     data = payload.get("input")
-    if not isinstance(data, Mapping) or set(data) != _INPUT_KEYS:
-        raise ValidationError("input must contain exactly the REPAIR fields")
+    if not isinstance(data, Mapping):
+        raise ValidationError("input must be an object")
+    if set(data) - _INPUT_KEYS - _OPTIONAL_INPUT_KEYS:
+        raise ValidationError("input contains unknown fields")
+    missing = _INPUT_KEYS - set(data)
+    if missing:
+        raise ValidationError("input is missing fields: " + ", ".join(sorted(missing)))
 
     repository = data.get("repository")
     if not isinstance(repository, Mapping) or set(repository) != {"url", "commit"}:
@@ -130,27 +160,77 @@ def validate_request(payload: object) -> dict[str, Any]:
     if not _nonempty(data.get("makefile")):
         raise ValidationError("makefile is required")
 
+    report_sha256 = data.get("md_report_sha256")
+    if report_sha256 is not None:
+        if not isinstance(report_sha256, str) or not _SHA256.fullmatch(report_sha256):
+            raise ValidationError("md_report_sha256 must be a lowercase SHA256")
+
     env = data.get("env")
-    if not isinstance(env, Mapping) or set(env) != {"build", "verify"}:
+    if not isinstance(env, Mapping):
+        raise ValidationError("env must be an object")
+    if set(env) - _ENV_KEYS - _OPTIONAL_ENV_KEYS or _ENV_KEYS - set(env):
         raise ValidationError("env requires build and verify")
     if not _nonempty(env.get("build")) or not _nonempty(env.get("verify")):
         raise ValidationError("env.build and env.verify are required")
-    if not _nonempty(data.get("verify")):
-        raise ValidationError("verify is required")
-    if data["verify"] != env["verify"]:
-        raise ValidationError("verify must match env.verify")
+    expected_output = env.get("verify_expected_output")
+    if expected_output is not None and not isinstance(expected_output, str):
+        raise ValidationError("env.verify_expected_output must be a string")
+
+    recheck = data.get("recheck")
+    if recheck is not None:
+        if not isinstance(recheck, Mapping):
+            raise ValidationError("recheck must be an object")
+        if set(recheck) - _RECHECK_KEYS:
+            raise ValidationError("recheck contains unknown fields")
+        required_recheck = _RECHECK_KEYS - {"timeout_seconds"}
+        missing_recheck = required_recheck - set(recheck)
+        if missing_recheck:
+            raise ValidationError(
+                "recheck is missing fields: " + ", ".join(sorted(missing_recheck))
+            )
+        for name in ("header", "macro", "target", "program"):
+            if not _nonempty(recheck.get(name)):
+                raise ValidationError(f"recheck.{name} is required")
+        for name in ("old_value", "new_value", "expected_output"):
+            if not isinstance(recheck.get(name), str):
+                raise ValidationError(f"recheck.{name} must be a string")
+        timeout_seconds = recheck.get("timeout_seconds")
+        if timeout_seconds is not None and (
+            not isinstance(timeout_seconds, int)
+            or isinstance(timeout_seconds, bool)
+            or timeout_seconds < 1
+        ):
+            raise ValidationError("recheck.timeout_seconds must be a positive integer")
+
+    time_limit = data.get("time_limit")
+    if time_limit is not None and (
+        not isinstance(time_limit, int) or isinstance(time_limit, bool) or time_limit < 1
+    ):
+        raise ValidationError("time_limit must be a positive integer")
+
     if not _nonempty(data.get("idempotency_key")):
         raise ValidationError("idempotency_key is required")
 
-    return {
+    result = {
         "repository": {"url": url, "commit": repo_commit},
         "commit": commit,
         "md_report_uri": data["md_report_uri"],
         "makefile": data["makefile"],
-        "env": {"build": env["build"], "verify": env["verify"]},
-        "verify": data["verify"],
+        "env": {
+            "build": env["build"],
+            "verify": env["verify"],
+        },
         "idempotency_key": data["idempotency_key"],
     }
+    if expected_output is not None:
+        result["env"]["verify_expected_output"] = expected_output
+    if report_sha256 is not None:
+        result["md_report_sha256"] = report_sha256
+    if recheck is not None:
+        result["recheck"] = dict(recheck)
+    if time_limit is not None:
+        result["time_limit"] = time_limit
+    return result
 
 
 def _remaining(deadline: float) -> float:
@@ -175,9 +255,9 @@ def _clone(repository: Mapping[str, str], destination: Path, deadline: float) ->
     except subprocess.TimeoutExpired as exc:
         raise ServiceError("EXEC_4002", "git clone timed out") from exc
     except OSError as exc:
-        raise ServiceError("ANALYSIS_5001", f"cannot start git clone: {exc}") from exc
+        raise ServiceError("REPAIR_6000", f"cannot start git clone: {exc}") from exc
     if clone.returncode:
-        raise ServiceError("ANALYSIS_5001", (clone.stderr or clone.stdout).strip() or "git clone failed")
+        raise ServiceError("REPAIR_6000", (clone.stderr or clone.stdout).strip() or "git clone failed")
 
     try:
         checkout = subprocess.run(
@@ -192,7 +272,7 @@ def _clone(repository: Mapping[str, str], destination: Path, deadline: float) ->
         raise ServiceError("EXEC_4002", "git checkout timed out") from exc
     if checkout.returncode:
         raise ServiceError(
-            "ANALYSIS_5001",
+            "REPAIR_6000",
             (checkout.stderr or checkout.stdout).strip() or "git checkout failed",
         )
 
@@ -209,40 +289,85 @@ def _clone(repository: Mapping[str, str], destination: Path, deadline: float) ->
     if total > MAX_REPO_BYTES or files > MAX_REPO_FILES:
         shutil.rmtree(destination, ignore_errors=True)
         raise ServiceError(
-            "ANALYSIS_5001",
+            "REPAIR_6000",
             f"repository exceeds limits: {total} bytes, {files} files",
         )
 
 
-def _resolve_report(data_dir: Path, uri: str) -> dict:
+def _repair_code(reason: str) -> str:
+    return _REPAIR_CODE_BY_REASON.get(reason, "REPAIR_6000")
+
+
+def _parse_report(raw: bytes) -> dict:
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ServiceError("REPAIR_6001", "cannot read JSON report") from exc
+    if not isinstance(payload, dict):
+        raise ServiceError("REPAIR_6001", "report must be an object")
+    return payload
+
+
+def _fetch_report(url: str) -> tuple[bytes, str | None, str | None]:
+    request = urllib.request.Request(url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            raw = response.read(MAX_REPORT_BYTES + 1)
+            if len(raw) > MAX_REPORT_BYTES:
+                raise ServiceError("REPAIR_6001", "report artifact is too large")
+            digest = hashlib.sha256(raw).hexdigest()
+            return (
+                raw,
+                response.headers.get("X-Artifact-Sha256"),
+                response.headers.get("Content-Type"),
+            )
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise ServiceError("REPAIR_6001", f"report artifact not found: {url}") from exc
+        if exc.code == 403:
+            raise ServiceError("REPAIR_6005", f"report artifact access denied: {url}") from exc
+        raise ServiceError("REPAIR_6000", f"report artifact request failed: HTTP {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise ServiceError("REPAIR_6000", f"report artifact request failed: {exc}") from exc
+
+
+def _resolve_report(
+    data_dir: Path,
+    uri: str,
+    expected_sha256: str | None,
+    artifact_base_url: str | None,
+) -> dict:
     pair, job, name = _artifact_path(uri)
     path = data_dir / "artifacts" / pair / job / name
-    if not path.is_file():
-        raise ServiceError("ANALYSIS_5001", f"report artifact not found: {uri}")
-    try:
-        return load_report(path)
-    except RepairError as exc:
-        raise ServiceError("ANALYSIS_5001", f"{exc.code}: {exc}") from exc
+    if path.is_file():
+        try:
+            raw = path.read_bytes()
+        except OSError as exc:
+            raise ServiceError("REPAIR_6001", f"cannot read report artifact: {exc}") from exc
+        digest = hashlib.sha256(raw).hexdigest()
+        header_sha = None
+        content_type = None
+    elif artifact_base_url:
+        base = artifact_base_url.rstrip("/")
+        url = "/".join(
+            (base, urllib.parse.quote(pair), urllib.parse.quote(job), urllib.parse.quote(name))
+        )
+        raw, header_sha, content_type = _fetch_report(url)
+        digest = hashlib.sha256(raw).hexdigest()
+        if content_type and "json" not in content_type.lower():
+            raise ServiceError("REPAIR_6003", f"report artifact is not JSON: {content_type}")
+    else:
+        raise ServiceError("REPAIR_6001", f"report artifact not found: {uri}")
+
+    if header_sha and header_sha.lower() != digest:
+        raise ServiceError("REPAIR_6004", "report artifact SHA256 header mismatch")
+    if expected_sha256 and expected_sha256.lower() != digest:
+        raise ServiceError("REPAIR_6004", "report artifact SHA256 mismatch")
+    return _parse_report(raw)
 
 
-def _makefile_path(repo: Path, data: Mapping[str, Any], report: Mapping) -> str:
-    value = data["makefile"]
-    if "\n" not in value:
-        return value
-    target = "Makefile"
-    for finding in report.get("findings", []):
-        if isinstance(finding, Mapping) and finding.get("type") == "MISSING":
-            position = finding.get("position")
-            if isinstance(position, Mapping) and _nonempty(position.get("file")):
-                target = position["file"]
-                break
-    path = repo / target
-    if not path.is_file():
-        raise ServiceError("ANALYSIS_5001", f"inline Makefile target not found: {target}")
-    committed = path.read_text(encoding="utf-8", errors="replace")
-    if committed.replace("\r\n", "\n").strip() != value.replace("\r\n", "\n").strip():
-        raise ServiceError("ANALYSIS_5001", "inline Makefile does not match the committed file")
-    return target
+def _makefile_path(data: Mapping[str, Any]) -> str:
+    return data["makefile"]
 
 
 def _redundant_edges(report: Mapping) -> tuple[tuple[str, str], ...]:
@@ -289,6 +414,27 @@ def _rejected(patch: str, reason: str) -> dict[str, str]:
     return {"patch": patch, "reason": reason}
 
 
+def _validation(
+    *,
+    patch_applies: bool = False,
+    build: bool = False,
+    test: bool = False,
+    header_change: bool | None = None,
+    no_missing: bool = False,
+    redundant_preserved: bool = False,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "patch_applies": patch_applies,
+        "build": build,
+        "test": test,
+        "no_missing": no_missing,
+        "redundant_preserved": redundant_preserved,
+    }
+    if header_change is not None:
+        result["header_change"] = header_change
+    return result
+
+
 def _output(
     patch: str,
     style: str,
@@ -297,13 +443,25 @@ def _output(
     test: str,
     detection: str,
     rejected: list[dict[str, str]],
+    validation: Mapping[str, Any],
+    incremental: Mapping[str, Any] | None = None,
+    accepted: bool = False,
 ) -> dict[str, Any]:
+    recheck: dict[str, Any] = {"build": build, "test": test, "detection": detection}
+    if incremental is not None:
+        recheck["incremental"] = dict(incremental)
     return {
         "git_patch": patch,
         "style_description": style,
-        "recheck": {"build": build, "test": test, "detection": detection},
+        "recheck": recheck,
+        "accepted": accepted,
+        "validation": dict(validation),
         "rejected_candidates": rejected,
     }
+
+
+def _incremental_payload(result: Any) -> dict[str, Any]:
+    return result.to_payload()
 
 
 def run_contract_repair(
@@ -312,20 +470,27 @@ def run_contract_repair(
     job_id: str,
     work_dir: Path,
     data_dir: Path,
+    *,
+    artifact_base_url: str | None = None,
 ) -> dict[str, Any]:
-    deadline = time.monotonic() + TASK_TIMEOUT
+    deadline = time.monotonic() + float(data.get("time_limit", TASK_TIMEOUT))
     work_dir.mkdir(parents=True, exist_ok=True)
     repo = work_dir / "repo"
     _clone(data["repository"], repo, deadline)
 
-    report = _resolve_report(data_dir, data["md_report_uri"])
-    makefile = _makefile_path(repo, data, report)
+    report = _resolve_report(
+        data_dir,
+        data["md_report_uri"],
+        data.get("md_report_sha256"),
+        artifact_base_url,
+    )
+    makefile = _makefile_path(data)
     try:
         source = read_source(repo, makefile, commit=data["commit"])
         document = parse_makefile(source.text)
         validated = validate_report(report, source, document)
     except RepairError as exc:
-        raise ServiceError("ANALYSIS_5001", f"{exc.code}: {exc}") from exc
+        raise ServiceError(_repair_code(exc.code), f"{exc.code}: {exc}") from exc
 
     try:
         generated = generate_patch(
@@ -337,7 +502,7 @@ def run_contract_repair(
             collect_rejections=True,
         )
     except RepairError as exc:
-        raise ServiceError("ANALYSIS_5001", f"{exc.code}: {exc}") from exc
+        raise ServiceError(_repair_code(exc.code), f"{exc.code}: {exc}") from exc
 
     patch = generated.git_patch
     style = generated.style_description
@@ -355,6 +520,7 @@ def run_contract_repair(
             test="NOT_RUN: no accepted patch",
             detection=detection,
             rejected=rejected,
+            validation=_validation(),
         )
 
     sandbox = create_sandbox(repo, work_dir / "sandbox")
@@ -370,6 +536,7 @@ def run_contract_repair(
                 test="NOT_RUN: patch rejected",
                 detection=f"REJECTED: {reason}",
                 rejected=rejected,
+                validation=_validation(),
             )
 
         build = _run_command(data["env"]["build"], sandbox, min(COMMAND_TIMEOUT, _remaining(deadline)))
@@ -383,11 +550,17 @@ def run_contract_repair(
                 test="NOT_RUN: build failed",
                 detection="NOT_RUN: build failed",
                 rejected=rejected,
+                validation=_validation(patch_applies=True),
             )
 
         verify = _run_command(data["env"]["verify"], sandbox, min(COMMAND_TIMEOUT, _remaining(deadline)))
-        if not verify.ok:
+        expected_output = data["env"].get("verify_expected_output")
+        observed_output = verify.stdout.rstrip("\r\n")
+        output_matches = expected_output is None or observed_output == expected_output
+        if not verify.ok or not output_matches:
             reason = verify.error or (verify.stderr or verify.stdout).strip() or "verify command failed"
+            if verify.ok and not output_matches:
+                reason = f"verify output mismatch: expected {expected_output!r}, got {observed_output!r}"
             rejected.append(_rejected(patch, reason))
             return _output(
                 "",
@@ -396,18 +569,47 @@ def run_contract_repair(
                 test=f"REJECTED: {reason}",
                 detection="NOT_RUN: verify failed",
                 rejected=rejected,
+                validation=_validation(patch_applies=True, build=True),
             )
+
+        incremental = None
+        header_change = None
+        recheck_data = data.get("recheck")
+        if recheck_data:
+            timeout = int(recheck_data.get("timeout_seconds", COMMAND_TIMEOUT))
+            incremental_result = run_incremental(
+                sandbox,
+                header=recheck_data["header"],
+                macro=recheck_data["macro"],
+                old_value=recheck_data["old_value"],
+                new_value=recheck_data["new_value"],
+                target=recheck_data["target"],
+                program=recheck_data["program"],
+                timeout=min(timeout, int(_remaining(deadline))),
+                env=safe_env(),
+            )
+            incremental = _incremental_payload(incremental_result)
+            header_change = bool(incremental_result.header_change and incremental_result.rebuilt)
 
         try:
             patched_text = (sandbox / makefile).read_text(encoding="utf-8")
         except (OSError, UnicodeError) as exc:
-            raise ServiceError("ANALYSIS_5001", f"cannot read patched Makefile: {exc}") from exc
+            raise ServiceError("REPAIR_6000", f"cannot read patched Makefile: {exc}") from exc
         declaration = check_declarations(
             patched_text,
             validated.missing,
             _redundant_edges(report),
             sandbox=sandbox,
         )
+        validation = _validation(
+            patch_applies=True,
+            build=True,
+            test=True,
+            header_change=header_change,
+            no_missing=declaration.no_missing,
+            redundant_preserved=declaration.redundant_preserved,
+        )
+        incremental_ok = incremental is None or bool(incremental.get("ok"))
         if not declaration.ok:
             reason = declaration.error or "declaration recheck failed"
             if declaration.missing_remaining:
@@ -424,8 +626,25 @@ def run_contract_repair(
                 test=f"SUCCEEDED: {data['env']['verify']}",
                 detection=f"REJECTED: {reason}",
                 rejected=rejected,
+                validation=validation,
+                incremental=incremental,
             )
 
+        if not incremental_ok:
+            reason = incremental.get("error") or "incremental rebuild failed"
+            rejected.append(_rejected(patch, reason))
+            return _output(
+                "",
+                style,
+                build=f"SUCCEEDED: {data['env']['build']}",
+                test=f"SUCCEEDED: {data['env']['verify']}",
+                detection=f"REJECTED: {reason}",
+                rejected=rejected,
+                validation=validation,
+                incremental=incremental,
+            )
+
+        accepted = True
         return _output(
             patch,
             style,
@@ -433,6 +652,9 @@ def run_contract_repair(
             test=f"SUCCEEDED: {data['env']['verify']}",
             detection="SUCCEEDED: no MISSING findings remain; REDUNDANT findings preserved",
             rejected=rejected,
+            validation=validation,
+            incremental=incremental,
+            accepted=accepted,
         )
     finally:
         remove_sandbox(sandbox)
