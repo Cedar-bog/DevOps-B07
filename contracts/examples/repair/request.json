@@ -9,12 +9,23 @@
     },
     "commit": "0123456789abcdef0123456789abcdef01234567",
     "md_report_uri": "artifact://pair07/full01/error_report.json",
+    "md_report_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "makefile": "Makefile",
     "env": {
       "build": "make",
       "verify": "make test"
     },
-    "verify": "make test",
+    "recheck": {
+      "header": "src/common/clib-settings.h",
+      "macro": "VERSION",
+      "old_value": "1",
+      "new_value": "2",
+      "target": "clib",
+      "program": "./clib",
+      "expected_output": "2",
+      "timeout_seconds": 120
+    },
+    "time_limit": 1800,
     "idempotency_key": "repair-clib-01"
   }
 }
