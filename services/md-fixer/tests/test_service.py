@@ -27,6 +27,7 @@ def request() -> dict:
             "repository": {"url": "https://example.com/repo.git", "commit": "a" * 40},
             "commit": "a" * 40,
             "md_report_uri": "artifact://pair07/test/report.json",
+            "md_report_sha256": "a" * 64,
             "makefile": "Makefile",
             "env": {
                 "build": "make app",
@@ -68,6 +69,9 @@ def test_validate_request_accepts_contract_shape():
         lambda p: p["input"]["env"].update(verify=""),
         lambda p: p["input"].update(idempotency_key=""),
         lambda p: p["input"].update(unknown=True),
+        lambda p: p["input"].pop("recheck"),
+        lambda p: p["input"].pop("md_report_sha256"),
+        lambda p: p["input"]["recheck"].update(timeout_seconds=0),
     ],
 )
 def test_validate_request_rejects_invalid(mutate):
@@ -191,6 +195,7 @@ def test_contract_runner_accepts_fixture(tmp_path: Path, monkeypatch):
     payload = request()
     payload["input"]["repository"]["commit"] = commit
     payload["input"]["commit"] = commit
+    payload["input"]["md_report_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
     data = validate_request(payload)
 
     def fake_clone(repository, destination, deadline):
@@ -199,9 +204,9 @@ def test_contract_runner_accepts_fixture(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(service_runner, "_clone", fake_clone)
     output = run_contract_repair(data, None, "job-test", tmp_path / "work", tmp_path / "data")
     assert "config.h" in output["git_patch"]
-    assert output["recheck"]["build"].startswith("SUCCEEDED")
-    assert output["recheck"]["test"].startswith("SUCCEEDED")
-    assert output["recheck"]["detection"].startswith("SUCCEEDED")
+    assert output["recheck"]["build"]["ok"] is True
+    assert output["recheck"]["test"]["ok"] is True
+    assert output["recheck"]["detection"]["ok"] is True
     assert output["accepted"] is True
     assert output["validation"] == {
         "patch_applies": True,

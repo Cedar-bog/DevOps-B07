@@ -42,9 +42,24 @@
     "git_patch": "diff --git a/Makefile b/Makefile\n--- a/Makefile\n+++ b/Makefile\n@@ -1,2 +1,2 @@\n-clib: $(SRC)\n+clib: $(SRC) src/common/clib-settings.h\n",
     "style_description": "The missing header is appended to the existing prerequisite list without changing target order or variable style.",
     "recheck": {
-      "build": "SUCCEEDED: make",
-      "test": "SUCCEEDED: make test",
-      "detection": "SUCCEEDED: no MISSING findings remain; REDUNDANT findings were preserved",
+      "build": {
+        "ok": true,
+        "command": "make",
+        "log": "make: ok"
+      },
+      "test": {
+        "ok": true,
+        "command": "make test",
+        "log": "all tests passed",
+        "observed_output": "all tests passed",
+        "expected_output": null
+      },
+      "detection": {
+        "ok": true,
+        "message": "no MISSING findings remain; REDUNDANT findings preserved",
+        "missing_remaining": [],
+        "redundant_missing": []
+      },
       "incremental": {
         "ok": true,
         "header_change": true,

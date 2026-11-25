@@ -1,9 +1,9 @@
 """Contract-driven REPAIR runner for the MDFixer HTTP service.
 
 The existing ``mdfixer validate`` command remains the local fixture test tool.
-This module implements the strict REPAIR contract: clone a repository, resolve
-an artifact report, run the caller-provided build and verify commands, and
-return a patch plus declarative recheck results.
+This module implements the REPAIR contract: clone a repository, resolve an
+artifact report, run the caller-provided build and verify commands, then run
+incremental rebuild and declaration recheck before returning a patch.
 """
 
 from __future__ import annotations
@@ -44,11 +44,13 @@ _INPUT_KEYS = {
     "repository",
     "commit",
     "md_report_uri",
+    "md_report_sha256",
     "makefile",
     "env",
+    "recheck",
     "idempotency_key",
 }
-_OPTIONAL_INPUT_KEYS = {"md_report_sha256", "recheck", "time_limit"}
+_OPTIONAL_INPUT_KEYS = {"time_limit"}
 _ENV_KEYS = {"build", "verify"}
 _OPTIONAL_ENV_KEYS = {"verify_expected_output"}
 _RECHECK_KEYS = {
@@ -161,9 +163,8 @@ def validate_request(payload: object) -> dict[str, Any]:
         raise ValidationError("makefile is required")
 
     report_sha256 = data.get("md_report_sha256")
-    if report_sha256 is not None:
-        if not isinstance(report_sha256, str) or not _SHA256.fullmatch(report_sha256):
-            raise ValidationError("md_report_sha256 must be a lowercase SHA256")
+    if not isinstance(report_sha256, str) or not _SHA256.fullmatch(report_sha256):
+        raise ValidationError("md_report_sha256 must be a lowercase SHA256")
 
     env = data.get("env")
     if not isinstance(env, Mapping):
@@ -177,30 +178,29 @@ def validate_request(payload: object) -> dict[str, Any]:
         raise ValidationError("env.verify_expected_output must be a string")
 
     recheck = data.get("recheck")
-    if recheck is not None:
-        if not isinstance(recheck, Mapping):
-            raise ValidationError("recheck must be an object")
-        if set(recheck) - _RECHECK_KEYS:
-            raise ValidationError("recheck contains unknown fields")
-        required_recheck = _RECHECK_KEYS - {"timeout_seconds"}
-        missing_recheck = required_recheck - set(recheck)
-        if missing_recheck:
-            raise ValidationError(
-                "recheck is missing fields: " + ", ".join(sorted(missing_recheck))
-            )
-        for name in ("header", "macro", "target", "program"):
-            if not _nonempty(recheck.get(name)):
-                raise ValidationError(f"recheck.{name} is required")
-        for name in ("old_value", "new_value", "expected_output"):
-            if not isinstance(recheck.get(name), str):
-                raise ValidationError(f"recheck.{name} must be a string")
-        timeout_seconds = recheck.get("timeout_seconds")
-        if timeout_seconds is not None and (
-            not isinstance(timeout_seconds, int)
-            or isinstance(timeout_seconds, bool)
-            or timeout_seconds < 1
-        ):
-            raise ValidationError("recheck.timeout_seconds must be a positive integer")
+    if not isinstance(recheck, Mapping):
+        raise ValidationError("recheck must be an object")
+    if set(recheck) - _RECHECK_KEYS:
+        raise ValidationError("recheck contains unknown fields")
+    required_recheck = _RECHECK_KEYS - {"timeout_seconds"}
+    missing_recheck = required_recheck - set(recheck)
+    if missing_recheck:
+        raise ValidationError(
+            "recheck is missing fields: " + ", ".join(sorted(missing_recheck))
+        )
+    for name in ("header", "macro", "target", "program"):
+        if not _nonempty(recheck.get(name)):
+            raise ValidationError(f"recheck.{name} is required")
+    for name in ("old_value", "new_value", "expected_output"):
+        if not isinstance(recheck.get(name), str):
+            raise ValidationError(f"recheck.{name} must be a string")
+    timeout_seconds = recheck.get("timeout_seconds")
+    if timeout_seconds is not None and (
+        not isinstance(timeout_seconds, int)
+        or isinstance(timeout_seconds, bool)
+        or timeout_seconds < 1
+    ):
+        raise ValidationError("recheck.timeout_seconds must be a positive integer")
 
     time_limit = data.get("time_limit")
     if time_limit is not None and (
@@ -224,10 +224,8 @@ def validate_request(payload: object) -> dict[str, Any]:
     }
     if expected_output is not None:
         result["env"]["verify_expected_output"] = expected_output
-    if report_sha256 is not None:
-        result["md_report_sha256"] = report_sha256
-    if recheck is not None:
-        result["recheck"] = dict(recheck)
+    result["md_report_sha256"] = report_sha256
+    result["recheck"] = dict(recheck)
     if time_limit is not None:
         result["time_limit"] = time_limit
     return result
@@ -435,33 +433,97 @@ def _validation(
     return result
 
 
+def _build_payload(ok: bool, command: str, log: str) -> dict[str, Any]:
+    return {"ok": ok, "command": command, "log": log}
+
+
+def _test_payload(
+    ok: bool,
+    command: str,
+    log: str,
+    observed: str,
+    expected: str | None,
+) -> dict[str, Any]:
+    return {
+        "ok": ok,
+        "command": command,
+        "log": log,
+        "observed_output": observed,
+        "expected_output": expected,
+    }
+
+
+def _detection_payload(
+    ok: bool,
+    message: str,
+    missing: tuple[tuple[str, str], ...] = (),
+    redundant: tuple[tuple[str, str], ...] = (),
+) -> dict[str, Any]:
+    return {
+        "ok": ok,
+        "message": message,
+        "missing_remaining": [list(edge) for edge in missing],
+        "redundant_missing": [list(edge) for edge in redundant],
+    }
+
+
+def _incremental_not_run(expected: str) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "header_change": False,
+        "rebuilt": False,
+        "build_ok": False,
+        "program_ok": False,
+        "observed_output": "",
+        "expected_output": expected,
+        "error": "NOT_RUN",
+    }
+
+
+def _validation(
+    *,
+    patch_applies: bool = False,
+    build: bool = False,
+    test: bool = False,
+    header_change: bool = False,
+    no_missing: bool = False,
+    redundant_preserved: bool = False,
+) -> dict[str, Any]:
+    return {
+        "patch_applies": patch_applies,
+        "build": build,
+        "test": test,
+        "header_change": header_change,
+        "no_missing": no_missing,
+        "redundant_preserved": redundant_preserved,
+    }
+
+
 def _output(
     patch: str,
     style: str,
     *,
-    build: str,
-    test: str,
-    detection: str,
+    build: Mapping[str, Any],
+    test: Mapping[str, Any],
+    detection: Mapping[str, Any],
+    incremental: Mapping[str, Any],
     rejected: list[dict[str, str]],
     validation: Mapping[str, Any],
-    incremental: Mapping[str, Any] | None = None,
     accepted: bool = False,
 ) -> dict[str, Any]:
-    recheck: dict[str, Any] = {"build": build, "test": test, "detection": detection}
-    if incremental is not None:
-        recheck["incremental"] = dict(incremental)
     return {
         "git_patch": patch,
         "style_description": style,
-        "recheck": recheck,
+        "recheck": {
+            "build": dict(build),
+            "test": dict(test),
+            "detection": dict(detection),
+            "incremental": dict(incremental),
+        },
         "accepted": accepted,
         "validation": dict(validation),
         "rejected_candidates": rejected,
     }
-
-
-def _incremental_payload(result: Any) -> dict[str, Any]:
-    return result.to_payload()
 
 
 def run_contract_repair(
@@ -481,7 +543,7 @@ def run_contract_repair(
     report = _resolve_report(
         data_dir,
         data["md_report_uri"],
-        data.get("md_report_sha256"),
+        data["md_report_sha256"],
         artifact_base_url,
     )
     makefile = _makefile_path(data)
@@ -506,6 +568,11 @@ def run_contract_repair(
 
     patch = generated.git_patch
     style = generated.style_description
+    recheck_data = data["recheck"]
+    expected_incremental = recheck_data["expected_output"]
+    expected_test = data["env"].get("verify_expected_output")
+    build_command = data["env"]["build"]
+    test_command = data["env"]["verify"]
     rejected = [item.to_payload() for item in generated.rejected_candidates]
     if not patch:
         detection = (
@@ -516,9 +583,10 @@ def run_contract_repair(
         return _output(
             "",
             style,
-            build="NOT_RUN: no accepted patch",
-            test="NOT_RUN: no accepted patch",
-            detection=detection,
+            build=_build_payload(False, build_command, "NOT_RUN: no accepted patch"),
+            test=_test_payload(False, test_command, "NOT_RUN: no accepted patch", "", expected_test),
+            detection=_detection_payload(False, detection),
+            incremental=_incremental_not_run(expected_incremental),
             rejected=rejected,
             validation=_validation(),
         )
@@ -532,64 +600,61 @@ def run_contract_repair(
             return _output(
                 "",
                 style,
-                build="NOT_RUN: patch rejected",
-                test="NOT_RUN: patch rejected",
-                detection=f"REJECTED: {reason}",
+                build=_build_payload(False, build_command, "NOT_RUN: patch rejected"),
+                test=_test_payload(False, test_command, "NOT_RUN: patch rejected", "", expected_test),
+                detection=_detection_payload(False, f"REJECTED: {reason}"),
+                incremental=_incremental_not_run(expected_incremental),
                 rejected=rejected,
                 validation=_validation(),
             )
 
-        build = _run_command(data["env"]["build"], sandbox, min(COMMAND_TIMEOUT, _remaining(deadline)))
+        build = _run_command(build_command, sandbox, min(COMMAND_TIMEOUT, _remaining(deadline)))
         if not build.ok:
             reason = build.error or (build.stderr or build.stdout).strip() or "build command failed"
             rejected.append(_rejected(patch, reason))
             return _output(
                 "",
                 style,
-                build=f"REJECTED: {reason}",
-                test="NOT_RUN: build failed",
-                detection="NOT_RUN: build failed",
+                build=_build_payload(False, build_command, build.log),
+                test=_test_payload(False, test_command, "NOT_RUN: build failed", "", expected_test),
+                detection=_detection_payload(False, "NOT_RUN: build failed"),
+                incremental=_incremental_not_run(expected_incremental),
                 rejected=rejected,
                 validation=_validation(patch_applies=True),
             )
 
-        verify = _run_command(data["env"]["verify"], sandbox, min(COMMAND_TIMEOUT, _remaining(deadline)))
-        expected_output = data["env"].get("verify_expected_output")
+        verify = _run_command(test_command, sandbox, min(COMMAND_TIMEOUT, _remaining(deadline)))
         observed_output = verify.stdout.rstrip("\r\n")
-        output_matches = expected_output is None or observed_output == expected_output
+        output_matches = expected_test is None or observed_output == expected_test
         if not verify.ok or not output_matches:
             reason = verify.error or (verify.stderr or verify.stdout).strip() or "verify command failed"
             if verify.ok and not output_matches:
-                reason = f"verify output mismatch: expected {expected_output!r}, got {observed_output!r}"
+                reason = f"verify output mismatch: expected {expected_test!r}, got {observed_output!r}"
             rejected.append(_rejected(patch, reason))
             return _output(
                 "",
                 style,
-                build=f"SUCCEEDED: {data['env']['build']}",
-                test=f"REJECTED: {reason}",
-                detection="NOT_RUN: verify failed",
+                build=_build_payload(True, build_command, build.log),
+                test=_test_payload(False, test_command, verify.log, observed_output, expected_test),
+                detection=_detection_payload(False, "NOT_RUN: verify failed"),
+                incremental=_incremental_not_run(expected_incremental),
                 rejected=rejected,
                 validation=_validation(patch_applies=True, build=True),
             )
 
-        incremental = None
-        header_change = None
-        recheck_data = data.get("recheck")
-        if recheck_data:
-            timeout = int(recheck_data.get("timeout_seconds", COMMAND_TIMEOUT))
-            incremental_result = run_incremental(
-                sandbox,
-                header=recheck_data["header"],
-                macro=recheck_data["macro"],
-                old_value=recheck_data["old_value"],
-                new_value=recheck_data["new_value"],
-                target=recheck_data["target"],
-                program=recheck_data["program"],
-                timeout=min(timeout, int(_remaining(deadline))),
-                env=safe_env(),
-            )
-            incremental = _incremental_payload(incremental_result)
-            header_change = bool(incremental_result.header_change and incremental_result.rebuilt)
+        timeout = int(recheck_data.get("timeout_seconds", COMMAND_TIMEOUT))
+        incremental_result = run_incremental(
+            sandbox,
+            header=recheck_data["header"],
+            macro=recheck_data["macro"],
+            old_value=recheck_data["old_value"],
+            new_value=recheck_data["new_value"],
+            target=recheck_data["target"],
+            program=recheck_data["program"],
+            timeout=min(timeout, int(_remaining(deadline))),
+            env=safe_env(),
+        )
+        incremental = incremental_result.to_payload()
 
         try:
             patched_text = (sandbox / makefile).read_text(encoding="utf-8")
@@ -605,11 +670,18 @@ def run_contract_repair(
             patch_applies=True,
             build=True,
             test=True,
-            header_change=header_change,
+            header_change=bool(incremental_result.header_change and incremental_result.rebuilt),
             no_missing=declaration.no_missing,
             redundant_preserved=declaration.redundant_preserved,
         )
-        incremental_ok = incremental is None or bool(incremental.get("ok"))
+        detection = _detection_payload(
+            declaration.ok,
+            "no MISSING findings remain; REDUNDANT findings preserved"
+            if declaration.ok
+            else (declaration.error or "declaration recheck failed"),
+            declaration.missing_remaining,
+            declaration.redundant_missing,
+        )
         if not declaration.ok:
             reason = declaration.error or "declaration recheck failed"
             if declaration.missing_remaining:
@@ -622,39 +694,38 @@ def run_contract_repair(
             return _output(
                 "",
                 style,
-                build=f"SUCCEEDED: {data['env']['build']}",
-                test=f"SUCCEEDED: {data['env']['verify']}",
-                detection=f"REJECTED: {reason}",
+                build=_build_payload(True, build_command, build.log),
+                test=_test_payload(True, test_command, verify.log, observed_output, expected_test),
+                detection=detection,
+                incremental=incremental,
                 rejected=rejected,
                 validation=validation,
-                incremental=incremental,
             )
 
-        if not incremental_ok:
+        if not incremental_result.ok:
             reason = incremental.get("error") or "incremental rebuild failed"
             rejected.append(_rejected(patch, reason))
             return _output(
                 "",
                 style,
-                build=f"SUCCEEDED: {data['env']['build']}",
-                test=f"SUCCEEDED: {data['env']['verify']}",
-                detection=f"REJECTED: {reason}",
+                build=_build_payload(True, build_command, build.log),
+                test=_test_payload(True, test_command, verify.log, observed_output, expected_test),
+                detection=detection,
+                incremental=incremental,
                 rejected=rejected,
                 validation=validation,
-                incremental=incremental,
             )
 
-        accepted = True
         return _output(
             patch,
             style,
-            build=f"SUCCEEDED: {data['env']['build']}",
-            test=f"SUCCEEDED: {data['env']['verify']}",
-            detection="SUCCEEDED: no MISSING findings remain; REDUNDANT findings preserved",
+            build=_build_payload(True, build_command, build.log),
+            test=_test_payload(True, test_command, verify.log, observed_output, expected_test),
+            detection=detection,
+            incremental=incremental,
             rejected=rejected,
             validation=validation,
-            incremental=incremental,
-            accepted=accepted,
+            accepted=True,
         )
     finally:
         remove_sandbox(sandbox)
