@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Environment self-check for the reproducible E4 setup.
+"""Environment self-check for the reproducible setup.
 
 Runs on the local client and inspects the runtime server described by
 ``.env``. Local checks cover the repository, Git identity, client tools

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# E3-B07 MDFixer 验证：在样例副本上应用四种参考补丁并观察行为，验证无效候选被拒绝。
+# MDFixer 验证：在样例副本上应用四种参考补丁并观察行为，验证无效候选被拒绝。
 # 每次运行写入 evidence/md-fixer/<UTC 时间戳>/，不覆盖历史。
 # 各相输出同时打印到终端并写入日志。
 # 用法：bash scripts/verify/verify-md-fixer.sh
@@ -27,7 +27,7 @@ started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 source "$ROOT/scripts/lib/verify.sh"
 
 header() {
-  verify_header "E3-B07 MDFixer" "$1" "fixtures/md-fixer" "$ROOT/scripts/verify/verify-md-fixer.sh"
+  verify_header "MDFixer" "$1" "fixtures/md-fixer" "$ROOT/scripts/verify/verify-md-fixer.sh"
 }
 
 copy_sources() {

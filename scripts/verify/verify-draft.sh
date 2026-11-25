@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# E3-B07 DRAFT 验证：本地两层判据 + 远程服务器 docker 失败/参考成功两相。
+# DRAFT 验证：本地两层判据 + 远程服务器 docker 失败/参考成功两相。
 # 连接信息从仓库根 .env 读取；每次运行写入 evidence/draft/<UTC 时间戳>/，不覆盖历史。
 # 各相输出同时打印到终端并写入日志（日志剥离 ANSI 转义码）。
 # 用法：bash scripts/verify/verify-draft.sh
@@ -36,7 +36,7 @@ started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 source "$ROOT/scripts/lib/verify.sh"
 
 header() {
-  verify_header "E3-B07 DRAFT" "$1" "fixtures/draft" "$ROOT/scripts/verify/verify-draft.sh"
+  verify_header "DRAFT" "$1" "fixtures/draft" "$ROOT/scripts/verify/verify-draft.sh"
 }
 
 phase_build() {

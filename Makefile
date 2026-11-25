@@ -1,4 +1,4 @@
-# E4-B07 一键命令：可重复工程环境（服务 draft）
+# 一键命令：可重复工程环境（服务 draft）
 #
 # 命令在本地执行，docker 在服务器上运行。
 # 每次运行都新建 work/<UTC 时间戳>/ 作为证据目录，不覆盖旧记录；
@@ -62,7 +62,7 @@ help:
 	  '  make doctor        服务器、Git 身份与工具链自检       -> env.json' \
 	  '  make build         构建服务镜像                       -> build.log  image.json  toolchain.lock' \
 	  '  make test          容器内运行本组单元测试             -> test.log' \
-	  '  make smoke         用 E3 样例做冒烟测试               -> smoke.json' \
+	  '  make smoke         用样例做冒烟测试                   -> smoke.json' \
 	  '  make scan          工作区、Git 历史、镜像的密钥检查   -> secret-scan.txt' \
 	  '  make all           依次执行上面五步，共用同一个证据目录' \
 	  '' \
@@ -142,7 +142,7 @@ build: require-student-id require-remote | $(RUN_DIR)
 	printf '==> build   证据：%s/{build.log,image.json,toolchain.lock}\n' '$(EVIDENCE)'
 	STAGE="/tmp/e4-b07-build-$(RUN_ID)"
 	{
-	  printf '# E4-B07 draft image build\n'
+	  printf '# draft image build\n'
 	  printf 'started_at_utc: %s\n' "$$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 	  printf 'run_id: %s\n' '$(RUN_ID)'
 	  printf 'git_commit: %s\n' "$$(git rev-parse HEAD)"
@@ -182,7 +182,7 @@ test: require-image | $(RUN_DIR)
 	cd $(ROOT)
 	printf '==> test    证据：%s/test.log\n' '$(EVIDENCE)'
 	{
-	  printf '# E4-B07 draft unit tests\n'
+	  printf '# draft unit tests\n'
 	  printf 'started_at_utc: %s\n' "$$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 	  printf 'run_id: %s\n' '$(RUN_ID)'
 	  printf 'git_commit: %s\n' "$$(git rev-parse HEAD)"

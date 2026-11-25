@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Secret scan for the reproducible E4 environment.
+"""Secret scan for the reproducible build environment.
 
-Checks the three places where a key can leak (E4 slide 15):
+Checks the three places where a key can leak:
 
 1. ``workspace``   - tracked files plus untracked files Git does not ignore;
                      also guards that ``.env`` itself is neither tracked nor
@@ -488,7 +488,7 @@ def scan_image(image: str, *, repo: Path, docker: str = "docker") -> Surface:
 
 
 def _image_candidates(repo: Path, docker: str) -> list[str]:
-    """Images worth scanning: the compose image and local ``e4-draft*`` tags."""
+    """Images worth scanning: the compose image and local draft tags."""
     images: list[str] = []
     student_id = os.environ.get("STUDENT_ID", "").strip()
     if student_id:
@@ -575,7 +575,7 @@ def collect(
 
 def render_text(payload: dict, surfaces: Sequence[Surface]) -> str:
     lines = [
-        "# E4-B07 secret scan",
+        "# secret scan",
         f"generated_at_utc: {payload['generated_at']}",
         f"repo: {payload['repo']}",
         f"scanner_sha256: {payload['scanner_sha256']}",

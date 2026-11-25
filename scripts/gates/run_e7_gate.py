@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the E7 offline test suite and summarize its exit code."""
+"""Run the offline test suite and summarize its exit code."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def main() -> int:
         print(f"{state} tests exit_code={code}", flush=True)
         failures += code != 0
 
-    print(f"E7 summary: {1 - failures}/1 steps passed; exit_code={int(failures != 0)}")
+    print(f"gate summary: {1 - failures}/1 steps passed; exit_code={int(failures != 0)}")
     return int(failures != 0)
 
 
