@@ -144,3 +144,25 @@ def test_job_store_cleanup(tmp_path: Path):
     removed = store.cleanup("9999-12-31T23:59:59Z")
     assert removed[0]["job_id"] == "job-1"
     assert store.get("job-1") is None
+
+
+def test_validate_request_accepts_expected_output():
+    payload = request()
+    payload["input"]["verify"]["expected_output"] = "1"
+    data = validate_request(payload)
+    assert data["verify"]["expected_output"] == "1"
+
+
+def test_validate_request_rejects_non_string_expected_output():
+    payload = request()
+    payload["input"]["verify"]["expected_output"] = 1
+    with pytest.raises(ValidationError):
+        validate_request(payload)
+
+
+def test_round_log_is_written(tmp_path: Path):
+    from draft.service_runner import _write_round_log
+
+    relative = _write_round_log(tmp_path, 1, "build", "full log\n")
+    assert relative == "logs/round-01-build.log"
+    assert (tmp_path / relative).read_text(encoding="utf-8") == "full log\n"

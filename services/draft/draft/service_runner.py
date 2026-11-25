@@ -111,8 +111,13 @@ def validate_request(payload: object) -> dict[str, Any]:
         raise ValidationError("build.workdir must be a nonempty string")
 
     verify = data.get("verify")
-    if not isinstance(verify, Mapping) or set(verify) != {"command"} or not _nonempty(verify.get("command")):
+    if not isinstance(verify, Mapping) or set(verify) - {"command", "expected_output"}:
+        raise ValidationError("verify requires command")
+    if not _nonempty(verify.get("command")):
         raise ValidationError("verify.command is required")
+    expected_output = verify.get("expected_output")
+    if expected_output is not None and not isinstance(expected_output, str):
+        raise ValidationError("verify.expected_output must be a string")
 
     max_iterations = data.get("max_iterations")
     if not _is_int(max_iterations) or max_iterations < 1:
@@ -130,7 +135,10 @@ def validate_request(payload: object) -> dict[str, Any]:
             "command": build["command"],
             "workdir": workdir or DEFAULT_WORKDIR,
         },
-        "verify": {"command": verify["command"]},
+        "verify": {
+            "command": verify["command"],
+            **({"expected_output": expected_output} if expected_output is not None else {}),
+        },
         "max_iterations": max_iterations,
         "time_limit": time_limit,
         "idempotency_key": idempotency_key,
@@ -389,6 +397,14 @@ def _build_verify(
         parts.append(f"$ {data['verify']['command']}\n{clean_log(verify.stdout + verify.stderr)}")
         if not _ok(verify):
             return False, "verify command failed", "\n".join(parts)
+        expected = data["verify"].get("expected_output")
+        observed = verify.stdout.rstrip("\r\n")
+        if expected is not None and observed != expected:
+            return (
+                False,
+                f"verify output mismatch: expected {expected!r}, got {observed!r}",
+                "\n".join(parts),
+            )
         return True, "success", "\n".join(parts)
     finally:
         remove_container(name, docker=docker, runner=runner)
@@ -396,6 +412,14 @@ def _build_verify(
 
 def _round_log(text: str) -> str:
     return text[:MAX_ROUND_LOG]
+
+
+def _write_round_log(work_dir: Path, iteration: int, stage: str, text: str) -> str:
+    logs = work_dir / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    relative = Path("logs") / f"round-{iteration:02d}-{stage}.log"
+    (work_dir / relative).write_text(text, encoding="utf-8")
+    return relative.as_posix()
 
 
 def run_contract_repair(
@@ -452,6 +476,7 @@ def run_contract_repair(
             rounds.append({
                 "iteration": iteration,
                 "log": _round_log(build.log),
+                "log_file": _write_round_log(work_dir, iteration, "build", build.log),
                 "changes": f"candidate from round {iteration}",
                 "rationale": "image build failed; send the log to the LLM",
             })
@@ -480,6 +505,7 @@ def run_contract_repair(
             rounds.append({
                 "iteration": iteration,
                 "log": _round_log(log),
+                "log_file": _write_round_log(work_dir, iteration, "verify", log),
                 "changes": f"candidate from round {iteration}",
                 "rationale": f"{reason}; send the log to the LLM",
             })
@@ -499,6 +525,7 @@ def run_contract_repair(
         rounds.append({
             "iteration": iteration,
             "log": _round_log(log),
+            "log_file": _write_round_log(work_dir, iteration, "verify", log),
             "changes": f"candidate from round {iteration}",
             "rationale": "build and verify commands exited with 0",
         })
