@@ -1,4 +1,4 @@
-"""E10 rejection rollback: failed transactions leave the source bytes intact."""
+"""Rejection rollback: failed transactions leave the source bytes intact."""
 
 from __future__ import annotations
 

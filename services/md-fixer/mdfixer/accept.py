@@ -1,4 +1,4 @@
-"""E10 write-back of a candidate after every sandbox check passed."""
+"""Write-back of a candidate after every sandbox check passed."""
 
 from __future__ import annotations
 

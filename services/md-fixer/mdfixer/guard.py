@@ -1,4 +1,4 @@
-"""E9 input guards. All filesystem and Git operations in this module are reads."""
+"""Input guards. All filesystem and Git operations in this module are reads."""
 
 from __future__ import annotations
 

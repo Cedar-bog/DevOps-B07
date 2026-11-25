@@ -1,4 +1,4 @@
-"""E10 gate records: validation JSON, scenario artifacts and results.csv."""
+"""Gate records: validation JSON, scenario artifacts and results.csv."""
 
 from __future__ import annotations
 

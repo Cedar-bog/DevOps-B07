@@ -1,4 +1,4 @@
-"""Implicit E9 candidates: compiler .d scheme or a bounded LLM proposal."""
+"""Implicit candidates: compiler .d scheme or a bounded LLM proposal."""
 
 from __future__ import annotations
 

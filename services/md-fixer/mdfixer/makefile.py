@@ -1,4 +1,4 @@
-"""Static declaration graph for the E9 Make subset; never invokes make.
+"""Static declaration graph for the supported Make subset; never invokes make.
 
 Supports =, :=, ?=, +=, simple variable references, suffix substitutions,
 continuations, comments, order-only prerequisites and single pattern rules.
@@ -7,7 +7,7 @@ dynamic declarations are rejected rather than executed or silently guessed.
 Recipes are retained as opaque text.
 
 ``allow_includes`` is only for parsing a repaired candidate after generation.
-Included files are not resolved; E10 rechecking must still run Make so that
+Included files are not resolved; rechecking must still run Make so that
 compiler-generated .d files are loaded.
 """
 
