@@ -197,7 +197,18 @@
           "build": "make",
           "verify": "make test"
         },
-        "idempotency_key": "repair-clib-01"
+        "idempotency_key": "repair-clib-01",
+        "md_report_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "recheck": {
+          "header": "config.h",
+          "macro": "VALUE",
+          "old_value": "1",
+          "new_value": "2",
+          "target": "app",
+          "program": "./app",
+          "expected_output": "2",
+          "timeout_seconds": 120
+        }
       },
       "output": null,
       "error": {

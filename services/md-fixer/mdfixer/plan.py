@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Mapping
 
 
 @dataclass(frozen=True)
 class Rejection:
     """A candidate-level rejection record.
 
-    Internal codes such as STALE_REPORT and UNSAFE_PATH must stay here and must
-    not be written to ``job.error``, whose enum is fixed by the shared contract.
+    Internal reasons stay on the candidate record; the service maps them to
+    B07-owned REPAIR_* job error codes when the task cannot continue.
     """
 
     code: str
@@ -82,20 +81,5 @@ class PatchResult:
             "git_patch": self.git_patch,
             "style_description": self.style_description,
             "plan": self.plan.to_payload(),
-            "rejected_candidates": [item.to_payload() for item in self.rejected_candidates],
-        }
-
-    def to_repair_payload(self, recheck: Mapping[str, str]) -> dict:
-        """Build the REPAIR output after real checks have completed."""
-        values = {}
-        for key in ("build", "test", "detection"):
-            value = recheck.get(key) if isinstance(recheck, Mapping) else None
-            if not isinstance(value, str) or not value:
-                raise ValueError(f"recheck.{key} is required")
-            values[key] = value
-        return {
-            "git_patch": self.git_patch,
-            "style_description": self.style_description,
-            "recheck": values,
             "rejected_candidates": [item.to_payload() for item in self.rejected_candidates],
         }

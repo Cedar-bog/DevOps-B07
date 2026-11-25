@@ -243,7 +243,7 @@
         "properties": {
           "input": {
             "type": "object",
-            "required": ["repository", "commit", "md_report_uri", "makefile", "env", "idempotency_key"],
+            "required": ["repository", "commit", "md_report_uri", "md_report_sha256", "makefile", "env", "recheck", "idempotency_key"],
             "properties": {
               "repository": { "$ref": "#/$defs/repository" },
               "commit": { "$ref": "#/$defs/commit" },
@@ -289,7 +289,7 @@
                   "timeout_seconds": { "type": "integer", "minimum": 1 }
                 },
                 "additionalProperties": false,
-                "description": "B07 内部增量重建参数；提供时执行修改头文件后的增量验证。"
+                "description": "B07 内部增量重建参数；任务必须执行修改头文件后的增量验证。"
               },
               "time_limit": {
                 "type": "integer",
@@ -308,11 +308,47 @@
               "style_description": { "type": "string", "description": "声明风格说明。" },
               "recheck": {
                 "type": "object",
-                "required": ["build", "test", "detection"],
+                "required": ["build", "test", "detection", "incremental"],
                 "properties": {
-                  "build": { "type": "string" },
-                  "test": { "type": "string" },
-                  "detection": { "type": "string" },
+                  "build": {
+                    "type": "object",
+                    "required": ["ok", "command", "log"],
+                    "properties": {
+                      "ok": { "type": "boolean" },
+                      "command": { "type": "string" },
+                      "log": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                  },
+                  "test": {
+                    "type": "object",
+                    "required": ["ok", "command", "log", "observed_output", "expected_output"],
+                    "properties": {
+                      "ok": { "type": "boolean" },
+                      "command": { "type": "string" },
+                      "log": { "type": "string" },
+                      "observed_output": { "type": "string" },
+                      "expected_output": { "type": ["string", "null"] }
+                    },
+                    "additionalProperties": false
+                  },
+                  "detection": {
+                    "type": "object",
+                    "required": ["ok", "message", "missing_remaining", "redundant_missing"],
+                    "properties": {
+                      "ok": { "type": "boolean" },
+                      "message": { "type": "string" },
+                      "missing_remaining": {
+                        "type": "array",
+                        "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }
+                      },
+                      "redundant_missing": {
+                        "type": "array",
+                        "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }
+                      }
+                    },
+                    "additionalProperties": false
+                  },
                   "incremental": {
                     "type": "object",
                     "required": [
@@ -347,6 +383,7 @@
                   "patch_applies",
                   "build",
                   "test",
+                  "header_change",
                   "no_missing",
                   "redundant_preserved"
                 ],
