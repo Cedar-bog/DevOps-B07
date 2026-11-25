@@ -178,17 +178,29 @@ class DraftService:
                 import shutil
 
                 shutil.rmtree(work_dir, ignore_errors=True)
-            output = item.get("output") or {}
-            image_ref = output.get("image_ref") if isinstance(output, dict) else None
-            if image_ref:
-                subprocess.run(
-                    [self.docker, "rmi", "-f", str(image_ref)],
-                    capture_output=True,
-                    check=False,
-                )
+            self._remove_images(str(item.get("job_id")), item.get("output"))
         if removed:
             LOGGER.info("cleaned %d expired job(s)", len(removed))
         return len(removed)
+
+    def _remove_images(self, job_id: str, output: object) -> None:
+        prefix = f"b07-draft:{job_id}-"
+        exact = output.get("image_ref") if isinstance(output, dict) else None
+        tags = subprocess.run(
+            [self.docker, "image", "ls", "--format", "{{.Repository}}:{{.Tag}}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if tags.returncode != 0:
+            return
+        for tag in tags.stdout.splitlines():
+            if tag.startswith(prefix) or (exact and tag == str(exact)):
+                subprocess.run(
+                    [self.docker, "rmi", "-f", tag],
+                    capture_output=True,
+                    check=False,
+                )
 
 
 class Handler(BaseHTTPRequestHandler):
