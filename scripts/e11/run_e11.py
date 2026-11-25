@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
+import os
 import shlex
 import shutil
 import subprocess
@@ -142,7 +144,7 @@ def build_macro(workspace: Path, run_id: str) -> tuple[Path, dict[str, Any], dic
     run_local("git", "init", "-q", cwd=repo)
     run_local("git", "config", "core.autocrlf", "false", cwd=repo)
     env = {
-        **__import__("os").environ,
+        **os.environ,
         "GIT_AUTHOR_NAME": "B07 E11",
         "GIT_AUTHOR_EMAIL": "b07-e11@example.invalid",
         "GIT_COMMITTER_NAME": "B07 E11",
@@ -174,7 +176,7 @@ def build_macro(workspace: Path, run_id: str) -> tuple[Path, dict[str, Any], dic
         ],
     }
     raw = (json.dumps(report, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n").encode()
-    digest = __import__("hashlib").sha256(raw).hexdigest()
+    digest = hashlib.sha256(raw).hexdigest()
     request = {
         "schema_version": "1.0",
         "trace_id": "trace-e11-macro",
@@ -275,7 +277,6 @@ def save_job(directory: Path, name: str, job: dict[str, Any]) -> None:
 
 def prepare_faults(base_report: dict[str, Any], base_request: dict[str, Any]) -> list[tuple[str, dict[str, Any], dict[str, Any], str]]:
     import copy
-    import hashlib
 
     cases: list[tuple[str, dict[str, Any], dict[str, Any], str]] = []
     for name, code, mutate in (
