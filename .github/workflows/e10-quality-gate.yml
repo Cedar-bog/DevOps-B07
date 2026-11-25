@@ -40,7 +40,7 @@ jobs:
           git rev-parse HEAD > "$RUN_DIR/commit.txt"
           {
             echo "python -m pytest services/md-fixer/tests -q"
-            echo "python scripts/run_e10_gate.py --out $RUN_DIR/e10"
+            echo "python scripts/gates/run_e10_gate.py --out $RUN_DIR/e10"
           } > "$RUN_DIR/command.txt"
           {
             echo "event=${GITHUB_EVENT_NAME}"
@@ -73,7 +73,7 @@ jobs:
         run: |
           set -o pipefail
           set +e
-          python scripts/run_e10_gate.py --out "${EVIDENCE_DIR}/e10" 2>&1 | tee "${EVIDENCE_DIR}/e10-gate.log"
+          python scripts/gates/run_e10_gate.py --out "${EVIDENCE_DIR}/e10" 2>&1 | tee "${EVIDENCE_DIR}/e10-gate.log"
           code=${PIPESTATUS[0]}
           echo "E10_GATE_EXIT_CODE=$code" >> "$GITHUB_ENV"
           set -e

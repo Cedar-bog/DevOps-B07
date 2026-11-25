@@ -17,16 +17,16 @@ import re
 import shutil
 import socket
 import stat
-import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
 SCHEMA_VERSION = "1.0"
 SERVICE = "draft"
 TIMEOUT_S = 15.0
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "scripts" / "lib"))
+from proc import git as git_command, now_iso, run as run_command  # noqa: E402
 DEFAULT_SOCKET = "/var/run/docker.sock"
 LOCAL_TOOLS = ("git", "make")
 WINDOWS = os.name == "nt"
@@ -34,7 +34,7 @@ VERSION_RE = re.compile(r"\d+\.\d+(?:\.\d+)?")
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return now_iso()
 
 
 def _first_line(text: str) -> str:
@@ -56,25 +56,11 @@ def _run(
     cwd: Path,
     timeout: float = TIMEOUT_S,
 ) -> tuple[int, str, str]:
-    try:
-        proc = subprocess.run(
-            list(command),
-            cwd=str(cwd),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-    except FileNotFoundError:
-        return 127, "", f"executable not found: {command[0]}"
-    except subprocess.TimeoutExpired:
-        return 124, "", f"timeout after {timeout:g}s"
-    except OSError as exc:
-        return 126, "", str(exc)
-    return proc.returncode, (proc.stdout or "").strip(), (proc.stderr or "").strip()
+    return run_command(command, cwd=cwd, timeout=timeout, strip=True)
 
 
 def _git(repo: Path, *args: str) -> tuple[int, str, str]:
-    return _run(["git", *args], cwd=repo)
+    return git_command(repo, *args, strip=True)
 
 
 def _git_value(repo: Path, key: str) -> str | None:
@@ -456,7 +442,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--ssh",
         default=None,
-        help="remote command wrapper for server checks (e.g. scripts/remote.sh)",
+        help="remote command wrapper for server checks (e.g. scripts/remote/remote.sh)",
     )
     parser.add_argument(
         "--docker-gid",

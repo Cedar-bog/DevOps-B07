@@ -18,8 +18,8 @@ archive.
 Exit status: 0 = pass, 1 = a secret was found, 2 = the scan could not run.
 
 用法
-    python3 scripts/secret_scan.py
-    python3 scripts/secret_scan.py --image e4-draft:241250022 \
+    python3 scripts/ops/secret_scan.py
+    python3 scripts/ops/secret_scan.py --image e4-draft:241250022 \
         --output work/<时间>/secret-scan.txt
 """
 
@@ -33,13 +33,14 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, Sequence
 
 SCHEMA_VERSION = "1.0"
 SERVICE = "draft"
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "scripts" / "lib"))
+from proc import git as git_command, now_iso, run as run_command, tail  # noqa: E402
 REDACT_PREFIX = 4
 MAX_SCAN_BYTES = 2 * 1024 * 1024
 DEFAULT_TIMEOUT_S = 60.0
@@ -199,12 +200,11 @@ class Surface:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return now_iso()
 
 
 def _tail(text: str) -> str:
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    return lines[-1] if lines else ""
+    return tail(text)
 
 
 def _run(
@@ -213,23 +213,7 @@ def _run(
     cwd: Path,
     timeout: float = DEFAULT_TIMEOUT_S,
 ) -> tuple[int, str, str]:
-    try:
-        proc = subprocess.run(
-            list(command),
-            cwd=str(cwd),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-        )
-    except FileNotFoundError:
-        return 127, "", f"executable not found: {command[0]}"
-    except subprocess.TimeoutExpired:
-        return 124, "", f"timeout after {timeout:g}s"
-    except OSError as exc:
-        return 126, "", str(exc)
-    return proc.returncode, proc.stdout or "", proc.stderr or ""
+    return run_command(command, cwd=cwd, timeout=timeout)
 
 
 def _git(
@@ -237,7 +221,7 @@ def _git(
     *args: str,
     timeout: float = DEFAULT_TIMEOUT_S,
 ) -> tuple[int, str, str]:
-    return _run(["git", *args], cwd=repo, timeout=timeout)
+    return git_command(repo, *args, timeout=timeout)
 
 
 def _allowlist_reason(path: str, pattern: str) -> str | None:
@@ -521,7 +505,7 @@ def _image_candidates(repo: Path, docker: str) -> list[str]:
 
 def _scanner_sha(repo: Path) -> str:
     try:
-        return hashlib.sha256((repo / "scripts" / "secret_scan.py").read_bytes()).hexdigest()
+        return hashlib.sha256((repo / "scripts" / "ops" / "secret_scan.py").read_bytes()).hexdigest()
     except OSError:
         return "unknown"
 

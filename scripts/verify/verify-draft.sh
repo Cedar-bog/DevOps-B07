@@ -4,38 +4,14 @@ set -Eeuo pipefail
 # E3-B07 DRAFT 验证：本地两层判据 + 远程服务器 docker 失败/参考成功两相。
 # 连接信息从仓库根 .env 读取；每次运行写入 evidence/draft/<UTC 时间戳>/，不覆盖历史。
 # 各相输出同时打印到终端并写入日志（日志剥离 ANSI 转义码）。
-# 用法：bash scripts/verify-draft.sh
+# 用法：bash scripts/verify/verify-draft.sh
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE="$ROOT/fixtures/draft"
 EVIDENCE="$ROOT/evidence/draft"
 
-ENV_FILE="$ROOT/.env"
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "缺少 $ENV_FILE（先复制 .env.example）" >&2
-  exit 2
-fi
-
-# Read only the keys this script needs. Do not source .env: sourcing executes
-# shell code and can expose secrets through xtrace or malformed-line errors.
-env_value() {
-  local key="$1" value
-  value="$(sed -n "s/^[[:space:]]*\(export[[:space:]]*\)\?${key}[[:space:]]*=[[:space:]]*//p" "$ENV_FILE" | tail -n 1 | tr -d '\r')"
-  value="${value%\"}"; value="${value#\"}"
-  value="${value%\'}"; value="${value#\'}"
-  printf '%s' "$value"
-}
-
-HUAWEI_HOST="$(env_value HUAWEI_HOST)"
-HUAWEI_USER="$(env_value HUAWEI_USER)"
-HUAWEI_PASSWORD="$(env_value HUAWEI_PASSWORD)"
-HUAWEI_PORT="$(env_value HUAWEI_PORT)"
-HUAWEI_PORT="${HUAWEI_PORT:-22}"
-
-: "${HUAWEI_HOST:?请在 .env 设置 HUAWEI_HOST}"
-: "${HUAWEI_USER:?请在 .env 设置 HUAWEI_USER}"
-: "${HUAWEI_PASSWORD:?请在 .env 设置 HUAWEI_PASSWORD}"
-command -v sshpass >/dev/null 2>&1 || { echo "缺少 sshpass" >&2; exit 1; }
+REMOTE="$ROOT/scripts/remote/remote.sh"
+[ -x "$REMOTE" ] || { echo "缺少可执行的 $REMOTE" >&2; exit 2; }
 
 RUN_ID="$(date -u '+%Y-%m-%dT%H-%M-%SZ')"
 RUN_DIR="$EVIDENCE/$RUN_ID"
@@ -46,49 +22,21 @@ fi
 mkdir -p "$RUN_DIR"
 
 REMOTE_DIR="/tmp/devops-b07-draft/$RUN_ID"
-SSH_OPTS=(-p "$HUAWEI_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
-TARGET="$HUAWEI_USER@$HUAWEI_HOST"
 BROKEN_TAG="nju-e3-draft-broken:$RUN_ID"
 REFERENCE_TAG="nju-e3-draft-reference:$RUN_ID"
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/draft.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
-ssh_do() { SSHPASS="$HUAWEI_PASSWORD" sshpass -e ssh "${SSH_OPTS[@]}" "$TARGET" "$@"; }
+ssh_do() { "$REMOTE" --shell "$1"; }
 
 git_commit="$(git -C "$ROOT" rev-parse HEAD)"
 started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-# 剥离 ANSI 颜色/控制码，日志保持纯文本
-strip_ansi() { sed -u -r -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/\r//g'; }
-
-run() {
-  printf '+'; printf ' %q' "$@"; printf '\n'
-  local rc=0
-  "$@" || rc=$?
-  printf 'exit_code: %s\n' "$rc"
-  return "$rc"
-}
-
-assert_eq() {
-  local expected="$1" actual="$2" label="$3"
-  if [[ "$expected" != "$actual" ]]; then
-    printf 'ASSERTION FAILED: %s (expected=%q actual=%q)\n' "$label" "$expected" "$actual" >&2
-    return 1
-  fi
-  printf 'assertion: %s = %q\n' "$label" "$actual"
-}
+source "$ROOT/scripts/lib/verify.sh"
 
 header() {
-  cat <<EOF
-# E3-B07 DRAFT verification log
-phase: $1
-started_at_utc: $started
-git_commit: $git_commit
-script_sha256: $(sha256sum "$ROOT/scripts/verify-draft.sh" | awk '{print $1}')
-fixture: fixtures/draft
-
-EOF
+  verify_header "E3-B07 DRAFT" "$1" "fixtures/draft" "$ROOT/scripts/verify/verify-draft.sh"
 }
 
 phase_build() {
@@ -198,9 +146,9 @@ ssh_do 'docker info >/dev/null 2>&1' || { echo "远程 docker 不可用（可能
 
 printf 'run_id: %s\n' "$RUN_ID"
 printf '==> build（本地）\n';                       phase_build
-printf '==> upload（tar -> server）\n' "$HUAWEI_HOST"
+printf '==> upload（tar -> server）\n'
 ssh_do "mkdir -p '$REMOTE_DIR'"
-tar -C "$FIXTURE" -cf - . | SSHPASS="$HUAWEI_PASSWORD" sshpass -e ssh "${SSH_OPTS[@]}" "$TARGET" "tar -C '$REMOTE_DIR' -xf -"
+tar -C "$FIXTURE" -cf - . | "$REMOTE" --shell "tar -C '$REMOTE_DIR' -xf -"
 printf '==> broken（远程 docker build，预期失败）\n'; phase_broken
 printf '==> reference（远程 docker build + run）\n';  phase_reference
 printf '==> meta\n';                                 write_meta

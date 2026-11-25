@@ -4,9 +4,9 @@ set -Eeuo pipefail
 # E3-B07 MDFixer 验证：在样例副本上应用四种参考补丁并观察行为，验证无效候选被拒绝。
 # 每次运行写入 evidence/md-fixer/<UTC 时间戳>/，不覆盖历史。
 # 各相输出同时打印到终端并写入日志。
-# 用法：bash scripts/verify-md-fixer.sh
+# 用法：bash scripts/verify/verify-md-fixer.sh
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE="$ROOT/fixtures/md-fixer"
 EVIDENCE="$ROOT/evidence/md-fixer"
 
@@ -24,41 +24,10 @@ trap 'rm -rf "$WORK"' EXIT
 git_commit="$(git -C "$ROOT" rev-parse HEAD)"
 started="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-strip_ansi() { sed -u -r 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
-
-run() {
-  printf '+'; printf ' %q' "$@"; printf '\n'
-  local rc=0
-  "$@" || rc=$?
-  printf 'exit_code: %s\n' "$rc"
-  return "$rc"
-}
-
-assert_eq() {
-  local expected="$1" actual="$2" label="$3"
-  if [[ "$expected" != "$actual" ]]; then
-    printf 'ASSERTION FAILED: %s (expected=%q actual=%q)\n' "$label" "$expected" "$actual" >&2
-    return 1
-  fi
-  printf 'assertion: %s = %q\n' "$label" "$actual"
-}
-
-assert_file_sha() {
-  local expected="$1" file="$2" label="$3" actual
-  actual="$(sha256sum "$file" | awk '{print $1}')"
-  assert_eq "$expected" "$actual" "$label"
-}
+source "$ROOT/scripts/lib/verify.sh"
 
 header() {
-  cat <<EOF
-# E3-B07 MDFixer verification log
-phase: $1
-started_at_utc: $started
-git_commit: $git_commit
-script_sha256: $(sha256sum "$ROOT/scripts/verify-md-fixer.sh" | awk '{print $1}')
-fixture: fixtures/md-fixer
-
-EOF
+  verify_header "E3-B07 MDFixer" "$1" "fixtures/md-fixer" "$ROOT/scripts/verify/verify-md-fixer.sh"
 }
 
 copy_sources() {

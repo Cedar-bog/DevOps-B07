@@ -13,40 +13,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts" / "lib"))
+from evidence import git, stamp, tool_version  # noqa: E402
+
 FIXTURE = ROOT / "fixtures" / "e10"
 SERVICE = ROOT / "services" / "md-fixer"
 DRAFT = ROOT / "services" / "draft"
-
-
-def _stamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
-
-
-def _git(root: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        [
-            "git", "-C", str(root),
-            "-c", "user.name=E10 CI",
-            "-c", "user.email=e10@example.invalid",
-            "-c", "commit.gpgsign=false",
-            *args,
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-
-def _tool(command: str) -> str:
-    try:
-        result = subprocess.run(
-            [command, "--version"], capture_output=True, text=True, timeout=10, check=False
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return "unavailable"
-    line = (result.stdout or result.stderr).splitlines()
-    return line[0].strip() if line else "unavailable"
 
 
 def _report(commit: str, line: int, declaration: str) -> dict:
@@ -84,12 +57,12 @@ def _report(commit: str, line: int, declaration: str) -> dict:
 def _prepare_project(out: Path) -> tuple[Path, dict]:
     project = out / "project"
     shutil.copytree(FIXTURE, project)
-    if any(item.returncode for item in (_git(project, "init", "-q"), _git(project, "add", "."))):
+    if any(item.returncode for item in (git(project, "init", "-q"), git(project, "add", "."))):
         raise RuntimeError("cannot initialize the E10 project")
-    commit_result = _git(project, "commit", "-qm", "e10 input")
+    commit_result = git(project, "commit", "-qm", "e10 input")
     if commit_result.returncode:
         raise RuntimeError(commit_result.stderr.strip() or "cannot commit the E10 project")
-    commit = _git(project, "rev-parse", "HEAD").stdout.strip()
+    commit = git(project, "rev-parse", "HEAD").stdout.strip()
     text = (project / "Makefile").read_text(encoding="utf-8")
     line = next(
         index for index, value in enumerate(text.splitlines(), 1)
@@ -102,7 +75,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default=None, help="artifact directory (default: work/e10-<timestamp>)")
     args = parser.parse_args()
-    out = Path(args.out).expanduser().resolve() if args.out else ROOT / "work" / f"e10-{_stamp()}"
+    out = Path(args.out).expanduser().resolve() if args.out else ROOT / "work" / f"e10-{stamp()}"
     out.mkdir(parents=True, exist_ok=True)
     project, report = _prepare_project(out)
     report_path = out / "report.json"
@@ -121,11 +94,11 @@ def main() -> int:
         "project_commit": report["repository"]["commit"],
         "python": sys.version,
         "platform": platform.platform(),
-        "make": _tool("make"),
-        "gcc": _tool("gcc"),
+        "make": tool_version("make"),
+        "gcc": tool_version("gcc"),
     }
     (out / "command.txt").write_text(
-        "python scripts/run_e10_gate.py --out " + str(out) + "\n", encoding="utf-8"
+        "python scripts/gates/run_e10_gate.py --out " + str(out) + "\n", encoding="utf-8"
     )
 
     try:

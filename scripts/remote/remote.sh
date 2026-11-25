@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Run a command on the runtime server described by .env.
-# Usage: scripts/remote.sh [--tty] [--shell] <command...>
+# Usage: scripts/remote/remote.sh [--tty] [--shell] <command...>
 #   default: each argument is quoted and passed as a separate argv entry
 #   --shell: the single argument is executed by the remote shell
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT/.env"
 
 if [[ ! -f "$ENV_FILE" ]]; then
