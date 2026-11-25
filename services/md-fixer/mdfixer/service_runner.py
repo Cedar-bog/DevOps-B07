@@ -338,6 +338,8 @@ def _resolve_report(
     pair, job, name = _artifact_path(uri)
     path = data_dir / "artifacts" / pair / job / name
     if path.is_file():
+        if path.suffix.lower() != ".json":
+            raise ServiceError("REPAIR_6003", "report artifact is not JSON")
         try:
             raw = path.read_bytes()
         except OSError as exc:
