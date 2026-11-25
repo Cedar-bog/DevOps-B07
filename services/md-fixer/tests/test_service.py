@@ -314,3 +314,17 @@ def test_artifact_endpoint_serves_file(tmp_path: Path):
         server.shutdown()
         server.server_close()
         service.stop()
+
+
+def test_report_type_is_checked(tmp_path: Path):
+    report = tmp_path / "artifacts" / "pair07" / "test" / "report.txt"
+    report.parent.mkdir(parents=True)
+    report.write_text("{}", encoding="utf-8")
+    with pytest.raises(service_runner.ServiceError) as exc:
+        service_runner._resolve_report(
+            tmp_path,
+            "artifact://pair07/test/report.txt",
+            "0" * 64,
+            None,
+        )
+    assert exc.value.code == "REPAIR_6003"
