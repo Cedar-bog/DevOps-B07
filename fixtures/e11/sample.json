@@ -1,0 +1,26 @@
+{
+  "baseline_commit": "7e99d2f00ee777655369f8d07e22c0fa4991270e",
+  "target_commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76",
+  "expected_output": "1",
+  "build_command": "make app",
+  "verify_command": "./app",
+  "missing": [
+    [
+      "main.o",
+      "config.h"
+    ],
+    [
+      "main.o",
+      "extra.h"
+    ]
+  ],
+  "redundant": [
+    [
+      "main.o",
+      "unused.h"
+    ]
+  ],
+  "makefile": "Makefile",
+  "makefile_line": 14,
+  "makefile_declaration": "main.o: main.c unused.h"
+}

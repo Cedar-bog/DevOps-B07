@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "trace_id": "trace-e11-draft",
+  "job_type": "DRAFT",
+  "input": {
+    "repository": {
+      "url": "http://b07-e11-sample:8000/repo.git",
+      "commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76"
+    },
+    "build": {
+      "command": "make app",
+      "workdir": "/app"
+    },
+    "verify": {
+      "command": "./app",
+      "expected_output": "1"
+    },
+    "max_iterations": 3,
+    "time_limit": 900,
+    "idempotency_key": "e11-draft-615c64f83a0a"
+  }
+}

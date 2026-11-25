@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "trace_id": "trace-e11-repair",
+  "job_type": "REPAIR",
+  "input": {
+    "repository": {
+      "url": "http://b07-e11-sample:8000/repo.git",
+      "commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76"
+    },
+    "commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76",
+    "md_report_uri": "artifact://pair07/e11-target/report.json",
+    "md_report_sha256": "ed90c450ed732d434c2cb7fe1475b74cbb955381a81b93f3ac3463f2e9ede810",
+    "makefile": "Makefile",
+    "env": {
+      "build": "make app",
+      "verify": "./app",
+      "verify_expected_output": "1"
+    },
+    "recheck": {
+      "header": "config.h",
+      "macro": "VALUE",
+      "old_value": "1",
+      "new_value": "2",
+      "target": "app",
+      "program": "./app",
+      "expected_output": "2",
+      "timeout_seconds": 120
+    },
+    "time_limit": 600,
+    "idempotency_key": "e11-repair-615c64f83a0a"
+  }
+}
