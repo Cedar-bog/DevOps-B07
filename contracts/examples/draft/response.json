@@ -30,6 +30,7 @@
       {
         "iteration": 1,
         "log": "[round 1] docker build failed: /bin/sh: 1: make: not found",
+        "log_file": "logs/round-01-build.log",
         "changes": "add build-essential to apt-get install",
         "rationale": "构建镜像缺少 make 工具链；依据首轮日志补全编译依赖后重试"
       },

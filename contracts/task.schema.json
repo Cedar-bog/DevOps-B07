@@ -63,8 +63,18 @@
       "description": "系统执行错误。检测发现写入 output，不写此处。",
       "properties": {
         "code": {
-          "enum": ["ENV_3002", "EXEC_4002", "ANALYSIS_5001"],
-          "description": "系统执行错误码。ENV_3002 镜像构建失败，EXEC_4002 任务超时，ANALYSIS_5001 分析器失败。"
+          "enum": [
+            "ENV_3002",
+            "EXEC_4002",
+            "ANALYSIS_5001",
+            "REPAIR_6000",
+            "REPAIR_6001",
+            "REPAIR_6002",
+            "REPAIR_6003",
+            "REPAIR_6004",
+            "REPAIR_6005"
+          ],
+          "description": "系统执行错误码。ENV_3002 镜像构建失败，EXEC_4002 任务超时，ANALYSIS_5001 分析器失败，REPAIR_6000 至 REPAIR_6005 为 B07 REPAIR 专有错误。"
         },
         "message": { "type": "string" },
         "details": { "type": ["object", "null"] }
@@ -96,7 +106,11 @@
                 "type": "object",
                 "required": ["command"],
                 "properties": {
-                  "command": { "type": "string", "minLength": 1, "description": "验证命令。" }
+                  "command": { "type": "string", "minLength": 1, "description": "验证命令。" },
+                  "expected_output": {
+                    "type": "string",
+                    "description": "验证命令的标准输出预期，比较时忽略末尾换行。"
+                  }
                 },
                 "additionalProperties": false
               },
@@ -119,7 +133,11 @@
                   "required": ["iteration", "log", "changes", "rationale"],
                   "properties": {
                     "iteration": { "type": "integer", "minimum": 1 },
-                    "log": { "type": "string", "description": "本轮构建日志。" },
+                    "log": { "type": "string", "description": "本轮构建日志的截断预览。" },
+                    "log_file": {
+                      "type": "string",
+                      "description": "相对任务目录的完整日志路径。"
+                    },
                     "changes": { "type": "string", "description": "本轮对 Dockerfile 的修改。" },
                     "rationale": { "type": "string", "description": "本轮修改的理由。" }
                   },
@@ -225,29 +243,66 @@
         "properties": {
           "input": {
             "type": "object",
-            "required": ["repository", "commit", "md_report_uri", "makefile", "env", "verify", "idempotency_key"],
+            "required": ["repository", "commit", "md_report_uri", "makefile", "env", "idempotency_key"],
             "properties": {
               "repository": { "$ref": "#/$defs/repository" },
               "commit": { "$ref": "#/$defs/commit" },
               "md_report_uri": { "$ref": "#/$defs/artifact_uri", "description": "MD 报告 URI，只消费 MISSING 类型。" },
-              "makefile": { "type": "string", "description": "Makefile 文本或路径。" },
+              "md_report_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "description": "报告文件的 SHA256；提供时服务在消费前核对。"
+              },
+              "makefile": { "type": "string", "description": "仓库内 Makefile 路径。" },
               "env": {
                 "type": "object",
                 "required": ["build", "verify"],
                 "properties": {
                   "build": { "type": "string", "minLength": 1, "description": "构建命令。" },
-                  "verify": { "type": "string", "minLength": 1, "description": "验证命令。" }
+                  "verify": { "type": "string", "minLength": 1, "description": "验证命令。" },
+                  "verify_expected_output": {
+                    "type": "string",
+                    "description": "验证命令的标准输出预期，比较时忽略末尾换行。"
+                  }
                 },
                 "additionalProperties": false
               },
-              "verify": { "type": "string", "minLength": 1, "description": "构建与验证命令。" },
+              "recheck": {
+                "type": "object",
+                "required": [
+                  "header",
+                  "macro",
+                  "old_value",
+                  "new_value",
+                  "target",
+                  "program",
+                  "expected_output"
+                ],
+                "properties": {
+                  "header": { "type": "string", "minLength": 1 },
+                  "macro": { "type": "string", "minLength": 1 },
+                  "old_value": { "type": "string" },
+                  "new_value": { "type": "string" },
+                  "target": { "type": "string", "minLength": 1 },
+                  "program": { "type": "string", "minLength": 1 },
+                  "expected_output": { "type": "string" },
+                  "timeout_seconds": { "type": "integer", "minimum": 1 }
+                },
+                "additionalProperties": false,
+                "description": "B07 内部增量重建参数；提供时执行修改头文件后的增量验证。"
+              },
+              "time_limit": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "任务时间限制，单位秒；缺省为服务默认值。"
+              },
               "idempotency_key": { "type": "string", "minLength": 1, "description": "幂等键。" }
             },
             "additionalProperties": false
           },
           "output": {
             "type": ["object", "null"],
-            "required": ["git_patch", "style_description", "recheck", "rejected_candidates"],
+            "required": ["git_patch", "style_description", "recheck", "rejected_candidates", "accepted", "validation"],
             "properties": {
               "git_patch": { "type": "string", "description": "生成的 Git Patch。" },
               "style_description": { "type": "string", "description": "声明风格说明。" },
@@ -257,7 +312,51 @@
                 "properties": {
                   "build": { "type": "string" },
                   "test": { "type": "string" },
-                  "detection": { "type": "string" }
+                  "detection": { "type": "string" },
+                  "incremental": {
+                    "type": "object",
+                    "required": [
+                      "ok",
+                      "header_change",
+                      "rebuilt",
+                      "build_ok",
+                      "program_ok",
+                      "observed_output",
+                      "expected_output",
+                      "error"
+                    ],
+                    "properties": {
+                      "ok": { "type": "boolean" },
+                      "header_change": { "type": "boolean" },
+                      "rebuilt": { "type": "boolean" },
+                      "build_ok": { "type": "boolean" },
+                      "program_ok": { "type": "boolean" },
+                      "observed_output": { "type": "string" },
+                      "expected_output": { "type": "string" },
+                      "error": { "type": ["string", "null"] }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "accepted": { "type": "boolean", "description": "补丁是否通过全部验证。" },
+              "validation": {
+                "type": "object",
+                "required": [
+                  "patch_applies",
+                  "build",
+                  "test",
+                  "no_missing",
+                  "redundant_preserved"
+                ],
+                "properties": {
+                  "patch_applies": { "type": "boolean" },
+                  "build": { "type": "boolean" },
+                  "test": { "type": "boolean" },
+                  "header_change": { "type": "boolean" },
+                  "no_missing": { "type": "boolean" },
+                  "redundant_preserved": { "type": "boolean" }
                 },
                 "additionalProperties": false
               },

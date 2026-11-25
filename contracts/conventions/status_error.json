@@ -1,6 +1,13 @@
 {
   "schema_version": "1.0",
-  "status": ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
+  "status": [
+    "QUEUED",
+    "RUNNING",
+    "SUCCEEDED",
+    "FAILED",
+    "TIMED_OUT",
+    "CANCELLED"
+  ],
   "status_definitions": {
     "QUEUED": "已接受，等待执行，output 为 null",
     "RUNNING": "执行中，output 为 null",
@@ -12,7 +19,13 @@
   "error_codes": {
     "ENV_3002": "镜像构建失败，平台共享",
     "EXEC_4002": "任务超时，平台共享",
-    "ANALYSIS_5001": "分析器失败，A07 专有"
+    "ANALYSIS_5001": "分析器失败，A07 专有",
+    "REPAIR_6000": "REPAIR 其他内部错误，B07 专有",
+    "REPAIR_6001": "报告版本或结构不符，B07 专有",
+    "REPAIR_6002": "报告提交与目标不符，B07 专有",
+    "REPAIR_6003": "产物类型不符，B07 专有",
+    "REPAIR_6004": "产物摘要不符，B07 专有",
+    "REPAIR_6005": "不支持的目标、路径或规则，B07 专有"
   },
   "semantics": "SUCCEEDED 表示检测正常完成，发现 MD 或 RD 写入 output 的 ERROR_REPORT，job.error 为 null；FAILED、TIMED_OUT 属系统执行失败，写入 job.error",
   "examples": [
@@ -22,7 +35,9 @@
       "trace_id": "trace-a7b9c1",
       "job_type": "FULL_CHECK",
       "status": "QUEUED",
-      "execution": { "created_at": "2026-09-10T10:00:00Z" },
+      "execution": {
+        "created_at": "2026-09-10T10:00:00Z"
+      },
       "input": {
         "repository": {
           "url": "https://github.com/example/clib",
@@ -137,8 +152,13 @@
           "url": "https://github.com/example/clib",
           "commit": "0123456789abcdef0123456789abcdef01234567"
         },
-        "build": { "command": "make", "workdir": "/app" },
-        "verify": { "command": "make test" },
+        "build": {
+          "command": "make",
+          "workdir": "/app"
+        },
+        "verify": {
+          "command": "make test"
+        },
         "max_iterations": 10,
         "time_limit": 1800,
         "idempotency_key": "draft-clib-01"
@@ -147,7 +167,10 @@
       "error": {
         "code": "ENV_3002",
         "message": "docker build failed: package libssl-dev not found in apt sources",
-        "details": { "image": "ubuntu:22.04", "step": 4 }
+        "details": {
+          "image": "ubuntu:22.04",
+          "step": 4
+        }
       }
     },
     {
@@ -170,15 +193,19 @@
         "commit": "0123456789abcdef0123456789abcdef01234567",
         "md_report_uri": "artifact://pair07/full01/error_report.json",
         "makefile": "Makefile",
-        "env": { "build": "make", "verify": "make test" },
-        "verify": "make test",
+        "env": {
+          "build": "make",
+          "verify": "make test"
+        },
         "idempotency_key": "repair-clib-01"
       },
       "output": null,
       "error": {
         "code": "EXEC_4002",
         "message": "job timed out after 1800s",
-        "details": { "time_limit": 1800 }
+        "details": {
+          "time_limit": 1800
+        }
       }
     },
     {
@@ -221,7 +248,10 @@
       "error": {
         "code": "ANALYSIS_5001",
         "message": "analyzer failed: cannot parse Makefile at line 12",
-        "details": { "file": "Makefile", "line": 12 }
+        "details": {
+          "file": "Makefile",
+          "line": 12
+        }
       }
     },
     {
