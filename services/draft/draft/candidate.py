@@ -232,6 +232,32 @@ def prepare_candidate(text: str, baseline: str) -> list[str]:
 check_candidate = prepare_candidate
 
 
+def basic_reasons(text: str) -> list[str]:
+    """Validate a Dockerfile generated without a preserved baseline.
+
+    Service mode may create a Dockerfile from scratch, so it cannot require the
+    exact FROM/WORKDIR/CMD values of a previous file. It still rejects malformed
+    instructions, multiple base images and destructive RUN commands.
+    """
+    instructions = _instructions(text)
+    reasons = []
+    if any(name not in _KNOWN for name, _ in instructions):
+        reasons.append("unknown or malformed Dockerfile instruction")
+    first = next((name for name, _ in instructions if name != "ARG"), None)
+    if first != "FROM":
+        reasons.append("first instruction other than ARG must be FROM")
+    sources = [args for name, args in instructions if name == "FROM"]
+    if len(sources) != 1:
+        reasons.append("exactly one FROM instruction is required")
+    if any(
+        _DANGEROUS_RUN.search(args)
+        for name, args in instructions
+        if name == "RUN"
+    ):
+        reasons.append("RUN must not delete project files or pipe downloads into a shell")
+    return reasons
+
+
 def select_candidate(
     candidates: Sequence[Candidate], *, used_sha256: Container[str], error_terms: Sequence[str],
     chooser: Callable[[Sequence[Candidate]], int] | None = None, baseline: str | None = None,
