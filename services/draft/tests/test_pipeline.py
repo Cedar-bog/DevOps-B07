@@ -52,7 +52,8 @@ def test_first_candidate_can_succeed(tmp_path, fixture_dir):
 
 def test_candidate_build_failure_never_runs_verification(tmp_path, fixture_dir):
     runner = FakeDocker([MISSING_MAKE, MISSING_MAKE])
-    outcome = run_repair(fixture_dir, out_dir=tmp_path / "run", llm=FakeLLM([reply(fixture_dir)]), runner=runner, max_iterations=1)
+    outcome = run_repair(fixture_dir, out_dir=tmp_path / "run", llm=FakeLLM([reply(fixture_dir)]), runner=runner,
+                         max_iterations=1)
     assert outcome.status == "FAILED" and outcome.error_code == "ENV_3002"
     assert outcome.rounds[0].verify is None
     assert not any(command[1] == "run" for command in runner.commands)
@@ -85,7 +86,8 @@ def test_verification_timeout_removes_container(tmp_path, fixture_dir):
 @pytest.mark.parametrize("run_result", [CommandResult(0, "wrong", "", 1), CommandResult(7, "hello E3\n", "failed", 1)])
 def test_verification_failure_has_no_build_error_code(tmp_path, fixture_dir, run_result):
     runner = FakeDocker([MISSING_MAKE, BUILD_OK], [run_result])
-    outcome = run_repair(fixture_dir, out_dir=tmp_path / "run", llm=FakeLLM([reply(fixture_dir)]), runner=runner, max_iterations=1)
+    outcome = run_repair(fixture_dir, out_dir=tmp_path / "run", llm=FakeLLM([reply(fixture_dir)]), runner=runner,
+                         max_iterations=1)
     assert outcome.status == "FAILED" and outcome.error_code is None
     assert payload(outcome)["error"]["code"] is None
 

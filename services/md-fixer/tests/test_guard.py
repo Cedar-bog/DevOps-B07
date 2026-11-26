@@ -77,6 +77,7 @@ def test_invalid_json_inputs(text, tmp_path):
 def test_env_paths_are_rejected_before_any_content_is_read(tmp_path, monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError("must not read this file")
+
     monkeypatch.setattr(Path, "read_text", forbidden)
     with pytest.raises(RepairError) as caught:
         load_report(tmp_path / ".ENV")

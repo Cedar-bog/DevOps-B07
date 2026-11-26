@@ -20,11 +20,11 @@ def tail(text: str) -> str:
 
 
 def run(
-    command: Sequence[str],
-    *,
-    cwd: Path,
-    timeout: float = DEFAULT_TIMEOUT_S,
-    strip: bool = False,
+        command: Sequence[str],
+        *,
+        cwd: Path,
+        timeout: float = DEFAULT_TIMEOUT_S,
+        strip: bool = False,
 ) -> tuple[int, str, str]:
     try:
         proc = subprocess.run(
@@ -51,9 +51,9 @@ def run(
 
 
 def git(
-    repo: Path,
-    *args: str,
-    timeout: float = DEFAULT_TIMEOUT_S,
-    strip: bool = False,
+        repo: Path,
+        *args: str,
+        timeout: float = DEFAULT_TIMEOUT_S,
+        strip: bool = False,
 ) -> tuple[int, str, str]:
     return run(["git", *args], cwd=repo, timeout=timeout, strip=strip)

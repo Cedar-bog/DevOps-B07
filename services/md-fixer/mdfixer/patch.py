@@ -35,7 +35,9 @@ def _recipe_uses(document: Makefile, variable: str) -> bool:
     def uses(text: str) -> bool:
         names, opaque = reference_usage(text)
         return opaque or any(document.distance(f"variable:{ref}", f"variable:{variable}") is not None for ref in names)
-    return any(uses(line) for line in document.text.splitlines() if line.startswith("\t")) or any(uses(rule.target_text) for rule in document.rules)
+
+    return any(uses(line) for line in document.text.splitlines() if line.startswith("\t")) or any(
+        uses(rule.target_text) for rule in document.rules)
 
 
 def _variable_for(document: Makefile, finding: Finding, report: Report) -> str | None:
@@ -55,14 +57,15 @@ def _variable_for(document: Makefile, finding: Finding, report: Report) -> str |
             candidates.append((distance, variable.line, name))
     for _, _, name in sorted(candidates):
         # A substitution reference is not a safe place to append a literal.
-        if any(f"$({name}:" in value for value in [rule.prerequisite_text, *(v.expression for v in document.variables.values())]):
+        if any(f"$({name}:" in value for value in
+               [rule.prerequisite_text, *(v.expression for v in document.variables.values())]):
             continue
         return name
     return None
 
 
 def _check_explicit(
-    before: Makefile, candidate: str, report: Report, *, accepted: set[str] | None = None,
+        before: Makefile, candidate: str, report: Report, *, accepted: set[str] | None = None,
 ) -> None:
     after = parse_makefile(candidate)
     if len(before.rules) != len(after.rules):
@@ -70,7 +73,7 @@ def _check_explicit(
     missing = [
         finding for finding in report.missing
         if not finding.rule.implicit
-        and (accepted is None or finding.finding_id in accepted)
+           and (accepted is None or finding.finding_id in accepted)
     ]
     allowed = {
         (target, finding.dependency)
@@ -93,14 +96,14 @@ def _check_explicit(
 
 
 def generate_patch(
-    project_root: Path | str,
-    report: Mapping | Path | str,
-    *,
-    makefile: str = "Makefile",
-    commit: str | None = None,
-    configuration_id: str | None = None,
-    llm=None,
-    collect_rejections: bool = False,
+        project_root: Path | str,
+        report: Mapping | Path | str,
+        *,
+        makefile: str = "Makefile",
+        commit: str | None = None,
+        configuration_id: str | None = None,
+        llm=None,
+        collect_rejections: bool = False,
 ) -> PatchResult:
     """Create a candidate against HEAD. ``llm`` implements complete(prompt).
 
@@ -126,12 +129,15 @@ def generate_patch(
         try:
             style = identify_style(rule)
             if finding.dependency in rule.prerequisites:
-                changes.append(Change(finding.finding_id, finding.target, finding.dependency, style.value, "already_declared", rule.line, "dependency already declared; no edit", changed=False))
+                changes.append(
+                    Change(finding.finding_id, finding.target, finding.dependency, style.value, "already_declared",
+                           rule.line, "dependency already declared; no edit", changed=False))
                 accepted.add(finding.finding_id)
                 continue
             variable = _variable_for(document, finding, validated) if style in {Style.MACRO, Style.HYBRID} else None
             if style == Style.MACRO and variable is None:
-                raise RepairError("UNSUPPORTED_TARGET", "no private variable can be edited while preserving macro style")
+                raise RepairError("UNSUPPORTED_TARGET",
+                                  "no private variable can be edited while preserving macro style")
             first = document.variables[variable].line if variable else rule.line
             last = document.variables[variable].end_line if variable else rule.end_line
             location = next((line for line in range(first, last + 1) if "|" in lines[line - 1].partition("#")[0]), last)
@@ -141,7 +147,8 @@ def generate_patch(
                 edits.add(key)
             affected = document.affected_targets(variable) if variable else finding.rule.targets
             reason = "append to a declaration variable; all affected targets request this dependency" if variable else "append to the existing target prerequisites; preserve variable references and existing dependencies"
-            changes.append(Change(finding.finding_id, finding.target, finding.dependency, style.value, "variable" if variable else "target", location, reason, variable, affected))
+            changes.append(Change(finding.finding_id, finding.target, finding.dependency, style.value,
+                                  "variable" if variable else "target", location, reason, variable, affected))
             accepted.add(finding.finding_id)
         except RepairError as exc:
             if not collect_rejections:
@@ -179,5 +186,6 @@ def generate_patch(
         fromfile=f"a/{source.name}", tofile=f"b/{source.name}",
     ))
     patch = f"diff --git a/{source.name} b/{source.name}\n{diff}" if diff else ""
-    plan = RepairPlan(source.commit, validated.configuration_id, source.name, source.sha256, tuple(changes), validated.ignored)
+    plan = RepairPlan(source.commit, validated.configuration_id, source.name, source.sha256, tuple(changes),
+                      validated.ignored)
     return PatchResult(patch, candidate, plan, tuple(rejected))

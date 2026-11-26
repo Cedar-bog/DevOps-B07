@@ -275,16 +275,17 @@ def save_job(directory: Path, name: str, job: dict[str, Any]) -> None:
     (directory / f"{name}.json").write_text(json.dumps(job, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def prepare_faults(base_report: dict[str, Any], base_request: dict[str, Any]) -> list[tuple[str, dict[str, Any], dict[str, Any], str]]:
+def prepare_faults(base_report: dict[str, Any], base_request: dict[str, Any]) -> list[
+    tuple[str, dict[str, Any], dict[str, Any], str]]:
     import copy
 
     cases: list[tuple[str, dict[str, Any], dict[str, Any], str]] = []
     for name, code, mutate in (
-        ("schema", "REPAIR_6001", lambda report: report.update(schema_version="2.0")),
-        ("stale", "REPAIR_6002", lambda report: (
-            report.update({"repository": {**report["repository"], "commit": "b" * 40}}),
-            [finding.update(commit="b" * 40) for finding in report["findings"]],
-        )),
+            ("schema", "REPAIR_6001", lambda report: report.update(schema_version="2.0")),
+            ("stale", "REPAIR_6002", lambda report: (
+                    report.update({"repository": {**report["repository"], "commit": "b" * 40}}),
+                    [finding.update(commit="b" * 40) for finding in report["findings"]],
+            )),
     ):
         report = copy.deepcopy(base_report)
         mutate(report)
@@ -343,7 +344,7 @@ def run(workspace: Path, out: Path, env: dict[str, str]) -> dict[str, Any]:
         ).format(url=env["LLM_API_URL"], key=env["LLM_API_KEY"], model=env["LLM_MODEL"]).encode())
         write_remote(f"{MDFIXER_DATA}/artifacts/pair07/e11-target/report.json", report_raw)
         write_remote(f"{MDFIXER_DATA}/artifacts/pair07/e11-macro/report.json", (
-            json.dumps(macro_report, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n"
+                json.dumps(macro_report, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n"
         ).encode())
 
         status, submitted = submit(remote_base, draft_request, DRAFT_PORT, headers=True)
@@ -379,13 +380,14 @@ def run(workspace: Path, out: Path, env: dict[str, str]) -> dict[str, Any]:
             raise E11Error(f"REPAIR was not accepted: {repair_job.get('status')}")
         validation = repair_output.get("validation") or {}
         if not all(validation.get(key) for key in (
-            "patch_applies", "build", "test", "header_change", "no_missing", "redundant_preserved"
+                "patch_applies", "build", "test", "header_change", "no_missing", "redundant_preserved"
         )):
             raise E11Error(f"REPAIR validation failed: {validation}")
         if not (repair_output.get("recheck", {}).get("incremental", {}).get("ok")):
             raise E11Error("REPAIR incremental recheck failed")
         (out / "repair" / "candidate.patch").write_text(repair_output.get("git_patch", ""), encoding="utf-8")
-        (out / "repair" / "validation.json").write_text(json.dumps(validation, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        (out / "repair" / "validation.json").write_text(json.dumps(validation, ensure_ascii=False, indent=2) + "\n",
+                                                        encoding="utf-8")
         summary["checks"]["repair"] = validation
 
         # Idempotency: same request returns the same job, changed commit conflicts.
@@ -414,7 +416,8 @@ def run(workspace: Path, out: Path, env: dict[str, str]) -> dict[str, Any]:
             case_request["input"]["idempotency_key"] = f"e11-fault-{name}-{run_id}"
             suffix = case[4] if len(case) > 4 else ".json"
             target = f"{MDFIXER_DATA}/artifacts/pair07/e11-target/{name}{suffix}"
-            write_remote(target, (json.dumps(case_report, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n").encode())
+            write_remote(target, (json.dumps(case_report, ensure_ascii=False, separators=(",", ":"),
+                                             sort_keys=True) + "\n").encode())
             status, submitted = submit(remote_base, case_request, MDFIXER_PORT)
             if status != 202:
                 raise E11Error(f"fault {name} submit returned {status}")

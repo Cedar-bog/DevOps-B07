@@ -42,7 +42,7 @@ def read_source_bytes(project_root: Path | str, makefile: str = "Makefile") -> t
 
 
 def source_unchanged(
-    project_root: Path | str, original: bytes, makefile: str = "Makefile"
+        project_root: Path | str, original: bytes, makefile: str = "Makefile"
 ) -> bool:
     try:
         _, current = read_source_bytes(project_root, makefile)
@@ -52,7 +52,7 @@ def source_unchanged(
 
 
 def rollback_source(
-    project_root: Path | str, original: bytes, makefile: str = "Makefile"
+        project_root: Path | str, original: bytes, makefile: str = "Makefile"
 ) -> RollbackResult:
     """Restore the original bytes if a failed transaction touched the source."""
     path, current = read_source_bytes(project_root, makefile)

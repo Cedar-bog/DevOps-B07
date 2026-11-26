@@ -71,7 +71,8 @@ def build_parser() -> argparse.ArgumentParser:
     repair.add_argument("--expected-output", default="hello E3")
     repair.add_argument("--docker", default="docker", help="Docker executable, without shell arguments")
     repair.add_argument("--candidate", type=Path, help="use a saved Dockerfile without calling an LLM")
-    repair.add_argument("--apt-mirror", default=os.environ.get("APT_MIRROR", "repo.huaweicloud.com"), help="build-only apt mirror hostname")
+    repair.add_argument("--apt-mirror", default=os.environ.get("APT_MIRROR", "repo.huaweicloud.com"),
+                        help="build-only apt mirror hostname")
     repair.add_argument("--no-cache", action="store_true")
     repair.add_argument("--json", action="store_true", help="print result.json to stdout")
     repair.add_argument("--progress", action="store_true", help="write progress events to stderr")

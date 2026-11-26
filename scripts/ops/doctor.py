@@ -27,6 +27,7 @@ TIMEOUT_S = 15.0
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "lib"))
 from proc import git as git_command, now_iso, run as run_command  # noqa: E402
+
 DEFAULT_SOCKET = "/var/run/docker.sock"
 LOCAL_TOOLS = ("git", "make")
 WINDOWS = os.name == "nt"
@@ -51,10 +52,10 @@ def _version(text: str) -> str | None:
 
 
 def _run(
-    command: Sequence[str],
-    *,
-    cwd: Path,
-    timeout: float = TIMEOUT_S,
+        command: Sequence[str],
+        *,
+        cwd: Path,
+        timeout: float = TIMEOUT_S,
 ) -> tuple[int, str, str]:
     return run_command(command, cwd=cwd, timeout=timeout, strip=True)
 
@@ -175,8 +176,8 @@ def _ssh_disk(ssh: str, repo: Path, path: str) -> dict[str, Any]:
         return {"path": path, "error": f"unexpected df output: {out}"}
     return {
         "path": fields[5],
-        "free_gb": round(free_kb / (1024**2), 2),
-        "total_gb": round(total_kb / (1024**2), 2),
+        "free_gb": round(free_kb / (1024 ** 2), 2),
+        "total_gb": round(total_kb / (1024 ** 2), 2),
     }
 
 
@@ -209,18 +210,18 @@ def _local_disk(repo: Path) -> dict[str, Any]:
         return {"error": str(exc)}
     return {
         "path": str(repo),
-        "free_gb": round(usage.free / (1024**3), 2),
-        "total_gb": round(usage.total / (1024**3), 2),
+        "free_gb": round(usage.free / (1024 ** 3), 2),
+        "total_gb": round(usage.total / (1024 ** 3), 2),
     }
 
 
 def collect(
-    repo: Path,
-    *,
-    docker: str = "docker",
-    ssh: str | None = None,
-    expected_gid: str | None = None,
-    socket_path: str = DEFAULT_SOCKET,
+        repo: Path,
+        *,
+        docker: str = "docker",
+        ssh: str | None = None,
+        expected_gid: str | None = None,
+        socket_path: str = DEFAULT_SOCKET,
 ) -> dict[str, Any]:
     checks: list[dict[str, str]] = []
 
@@ -360,7 +361,7 @@ def collect(
     else:
         add("docker-server", "fail", docker_server.get("error") or "Docker server is unreachable")
     if docker_server["cpus"]:
-        mem_gb = round((docker_server["memory_bytes"] or 0) / (1024**3), 2)
+        mem_gb = round((docker_server["memory_bytes"] or 0) / (1024 ** 3), 2)
         add("server-resources", "ok", f"{docker_server['cpus']} cpus, {mem_gb} GiB memory")
 
     if ssh:

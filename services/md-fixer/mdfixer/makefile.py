@@ -201,7 +201,9 @@ def parse_makefile(text: str, *, allow_includes: bool = False) -> Makefile:
                 expression = (old.expression + " " + expression).strip()
             document.variables[name] = Variable(name, operator, value, start, index, simple, expression)
             continue
-        if declaration.startswith(("include ", "-include ", "sinclude ", "ifeq", "ifneq", "ifdef", "ifndef", "else", "endif", "define ", "endef", "export ", "override ", "vpath ")):
+        if declaration.startswith(
+                ("include ", "-include ", "sinclude ", "ifeq", "ifneq", "ifdef", "ifndef", "else", "endif", "define ",
+                 "endef", "export ", "override ", "vpath ")):
             if allow_includes and declaration.startswith(("include ", "-include ", "sinclude ")):
                 continue
             raise RepairError("UNSUPPORTED_TARGET", "includes, conditionals and directives are unsupported")
@@ -209,7 +211,8 @@ def parse_makefile(text: str, *, allow_includes: bool = False) -> Makefile:
         masked = _REF.sub("VAR", declaration)
         if masked.count(":") != 1 or ";" in masked or "&:" in masked:
             raise RepairError("UNSUPPORTED_TARGET", "unsupported Make declaration")
-        colon = next(i for i, c in enumerate(declaration) if c == ":" and not any(m.start() <= i < m.end() for m in _REF.finditer(declaration)))
+        colon = next(i for i, c in enumerate(declaration) if
+                     c == ":" and not any(m.start() <= i < m.end() for m in _REF.finditer(declaration)))
         lhs, rhs = declaration[:colon].strip(), declaration[colon + 1:].strip()
         if not lhs or "=" in _REF.sub("VAR", rhs):
             raise RepairError("UNSUPPORTED_TARGET", "unsupported rule or target-specific variable")
@@ -218,8 +221,10 @@ def parse_makefile(text: str, *, allow_includes: bool = False) -> Makefile:
     for variable in document.variables.values():
         document.expand(f"$({variable.name})")  # Reject cycles/functions even in unused declarations.
         document.graph[f"variable:{variable.name}"] = {
-            f"variable:{ref}" for ref in references(variable.expression)
-        } | {f"file:{word}" for word in document.expand(f"$({variable.name})").replace("|", " ").split()}
+                                                          f"variable:{ref}" for ref in references(variable.expression)
+                                                      } | {f"file:{word}" for word in
+                                                           document.expand(f"$({variable.name})").replace("|",
+                                                                                                          " ").split()}
     for lhs, rhs, start, end, recipes in raw_rules:
         refs = (*references(lhs), *references(rhs))
         reachable = list(refs)

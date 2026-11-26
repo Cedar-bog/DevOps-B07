@@ -23,11 +23,11 @@ def relative_path(value: object) -> str:
         raise RepairError("UNSAFE_PATH", "expected a nonempty relative path")
     path = PurePosixPath(value)
     if (
-        path.is_absolute() or PureWindowsPath(value).drive
-        or "\\" in value or ".." in path.parts
-        or any(p.lower() in {".git", ".env"} or p.lower().startswith(".env.") for p in path.parts)
-        or not re.fullmatch(r"[A-Za-z0-9_./+@-]+", value)
-        or value.startswith("-") or any(p.startswith("-") for p in path.parts)
+            path.is_absolute() or PureWindowsPath(value).drive
+            or "\\" in value or ".." in path.parts
+            or any(p.lower() in {".git", ".env"} or p.lower().startswith(".env.") for p in path.parts)
+            or not re.fullmatch(r"[A-Za-z0-9_./+@-]+", value)
+            or value.startswith("-") or any(p.startswith("-") for p in path.parts)
     ):
         raise RepairError("UNSAFE_PATH", "path must be a literal path inside the project")
     return path.as_posix()
@@ -87,7 +87,7 @@ class Source:
 
 
 def read_source(
-    project_root: Path | str, makefile: str = "Makefile", *, commit: str | None = None,
+        project_root: Path | str, makefile: str = "Makefile", *, commit: str | None = None,
 ) -> Source:
     """Require a tracked, unchanged Makefile at the requested project HEAD.
 

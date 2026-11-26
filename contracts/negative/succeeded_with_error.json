@@ -1,12 +1,21 @@
 {
   "id": "succeeded_with_error",
   "description": "检测任务正常完成却带系统错误，必须被拒绝。",
-  "source": { "file": "conventions/status_error.json", "pointer": "/examples/2" },
+  "source": {
+    "file": "conventions/status_error.json",
+    "pointer": "/examples/2"
+  },
   "mutate": {
     "op": "set",
     "pointer": "/error",
-    "value": { "code": "ANALYSIS_5001", "message": "conflated a finding with a tool failure" }
+    "value": {
+      "code": "ANALYSIS_5001",
+      "message": "conflated a finding with a tool failure"
+    }
   },
-  "expect": { "pointer": "/error", "keyword": "null-required" },
+  "expect": {
+    "pointer": "/error",
+    "keyword": "null-required"
+  },
   "owner": "B07"
 }

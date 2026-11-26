@@ -196,15 +196,15 @@ def validate_request(payload: object) -> dict[str, Any]:
             raise ValidationError(f"recheck.{name} must be a string")
     timeout_seconds = recheck.get("timeout_seconds")
     if timeout_seconds is not None and (
-        not isinstance(timeout_seconds, int)
-        or isinstance(timeout_seconds, bool)
-        or timeout_seconds < 1
+            not isinstance(timeout_seconds, int)
+            or isinstance(timeout_seconds, bool)
+            or timeout_seconds < 1
     ):
         raise ValidationError("recheck.timeout_seconds must be a positive integer")
 
     time_limit = data.get("time_limit")
     if time_limit is not None and (
-        not isinstance(time_limit, int) or isinstance(time_limit, bool) or time_limit < 1
+            not isinstance(time_limit, int) or isinstance(time_limit, bool) or time_limit < 1
     ):
         raise ValidationError("time_limit must be a positive integer")
 
@@ -330,10 +330,10 @@ def _fetch_report(url: str) -> tuple[bytes, str | None, str | None]:
 
 
 def _resolve_report(
-    data_dir: Path,
-    uri: str,
-    expected_sha256: str | None,
-    artifact_base_url: str | None,
+        data_dir: Path,
+        uri: str,
+        expected_sha256: str | None,
+        artifact_base_url: str | None,
 ) -> dict:
     pair, job, name = _artifact_path(uri)
     path = data_dir / "artifacts" / pair / job / name
@@ -415,13 +415,13 @@ def _rejected(patch: str, reason: str) -> dict[str, str]:
 
 
 def _validation(
-    *,
-    patch_applies: bool = False,
-    build: bool = False,
-    test: bool = False,
-    header_change: bool | None = None,
-    no_missing: bool = False,
-    redundant_preserved: bool = False,
+        *,
+        patch_applies: bool = False,
+        build: bool = False,
+        test: bool = False,
+        header_change: bool | None = None,
+        no_missing: bool = False,
+        redundant_preserved: bool = False,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "patch_applies": patch_applies,
@@ -440,11 +440,11 @@ def _build_payload(ok: bool, command: str, log: str) -> dict[str, Any]:
 
 
 def _test_payload(
-    ok: bool,
-    command: str,
-    log: str,
-    observed: str,
-    expected: str | None,
+        ok: bool,
+        command: str,
+        log: str,
+        observed: str,
+        expected: str | None,
 ) -> dict[str, Any]:
     return {
         "ok": ok,
@@ -456,10 +456,10 @@ def _test_payload(
 
 
 def _detection_payload(
-    ok: bool,
-    message: str,
-    missing: tuple[tuple[str, str], ...] = (),
-    redundant: tuple[tuple[str, str], ...] = (),
+        ok: bool,
+        message: str,
+        missing: tuple[tuple[str, str], ...] = (),
+        redundant: tuple[tuple[str, str], ...] = (),
 ) -> dict[str, Any]:
     return {
         "ok": ok,
@@ -483,13 +483,13 @@ def _incremental_not_run(expected: str) -> dict[str, Any]:
 
 
 def _validation(
-    *,
-    patch_applies: bool = False,
-    build: bool = False,
-    test: bool = False,
-    header_change: bool = False,
-    no_missing: bool = False,
-    redundant_preserved: bool = False,
+        *,
+        patch_applies: bool = False,
+        build: bool = False,
+        test: bool = False,
+        header_change: bool = False,
+        no_missing: bool = False,
+        redundant_preserved: bool = False,
 ) -> dict[str, Any]:
     return {
         "patch_applies": patch_applies,
@@ -502,16 +502,16 @@ def _validation(
 
 
 def _output(
-    patch: str,
-    style: str,
-    *,
-    build: Mapping[str, Any],
-    test: Mapping[str, Any],
-    detection: Mapping[str, Any],
-    incremental: Mapping[str, Any],
-    rejected: list[dict[str, str]],
-    validation: Mapping[str, Any],
-    accepted: bool = False,
+        patch: str,
+        style: str,
+        *,
+        build: Mapping[str, Any],
+        test: Mapping[str, Any],
+        detection: Mapping[str, Any],
+        incremental: Mapping[str, Any],
+        rejected: list[dict[str, str]],
+        validation: Mapping[str, Any],
+        accepted: bool = False,
 ) -> dict[str, Any]:
     return {
         "git_patch": patch,
@@ -529,13 +529,13 @@ def _output(
 
 
 def run_contract_repair(
-    data: Mapping[str, Any],
-    llm: LLMClient | None,
-    job_id: str,
-    work_dir: Path,
-    data_dir: Path,
-    *,
-    artifact_base_url: str | None = None,
+        data: Mapping[str, Any],
+        llm: LLMClient | None,
+        job_id: str,
+        work_dir: Path,
+        data_dir: Path,
+        *,
+        artifact_base_url: str | None = None,
 ) -> dict[str, Any]:
     deadline = time.monotonic() + float(data.get("time_limit", TASK_TIMEOUT))
     work_dir.mkdir(parents=True, exist_ok=True)

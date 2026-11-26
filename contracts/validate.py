@@ -323,7 +323,8 @@ def main() -> int:
         result = run_fixture(fixture, schema)
         expect = fixture["expect"]
         ok = result.rejected and result.matched
-        print(f"  {'PASS' if ok else 'FAIL'}  {fixture['id']}  ->  {expect['pointer']}  {expect['keyword']}  (owner={fixture['owner']})")
+        print(
+            f"  {'PASS' if ok else 'FAIL'}  {fixture['id']}  ->  {expect['pointer']}  {expect['keyword']}  (owner={fixture['owner']})")
         if not ok:
             print(f"        实际: {result.observed or '未被拒绝'}")
             failures += 1

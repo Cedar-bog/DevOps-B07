@@ -60,7 +60,8 @@ def prepare_project(paths: RunPaths, fixture_dir: Path | str) -> Path:
     fixture = Path(fixture_dir).expanduser().resolve()
     if paths.root.resolve().is_relative_to(fixture):
         raise ValueError("output directory must be outside the fixture directory")
-    shutil.copytree(fixture, paths.project, ignore=shutil.ignore_patterns(".git", ".env", ".env.*", ".venv", "__pycache__"))
+    shutil.copytree(fixture, paths.project,
+                    ignore=shutil.ignore_patterns(".git", ".env", ".env.*", ".venv", "__pycache__"))
     return paths.project
 
 

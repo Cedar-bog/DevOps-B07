@@ -38,7 +38,7 @@ def _nonempty(value: object) -> bool:
 
 
 def validate_report(
-    payload: Mapping, source: Source, document: Makefile, *, configuration_id: str | None = None,
+        payload: Mapping, source: Source, document: Makefile, *, configuration_id: str | None = None,
 ) -> Report:
     def invalid(message: str) -> None:
         raise RepairError("INVALID_REPORT", message)
@@ -48,7 +48,8 @@ def validate_report(
     if set(payload) - {"schema_version", "repository", "configuration_id", "producer_job_id", "findings"}:
         invalid("unknown report fields")
     repository = payload.get("repository")
-    if not isinstance(repository, Mapping) or set(repository) != {"url", "commit"} or not _nonempty(repository.get("url")):
+    if not isinstance(repository, Mapping) or set(repository) != {"url", "commit"} or not _nonempty(
+            repository.get("url")):
         invalid("repository requires url and commit")
     try:
         url = urlsplit(repository["url"])
@@ -74,7 +75,8 @@ def validate_report(
     missing, ignored = [], []
     ids: set[str] = set()
     edges: set[tuple[str, str]] = set()
-    allowed = {"finding_id", "type", "target", "dependency", "commit", "position", "detector", "configuration_id", "evidence_uri"}
+    allowed = {"finding_id", "type", "target", "dependency", "commit", "position", "detector", "configuration_id",
+               "evidence_uri"}
     for item in items:
         if not isinstance(item, Mapping) or set(item) - allowed:
             invalid("unknown or invalid finding fields")

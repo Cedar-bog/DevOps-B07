@@ -4,7 +4,9 @@ from mdfixer.guard import RepairError
 from mdfixer.makefile import parse_makefile, reference_usage, references
 from mdfixer.style import Style, identify_style
 
-@pytest.mark.parametrize("style,expected", [("target", Style.DIRECT), ("macro", Style.MACRO), ("hybrid", Style.HYBRID), ("implicit", Style.IMPLICIT)])
+
+@pytest.mark.parametrize("style,expected", [("target", Style.DIRECT), ("macro", Style.MACRO), ("hybrid", Style.HYBRID),
+                                            ("implicit", Style.IMPLICIT)])
 def test_original_styles_and_declared_graph(style, expected, fixture_root):
     document = parse_makefile((fixture_root / "styles" / style / "Makefile.before").read_text())
     rule = next(r for r in document.rules if r.stem("main.o") is not None)
@@ -16,7 +18,8 @@ def test_original_styles_and_declared_graph(style, expected, fixture_root):
 
 
 def test_nested_variables_continuations_comments_and_order_only():
-    document = parse_makefile("HEADER = config.h\nDEPS := main.c $(HEADER)\nDEPS += unused.h\nmain.o: $(DEPS) \\\n other.h | generated # keep this comment\n\tcc -c $< -o $@\n")
+    document = parse_makefile(
+        "HEADER = config.h\nDEPS := main.c $(HEADER)\nDEPS += unused.h\nmain.o: $(DEPS) \\\n other.h | generated # keep this comment\n\tcc -c $< -o $@\n")
     rule = document.rules[0]
     assert rule.prerequisites == ("main.c", "config.h", "unused.h", "other.h")
     assert rule.order_only == ("generated",)
@@ -25,7 +28,8 @@ def test_nested_variables_continuations_comments_and_order_only():
 
 
 def test_recursive_simple_conditional_and_append_semantics():
-    document = parse_makefile("A = first.h\nB := $(A)\nC = $(A)\nA = last.h\nA ?= ignored.h\nB += extra.h\nmain.o: $(B) $(C)\n")
+    document = parse_makefile(
+        "A = first.h\nB := $(A)\nC = $(A)\nA = last.h\nA ?= ignored.h\nB += extra.h\nmain.o: $(B) $(C)\n")
     assert document.rules[0].prerequisites == ("first.h", "extra.h", "last.h")
 
 

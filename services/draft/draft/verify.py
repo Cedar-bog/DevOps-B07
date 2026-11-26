@@ -56,8 +56,8 @@ def outputs_match(actual: str, expected: str) -> bool:
 
 
 def remove_container(
-    container_name: str, *, docker: str = "docker", runner: Runner | None = None,
-    attempts: int = CLEANUP_ATTEMPTS, delay: float = CLEANUP_DELAY,
+        container_name: str, *, docker: str = "docker", runner: Runner | None = None,
+        attempts: int = CLEANUP_ATTEMPTS, delay: float = CLEANUP_DELAY,
 ) -> bool:
     for attempt in range(max(1, attempts)):
         try:
@@ -74,10 +74,10 @@ def remove_container(
 
 
 def run_image(
-    image_id: str, *, expected_output: str, container_name: str,
-    cidfile: Path | str | None = None, docker: str = "docker", network: str = "none",
-    cpus: str = DEFAULT_CPU, memory: str = DEFAULT_MEMORY, pids_limit: int = DEFAULT_PIDS,
-    timeout: float = DEFAULT_VERIFY_TIMEOUT, runner: Runner | None = None,
+        image_id: str, *, expected_output: str, container_name: str,
+        cidfile: Path | str | None = None, docker: str = "docker", network: str = "none",
+        cpus: str = DEFAULT_CPU, memory: str = DEFAULT_MEMORY, pids_limit: int = DEFAULT_PIDS,
+        timeout: float = DEFAULT_VERIFY_TIMEOUT, runner: Runner | None = None,
 ) -> VerifyResult:
     if not image_id or not image_id.startswith("sha256:"):
         raise DockerError("verification requires a sha256: image ID")

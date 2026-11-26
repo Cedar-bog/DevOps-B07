@@ -60,12 +60,12 @@ def _remove_readonly(function, path, exc_info) -> None:
 
 
 def create_sandbox(
-    project_root: Path | str,
-    destination: Path | str | None = None,
-    *,
-    ignore: tuple[str, ...] = (
-        ".venv", "__pycache__", ".pytest_cache", "work", "evidence", ".env", ".env.*",
-    ),
+        project_root: Path | str,
+        destination: Path | str | None = None,
+        *,
+        ignore: tuple[str, ...] = (
+                ".venv", "__pycache__", ".pytest_cache", "work", "evidence", ".env", ".env.*",
+        ),
 ) -> Path:
     """Copy a project into an independent sandbox and return its path."""
     root = Path(project_root).expanduser().resolve()

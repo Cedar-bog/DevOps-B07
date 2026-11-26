@@ -25,7 +25,8 @@ def test_patch_matches_independent_e3_reference(project, fixture_root, snapshot,
     assert result.plan.changes[0].style == {"target": "direct", "macro": "macro", "hybrid": "hybrid"}[style]
     json.dumps(result.to_payload())
     # Syntax/applicability only; no candidate is applied to the source project.
-    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "--ignore-space-change", "-"], input=result.git_patch.encode(), capture_output=True)
+    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "--ignore-space-change", "-"],
+                           input=result.git_patch.encode(), capture_output=True)
     assert check.returncode == 0, check.stderr.decode()
 
 
@@ -64,7 +65,8 @@ def test_shared_hybrid_variable_is_retained_and_target_only_is_patched(project):
 def test_shared_variable_can_change_when_all_affected_targets_request_edge(project):
     root, report = project(text="DEPS = main.c unused.h\nmain.o: $(DEPS)\nother.o: $(DEPS)\n")
     other = deepcopy(report["findings"][0])
-    other.update(finding_id="other", target="other.o", position={"file": "Makefile", "line": 3, "declaration": "other.o: $(DEPS)"})
+    other.update(finding_id="other", target="other.o",
+                 position={"file": "Makefile", "line": 3, "declaration": "other.o: $(DEPS)"})
     report["findings"].append(other)
     result = generate_patch(root, report)
     assert result.candidate_text.count("config.h") == 1
@@ -150,7 +152,8 @@ def test_crlf_candidate_retains_newlines_and_patch_uses_lf(project):
     result = generate_patch(root, report)
     assert result.candidate_text == "main.o: main.c unused.h config.h\r\n\tcc -c $< -o $@\r\n"
     assert "\r" not in result.git_patch
-    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "--ignore-space-change", "-"], input=result.git_patch.encode(), capture_output=True)
+    check = subprocess.run(["git", "-C", str(root), "apply", "--check", "--ignore-space-change", "-"],
+                           input=result.git_patch.encode(), capture_output=True)
     assert check.returncode == 0, check.stderr.decode()
 
 
@@ -177,7 +180,8 @@ def test_make_confirms_missing_dependency_is_before_order_only_separator(project
     assert "main.o: main.c config.h | unused.h" in database.splitlines()
 
 
-@pytest.mark.parametrize("recipe", ["cc -c $S -o $@", "cc -c $(S) -o $@", "cc -c ${S} -o $@", "cc -c $($(WHICH)) -o $@"])
+@pytest.mark.parametrize("recipe",
+                         ["cc -c $S -o $@", "cc -c $(S) -o $@", "cc -c ${S} -o $@", "cc -c $($(WHICH)) -o $@"])
 def test_recipe_used_or_computed_macro_is_not_modified(project, snapshot, recipe):
     root, report = project(text="S = main.c\nWHICH = S\nmain.o: $(S)\n\t" + recipe + "\n")
     before = snapshot(root)

@@ -57,12 +57,12 @@ class LLMRequestError(LLMError):
     """The LLM endpoint could not be reached or returned an error status."""
 
     def __init__(
-        self,
-        message: str,
-        *,
-        status: int | None = None,
-        endpoint: str | None = None,
-        detail: str = "",
+            self,
+            message: str,
+            *,
+            status: int | None = None,
+            endpoint: str | None = None,
+            detail: str = "",
     ) -> None:
         super().__init__(message)
         self.status = status
@@ -231,7 +231,7 @@ def parse_env_file(path: Path | str) -> dict[str, str]:
         if not line or line.startswith("#"):
             continue
         if line.startswith("export "):
-            line = line[len("export ") :].lstrip()
+            line = line[len("export "):].lstrip()
         if "=" not in line:
             continue
         key, value = line.split("=", 1)
@@ -250,9 +250,9 @@ def parse_env_file(path: Path | str) -> dict[str, str]:
 
 
 def load_config(
-    *,
-    env_file: Path | str | None = None,
-    environ: Mapping[str, str] | None = None,
+        *,
+        env_file: Path | str | None = None,
+        environ: Mapping[str, str] | None = None,
 ) -> LLMConfig:
     """Load and validate LLM settings.
 
@@ -402,18 +402,18 @@ class LLMClient:
     """
 
     def __init__(
-        self, config: LLMConfig, *, transport: Transport | None = None
+            self, config: LLMConfig, *, transport: Transport | None = None
     ) -> None:
         self.config = config
         self._transport = transport or urllib_transport
 
     @classmethod
     def from_env(
-        cls,
-        *,
-        env_file: Path | str | None = None,
-        environ: Mapping[str, str] | None = None,
-        transport: Transport | None = None,
+            cls,
+            *,
+            env_file: Path | str | None = None,
+            environ: Mapping[str, str] | None = None,
+            transport: Transport | None = None,
     ) -> "LLMClient":
         """Build a client from environment variables (and optional ``.env``)."""
         return cls(
@@ -422,10 +422,10 @@ class LLMClient:
         )
 
     def chat(
-        self,
-        messages: Sequence[Mapping[str, Any]],
-        *,
-        timeout: float | None = None,
+            self,
+            messages: Sequence[Mapping[str, Any]],
+            *,
+            timeout: float | None = None,
     ) -> LLMResponse:
         """Send a chat message list and return the unmodified assistant reply."""
         if not messages:
@@ -516,11 +516,11 @@ class LLMClient:
         )
 
     def complete(
-        self,
-        prompt: str,
-        *,
-        system: str | None = None,
-        timeout: float | None = None,
+            self,
+            prompt: str,
+            *,
+            system: str | None = None,
+            timeout: float | None = None,
     ) -> LLMResponse:
         """Send one user prompt, optionally preceded by a system message."""
         if not isinstance(prompt, str):

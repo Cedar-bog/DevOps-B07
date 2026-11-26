@@ -16,7 +16,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable
 
-from .candidate import CandidateError, apt_mirror_variant, extract_candidates, history_digest, prepare_candidate, select_candidate
+from .candidate import CandidateError, apt_mirror_variant, extract_candidates, history_digest, prepare_candidate, \
+    select_candidate
 from .docker import DEFAULT_BUILD_TIMEOUT, DockerError, Runner, build_image, clean_log, remove_image
 from .llm import LLMClient, LLMError, display_endpoint
 from .prompt import PROMPT_VERSION, build_choice_prompt, build_context_prompt, build_error_prompt
@@ -34,7 +35,7 @@ _APT_PACKAGE_RE = re.compile(
     re.IGNORECASE,
 )
 _BUILD_STEP_RE = re.compile(r"^#\d+\s+\[(\d+/\d+)\]")
-_BYTE_UNITS = {"b": 1, "kb": 1024, "mb": 1024**2, "gb": 1024**3, "tb": 1024**4}
+_BYTE_UNITS = {"b": 1, "kb": 1024, "mb": 1024 ** 2, "gb": 1024 ** 3, "tb": 1024 ** 4}
 
 
 def _to_bytes(amount: str, unit: str) -> float:
@@ -148,13 +149,13 @@ def _error_terms(log: str) -> list[str]:
     # Extract concrete dependency/package terms, not generic words such as 'error'.
     terms = []
     for pattern in (
-        r"(?:/bin/sh:\s*\d+:\s*)?([\w.+-]+): (?:command )?not found",
-        r"unable to locate package\s+([\w.+-]+)",
-        r"([\w.+-]+): no such file or directory",
-        r"([\w.+-]+)\s+is not specified",
-        r"no matching distribution found for\s+([\w.+-]+)",
-        r"failed to execute\s+([\w.+-]+)",
-        r"file not found[:\s]+([\w./+-]+)",
+            r"(?:/bin/sh:\s*\d+:\s*)?([\w.+-]+): (?:command )?not found",
+            r"unable to locate package\s+([\w.+-]+)",
+            r"([\w.+-]+): no such file or directory",
+            r"([\w.+-]+)\s+is not specified",
+            r"no matching distribution found for\s+([\w.+-]+)",
+            r"failed to execute\s+([\w.+-]+)",
+            r"file not found[:\s]+([\w./+-]+)",
     ):
         terms.extend(re.findall(pattern, log, re.IGNORECASE))
     return list(dict.fromkeys(term.lower() for term in terms if term.strip()))
@@ -189,13 +190,13 @@ def _verify_record(verify, paths, directory):
 
 
 def run_repair(
-    fixture_dir: Path | str, *, out_dir: Path | str | None = None, llm,
-    initial_dockerfile: str = "Dockerfile.broken", prompt_mode: str = "context",
-    docker: str = "docker", max_iterations: int = 3,
-    build_timeout: float = DEFAULT_BUILD_TIMEOUT, verify_timeout: float = DEFAULT_VERIFY_TIMEOUT,
-    expected_output: str = "hello E3", no_cache: bool = False, chooser=None,
-    runner: Runner | None = None, now=None, progress: Callable[[dict], None] | None = None,
-    apt_mirror: str | None = None,
+        fixture_dir: Path | str, *, out_dir: Path | str | None = None, llm,
+        initial_dockerfile: str = "Dockerfile.broken", prompt_mode: str = "context",
+        docker: str = "docker", max_iterations: int = 3,
+        build_timeout: float = DEFAULT_BUILD_TIMEOUT, verify_timeout: float = DEFAULT_VERIFY_TIMEOUT,
+        expected_output: str = "hello E3", no_cache: bool = False, chooser=None,
+        runner: Runner | None = None, now=None, progress: Callable[[dict], None] | None = None,
+        apt_mirror: str | None = None,
 ) -> RepairOutcome:
     fixture_arg = str(fixture_dir)
     fixture = Path(fixture_dir).expanduser().resolve()
@@ -357,7 +358,8 @@ def run_repair(
         initial_dir.mkdir()
         _text(initial_dir / "Dockerfile", baseline)
         emit("initial_build", status="start")
-        initial = build_with_progress("initial_build", 0, context_dir=paths.project, docker=docker, timeout=build_timeout, no_cache=no_cache, runner=runner, now=now)
+        initial = build_with_progress("initial_build", 0, context_dir=paths.project, docker=docker,
+                                      timeout=build_timeout, no_cache=no_cache, runner=runner, now=now)
         emit(
             "initial_build", status="end", exit_code=initial.exit_code,
             failure_class=initial.failure_class, timed_out=initial.timed_out,

@@ -1,8 +1,17 @@
 {
   "id": "incremental_missing_baseline",
   "description": "删除增量检测任务的 baseline，必须被拒绝。",
-  "source": { "file": "conventions/status_error.json", "pointer": "/examples/5" },
-  "mutate": { "op": "delete", "pointer": "/input/baseline" },
-  "expect": { "pointer": "/input", "keyword": "required" },
+  "source": {
+    "file": "conventions/status_error.json",
+    "pointer": "/examples/5"
+  },
+  "mutate": {
+    "op": "delete",
+    "pointer": "/input/baseline"
+  },
+  "expect": {
+    "pointer": "/input",
+    "keyword": "required"
+  },
   "owner": "A07"
 }

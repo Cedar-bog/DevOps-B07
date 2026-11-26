@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO = Path(__file__).resolve().parents[3]
 FIXTURE = REPO / "fixtures" / "md-fixer"
 E10_FIXTURE = REPO / "fixtures" / "e10"
@@ -36,7 +35,8 @@ def project(tmp_path):
         (root / "Makefile").write_bytes(content.encode())
         git(root, "init", "-q")
         git(root, "add", ".")
-        git(root, "-c", "user.name=E9 Test", "-c", "user.email=e9@example.invalid", "-c", "commit.gpgsign=false", "commit", "-qm", "test input")
+        git(root, "-c", "user.name=E9 Test", "-c", "user.email=e9@example.invalid", "-c", "commit.gpgsign=false",
+            "commit", "-qm", "test input")
         commit = git(root, "rev-parse", "HEAD")
         report = json.loads((FIXTURE / "fixed-md-report.json").read_text())
         report["repository"]["commit"] = commit
@@ -54,14 +54,17 @@ def project(tmp_path):
             ),
             next(line for line in content.splitlines() if ":" in line and "=" not in line),
         )
-        finding["position"] = {"file": "Makefile", "line": content.splitlines().index(declaration) + 1, "declaration": declaration}
+        finding["position"] = {"file": "Makefile", "line": content.splitlines().index(declaration) + 1,
+                               "declaration": declaration}
         return root, report
+
     return create
 
 
 @pytest.fixture
 def e10_project(tmp_path):
     """Committed fixture with an app target and a MISSING config.h edge."""
+
     def create():
         root = tmp_path / f"e10-project-{len(list(tmp_path.iterdir()))}"
         root.mkdir()
@@ -119,13 +122,16 @@ def e10_project(tmp_path):
             ],
         }
         return root, report
+
     return create
 
 
 @pytest.fixture
 def snapshot():
     def capture(root):
-        return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file() and ".git" not in p.relative_to(root).parts}
+        return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if
+                p.is_file() and ".git" not in p.relative_to(root).parts}
+
     return capture
 
 
@@ -145,9 +151,11 @@ def make_query(tmp_path):
         # no credentials enter a test result or failure message.
         environ = {name: os.environ[name] for name in ("SystemRoot", "COMSPEC") if name in os.environ}
         result = subprocess.run(
-            [executable, "--no-builtin-rules", "--no-builtin-variables", "--no-print-directory", "-f", str(path), "-n" if preview else "-pq", target],
+            [executable, "--no-builtin-rules", "--no-builtin-variables", "--no-print-directory", "-f", str(path),
+             "-n" if preview else "-pq", target],
             cwd=root, env=environ, capture_output=True, timeout=10,
         )
         assert result.returncode in {0, 1}, result.stderr.decode(errors="replace")
         return result.stdout.decode(errors="replace")
+
     return query
