@@ -81,6 +81,25 @@ def test_validate_request_rejects_invalid(mutate):
         validate_request(payload)
 
 
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda p: p["input"].update(makefile="   "),
+        lambda p: p["input"]["env"].update(build=" "),
+        lambda p: p["input"]["env"].update(verify=" "),
+        lambda p: p["input"]["recheck"].update(header=" "),
+        lambda p: p["input"]["recheck"].update(macro=" "),
+        lambda p: p["input"]["recheck"].update(target=" "),
+        lambda p: p["input"]["recheck"].update(program=" "),
+    ],
+)
+def test_validate_request_rejects_blank_internal_fields(mutate):
+    payload = request()
+    mutate(payload)
+    with pytest.raises(ValueError):
+        validate_request(payload)
+
+
 def test_llm_headers_optional():
     assert _llm_from_headers({}) is None
     config = _llm_from_headers({

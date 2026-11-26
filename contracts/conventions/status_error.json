@@ -21,11 +21,11 @@
     "EXEC_4002": "任务超时，平台共享",
     "ANALYSIS_5001": "分析器失败，A07 专有",
     "REPAIR_6000": "REPAIR 其他内部错误，B07 专有",
-    "REPAIR_6001": "报告版本或结构不符，B07 专有",
+    "REPAIR_6001": "报告不存在、过大、读取失败、版本或结构不符，B07 专有",
     "REPAIR_6002": "报告提交与目标不符，B07 专有",
     "REPAIR_6003": "产物类型不符，B07 专有",
     "REPAIR_6004": "产物摘要不符，B07 专有",
-    "REPAIR_6005": "不支持的目标、路径或规则，B07 专有"
+    "REPAIR_6005": "不支持的目标、路径、规则，或产物不可访问，B07 专有"
   },
   "semantics": "SUCCEEDED 表示检测正常完成，发现 MD 或 RD 写入 output 的 ERROR_REPORT，job.error 为 null；FAILED、TIMED_OUT 属系统执行失败，写入 job.error",
   "examples": [

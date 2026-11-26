@@ -168,10 +168,13 @@
                   "command": {
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "构建命令。"
                   },
                   "workdir": {
                     "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
                     "description": "工作目录。"
                   }
                 },
@@ -186,6 +189,7 @@
                   "command": {
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "验证命令。"
                   },
                   "expected_output": {
@@ -524,11 +528,13 @@
               "md_report_sha256": {
                 "type": "string",
                 "pattern": "^[0-9a-f]{64}$",
-                "description": "报告文件的 SHA256；提供时服务在消费前核对。"
+                "description": "报告文件的 SHA256；服务在消费前核对。"
               },
               "makefile": {
                 "type": "string",
-                "description": "仓库内 Makefile 路径。"
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "仓库内 Makefile 路径。执行阶段还会校验是否为已跟踪文件、是否通过符号链接逃出项目、是否位于 .git 或 .env 等位置。"
               },
               "env": {
                 "type": "object",
@@ -540,11 +546,13 @@
                   "build": {
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "构建命令。"
                   },
                   "verify": {
                     "type": "string",
                     "minLength": 1,
+                    "pattern": "\\S",
                     "description": "验证命令。"
                   },
                   "verify_expected_output": {
@@ -568,11 +576,13 @@
                 "properties": {
                   "header": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "\\S"
                   },
                   "macro": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "\\S"
                   },
                   "old_value": {
                     "type": "string"
@@ -582,11 +592,13 @@
                   },
                   "target": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "\\S"
                   },
                   "program": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "\\S"
                   },
                   "expected_output": {
                     "type": "string"
