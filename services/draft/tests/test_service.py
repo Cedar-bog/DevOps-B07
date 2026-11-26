@@ -65,6 +65,22 @@ def test_validate_request_rejects_invalid(mutate):
         validate_request(payload)
 
 
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda p: p["input"]["build"].update(command=" "),
+        lambda p: p["input"]["build"].update(workdir=""),
+        lambda p: p["input"]["build"].update(workdir=" "),
+        lambda p: p["input"]["verify"].update(command=" "),
+    ],
+)
+def test_validate_request_rejects_blank_internal_fields(mutate):
+    payload = request()
+    mutate(payload)
+    with pytest.raises(ValidationError):
+        validate_request(payload)
+
+
 def test_basic_candidate_reasons():
     assert basic_reasons("FROM ubuntu:22.04\nWORKDIR /app\nCOPY . .\nRUN make\n") == []
     assert basic_reasons("RUN make\n")
