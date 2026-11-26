@@ -37,22 +37,57 @@ class JobStore:
         with self._connect() as db:
             db.execute(
                 """
-                CREATE TABLE IF NOT EXISTS jobs (
-                    job_id TEXT PRIMARY KEY,
-                    trace_id TEXT NOT NULL,
-                    job_type TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    queued_at TEXT,
-                    started_at TEXT,
-                    finished_at TEXT,
-                    input_json TEXT NOT NULL,
-                    output_json TEXT,
-                    error_json TEXT,
-                    idempotency_key TEXT NOT NULL UNIQUE,
-                    input_hash TEXT NOT NULL,
-                    work_dir TEXT,
-                    runner TEXT NOT NULL
+                CREATE TABLE IF NOT EXISTS jobs
+                (
+                    job_id
+                    TEXT
+                    PRIMARY
+                    KEY,
+                    trace_id
+                    TEXT
+                    NOT
+                    NULL,
+                    job_type
+                    TEXT
+                    NOT
+                    NULL,
+                    status
+                    TEXT
+                    NOT
+                    NULL,
+                    created_at
+                    TEXT
+                    NOT
+                    NULL,
+                    queued_at
+                    TEXT,
+                    started_at
+                    TEXT,
+                    finished_at
+                    TEXT,
+                    input_json
+                    TEXT
+                    NOT
+                    NULL,
+                    output_json
+                    TEXT,
+                    error_json
+                    TEXT,
+                    idempotency_key
+                    TEXT
+                    NOT
+                    NULL
+                    UNIQUE,
+                    input_hash
+                    TEXT
+                    NOT
+                    NULL,
+                    work_dir
+                    TEXT,
+                    runner
+                    TEXT
+                    NOT
+                    NULL
                 )
                 """
             )
@@ -90,14 +125,14 @@ class JobStore:
         ).fetchone()
 
     def create(
-        self,
-        trace_id: str,
-        data: Mapping[str, Any],
-        idempotency_key: str,
-        work_dir: Path,
-        *,
-        runner: str = "draft-service",
-        job_id: str | None = None,
+            self,
+            trace_id: str,
+            data: Mapping[str, Any],
+            idempotency_key: str,
+            work_dir: Path,
+            *,
+            runner: str = "draft-service",
+            job_id: str | None = None,
     ) -> dict[str, Any]:
         digest = input_hash(data)
         with self._lock, self._connect() as db:
@@ -113,10 +148,9 @@ class JobStore:
             created = now_iso()
             db.execute(
                 """
-                INSERT INTO jobs (
-                    job_id, trace_id, job_type, status, created_at, queued_at,
-                    input_json, idempotency_key, input_hash, work_dir, runner
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO jobs (job_id, trace_id, job_type, status, created_at, queued_at,
+                                  input_json, idempotency_key, input_hash, work_dir, runner)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job_id,
@@ -152,27 +186,33 @@ class JobStore:
             db.execute(
                 """
                 UPDATE jobs
-                SET status = ?, output_json = ?, error_json = NULL, finished_at = ?
+                SET status      = ?,
+                    output_json = ?,
+                    error_json  = NULL,
+                    finished_at = ?
                 WHERE job_id = ?
                 """,
                 ("SUCCEEDED", json.dumps(output, ensure_ascii=False, sort_keys=True), now_iso(), job_id),
             )
 
     def fail(
-        self,
-        job_id: str,
-        code: str,
-        message: str,
-        *,
-        details: Mapping[str, Any] | None = None,
-        status: str = "FAILED",
+            self,
+            job_id: str,
+            code: str,
+            message: str,
+            *,
+            details: Mapping[str, Any] | None = None,
+            status: str = "FAILED",
     ) -> None:
         error = {"code": code, "message": message, "details": dict(details or {})}
         with self._lock, self._connect() as db:
             db.execute(
                 """
                 UPDATE jobs
-                SET status = ?, error_json = ?, output_json = NULL, finished_at = ?
+                SET status      = ?,
+                    error_json  = ?,
+                    output_json = NULL,
+                    finished_at = ?
                 WHERE job_id = ?
                 """,
                 (status, json.dumps(error, ensure_ascii=False, sort_keys=True), now_iso(), job_id),
@@ -192,7 +232,9 @@ class JobStore:
                 db.execute(
                     """
                     UPDATE jobs
-                    SET status = ?, error_json = ?, finished_at = ?
+                    SET status      = ?,
+                        error_json  = ?,
+                        finished_at = ?
                     WHERE job_id = ?
                     """,
                     ("FAILED", json.dumps(error, ensure_ascii=False), now_iso(), row["job_id"]),

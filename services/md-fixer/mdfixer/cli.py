@@ -27,8 +27,8 @@ def _default_fixture_dir() -> Path:
 def _smoke_output_path(value: str) -> Path:
     target = Path(value).expanduser().resolve()
     if any(
-        part.lower() == ".env" or part.lower().startswith(".env.")
-        for part in target.parts
+            part.lower() == ".env" or part.lower().startswith(".env.")
+            for part in target.parts
     ):
         raise ValueError("output must not be a sensitive path")
     repo = find_repo_root(Path(__file__)).resolve()
@@ -166,8 +166,8 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
 def _output_path(value: str, project: Path, label: str) -> Path:
     target = Path(value).expanduser().resolve()
     if any(
-        part.lower() == ".env" or part.lower().startswith(".env.")
-        for part in target.parts
+            part.lower() == ".env" or part.lower().startswith(".env.")
+            for part in target.parts
     ):
         raise ValueError(f"{label} must not be a sensitive path")
     if target.is_relative_to(project):
@@ -224,8 +224,8 @@ def _cmd_generate(args: argparse.Namespace) -> int:
 def _read_patch(value: str) -> str:
     target = Path(value).expanduser().resolve()
     if any(
-        part.lower() == ".env" or part.lower().startswith(".env.")
-        for part in target.parts
+            part.lower() == ".env" or part.lower().startswith(".env.")
+            for part in target.parts
     ):
         raise ValueError("patch input must not be a sensitive path")
     if not target.is_file():
@@ -261,7 +261,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     try:
         output = _smoke_output_path(args.out) if args.out else None
         if output is not None and (
-            output == project or output.is_relative_to(project)
+                output == project or output.is_relative_to(project)
         ):
             raise ValueError("--out must be outside the project")
         common = {

@@ -150,7 +150,8 @@ def extract_candidates(reply: str, *, expected: int = EXPECTED_CANDIDATES) -> li
             stripped = line.strip()
             instruction = _INSTRUCTION.match(stripped)
             name = instruction.group(1).upper() if instruction else None
-            if name == "FROM" and not continued and any(re.match(r"\s*FROM\s+", item, re.IGNORECASE) for item in current):
+            if name == "FROM" and not continued and any(
+                    re.match(r"\s*FROM\s+", item, re.IGNORECASE) for item in current):
                 flush()
             if continued or name in _KNOWN or (current and (not stripped or stripped.startswith("#"))):
                 if not current:
@@ -190,9 +191,9 @@ def prepare_candidate(text: str, baseline: str) -> list[str]:
     sources = [args for name, args in instructions if name == "FROM"]
     baseline_sources = [args for name, args in original if name == "FROM"]
     if (
-        len(sources) != 1
-        or len(baseline_sources) != 1
-        or not _from_matches(sources[0], baseline_sources[0])
+            len(sources) != 1
+            or len(baseline_sources) != 1
+            or not _from_matches(sources[0], baseline_sources[0])
     ):
         reasons.append("FROM must keep the baseline image; only a digest may be added")
     protected = {"WORKDIR", "COPY", "CMD", "ENTRYPOINT"}
@@ -250,17 +251,17 @@ def basic_reasons(text: str) -> list[str]:
     if len(sources) != 1:
         reasons.append("exactly one FROM instruction is required")
     if any(
-        _DANGEROUS_RUN.search(args)
-        for name, args in instructions
-        if name == "RUN"
+            _DANGEROUS_RUN.search(args)
+            for name, args in instructions
+            if name == "RUN"
     ):
         reasons.append("RUN must not delete project files or pipe downloads into a shell")
     return reasons
 
 
 def select_candidate(
-    candidates: Sequence[Candidate], *, used_sha256: Container[str], error_terms: Sequence[str],
-    chooser: Callable[[Sequence[Candidate]], int] | None = None, baseline: str | None = None,
+        candidates: Sequence[Candidate], *, used_sha256: Container[str], error_terms: Sequence[str],
+        chooser: Callable[[Sequence[Candidate]], int] | None = None, baseline: str | None = None,
 ) -> Selection:
     if not candidates:
         raise CandidateError("no valid candidates after checks")
@@ -282,7 +283,8 @@ def select_candidate(
     winners = [group for group in groups.values() if len(group) == largest]
     if largest >= 2 and len(winners) == 1:
         group = winners[0]
-        return choose(min(group, key=lambda item: item.index), "R2", f"R2: candidates {[item.index for item in group]} match after continuation normalization")
+        return choose(min(group, key=lambda item: item.index), "R2",
+                      f"R2: candidates {[item.index for item in group]} match after continuation normalization")
     terms = [term.lower().strip() for term in error_terms if term.strip()]
     base = (baseline or "").lower()
 

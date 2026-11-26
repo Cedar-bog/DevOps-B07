@@ -158,16 +158,16 @@ def test_config_repr_hides_api_key():
         ("https://api.example.com/", "https://api.example.com/v1/chat/completions"),
         ("https://api.example.com/v1", "https://api.example.com/v1/chat/completions"),
         (
-            "https://api.example.com/v1/chat/completions",
-            "https://api.example.com/v1/chat/completions",
+                "https://api.example.com/v1/chat/completions",
+                "https://api.example.com/v1/chat/completions",
         ),
         (
-            "https://api.example.com/openai/v1/chat/completions",
-            "https://api.example.com/openai/v1/chat/completions",
+                "https://api.example.com/openai/v1/chat/completions",
+                "https://api.example.com/openai/v1/chat/completions",
         ),
         (
-            "https://api.example.com/custom",
-            "https://api.example.com/custom/chat/completions",
+                "https://api.example.com/custom",
+                "https://api.example.com/custom/chat/completions",
         ),
     ],
 )
@@ -177,8 +177,8 @@ def test_chat_endpoint_variants(url, expected):
 
 def test_display_endpoint_removes_query():
     assert (
-        display_endpoint("https://api.example.com/v1/chat/completions?key=secret")
-        == "https://api.example.com/v1/chat/completions"
+            display_endpoint("https://api.example.com/v1/chat/completions?key=secret")
+            == "https://api.example.com/v1/chat/completions"
     )
 
 

@@ -25,8 +25,8 @@ def _simple(document: Makefile, rule: Rule) -> bool:
         return False
     clean = [r for r in document.rules if r.targets == ("clean",)]
     return (
-        len(clean) == 1 and len(clean[0].recipes) == 1
-        and document.text.splitlines()[clean[0].recipes[0] - 1] == "\trm -f $(TARGET) $(OBJS)"
+            len(clean) == 1 and len(clean[0].recipes) == 1
+            and document.text.splitlines()[clean[0].recipes[0] - 1] == "\trm -f $(TARGET) $(OBJS)"
     )
 
 
@@ -119,7 +119,8 @@ def is_simple_rule(document: Makefile, rule: Rule) -> bool:
     return _simple(document, rule)
 
 
-def generate_implicit(text: str, document: Makefile, findings: tuple[Finding, ...], *, llm=None) -> tuple[str, list[Change]]:
+def generate_implicit(text: str, document: Makefile, findings: tuple[Finding, ...], *, llm=None) -> tuple[
+    str, list[Change]]:
     simple = tuple(item for item in findings if _simple(document, item.rule))
     complex_findings = tuple(item for item in findings if item not in simple)
     changes: list[Change] = []

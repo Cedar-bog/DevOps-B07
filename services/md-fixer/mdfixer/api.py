@@ -181,7 +181,7 @@ class MdfixerService:
 
     def cleanup(self) -> int:
         cutoff = (
-            datetime.now(timezone.utc) - JOB_RETENTION
+                datetime.now(timezone.utc) - JOB_RETENTION
         ).strftime("%Y-%m-%dT%H:%M:%SZ")
         removed = self.store.cleanup(cutoff)
         for item in removed:

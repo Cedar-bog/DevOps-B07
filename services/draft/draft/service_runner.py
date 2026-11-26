@@ -157,11 +157,11 @@ def _remaining(deadline: float) -> float:
 
 
 def _run(
-    command: list[str],
-    *,
-    runner: Runner | None,
-    timeout: float,
-    cwd: Path | None = None,
+        command: list[str],
+        *,
+        runner: Runner | None,
+        timeout: float,
+        cwd: Path | None = None,
 ) -> CommandResult:
     try:
         return (runner or default_runner)(command, cwd or Path.cwd(), timeout)
@@ -285,13 +285,13 @@ def _repair_prompt(current: str, failure_log: str, repo: Path, data: Mapping[str
 
 
 def _ask_candidates(
-    client: LLMClient,
-    prompt: str,
-    current: str,
-    *,
-    used: set[str],
-    failure_log: str,
-    deadline: float,
+        client: LLMClient,
+        prompt: str,
+        current: str,
+        *,
+        used: set[str],
+        failure_log: str,
+        deadline: float,
 ):
     _remaining(deadline)
     try:
@@ -331,12 +331,12 @@ def _ask_candidates(
 
 
 def _start_container(
-    image_id: str,
-    workdir: str,
-    *,
-    docker: str,
-    runner: Runner | None,
-    timeout: float,
+        image_id: str,
+        workdir: str,
+        *,
+        docker: str,
+        runner: Runner | None,
+        timeout: float,
 ) -> tuple[str, CommandResult]:
     name = f"b07-draft-{uuid4().hex[:12]}"
     command = [
@@ -351,13 +351,13 @@ def _start_container(
 
 
 def _exec(
-    name: str,
-    workdir: str,
-    command: str,
-    *,
-    docker: str,
-    runner: Runner | None,
-    timeout: float,
+        name: str,
+        workdir: str,
+        command: str,
+        *,
+        docker: str,
+        runner: Runner | None,
+        timeout: float,
 ) -> CommandResult:
     return _run(
         [docker, "exec", "-w", workdir, name, "sh", "-lc", command],
@@ -367,12 +367,12 @@ def _exec(
 
 
 def _build_verify(
-    image_id: str,
-    data: Mapping[str, Any],
-    *,
-    docker: str,
-    runner: Runner | None,
-    deadline: float,
+        image_id: str,
+        data: Mapping[str, Any],
+        *,
+        docker: str,
+        runner: Runner | None,
+        deadline: float,
 ) -> tuple[bool, str, str]:
     workdir = data["build"]["workdir"]
     timeout = min(VERIFY_TIMEOUT, _remaining(deadline))
@@ -423,13 +423,13 @@ def _write_round_log(work_dir: Path, iteration: int, stage: str, text: str) -> s
 
 
 def run_contract_repair(
-    data: Mapping[str, Any],
-    client: LLMClient,
-    job_id: str,
-    work_dir: Path,
-    *,
-    docker: str = "docker",
-    runner: Runner | None = None,
+        data: Mapping[str, Any],
+        client: LLMClient,
+        job_id: str,
+        work_dir: Path,
+        *,
+        docker: str = "docker",
+        runner: Runner | None = None,
 ) -> RepairOutcome:
     started = time.monotonic()
     deadline = started + int(data["time_limit"])

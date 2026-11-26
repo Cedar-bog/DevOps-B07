@@ -83,11 +83,11 @@ class FakeHTTPError(Exception):
     """
 
     def __init__(
-        self,
-        status: int = 500,
-        message: str = "fake HTTP error",
-        *,
-        body: bytes | None = None,
+            self,
+            status: int = 500,
+            message: str = "fake HTTP error",
+            *,
+            body: bytes | None = None,
     ) -> None:
         super().__init__(message)
         self.status = status
@@ -270,11 +270,11 @@ class FakeLLM:
         return item
 
     def _response_for(
-        self,
-        item: Any,
-        messages: Sequence[Mapping[str, Any]],
-        *,
-        timeout: float | None,
+            self,
+            item: Any,
+            messages: Sequence[Mapping[str, Any]],
+            *,
+            timeout: float | None,
     ) -> LLMResponse:
         item = self._resolve(item, messages)
         if isinstance(item, FakeHTTPError):
@@ -323,11 +323,11 @@ class FakeLLM:
         )
 
     def complete(
-        self,
-        prompt: str,
-        *,
-        system: str | None = None,
-        timeout: float | None = None,
+            self,
+            prompt: str,
+            *,
+            system: str | None = None,
+            timeout: float | None = None,
     ) -> LLMResponse:
         """Return the next scripted reply for one user prompt."""
         messages: list[dict[str, Any]] = []
@@ -337,10 +337,10 @@ class FakeLLM:
         return self.chat(messages, timeout=timeout)
 
     def chat(
-        self,
-        messages: Sequence[Mapping[str, Any]],
-        *,
-        timeout: float | None = None,
+            self,
+            messages: Sequence[Mapping[str, Any]],
+            *,
+            timeout: float | None = None,
     ) -> LLMResponse:
         """Return the next scripted reply for a message list."""
         if not messages:
@@ -389,11 +389,11 @@ class FakeLLM:
         return HTTPResponse(status=response.status, body=response.raw_response.encode("utf-8"))
 
     def client(
-        self,
-        *,
-        timeout: float = DEFAULT_TIMEOUT,
-        max_tokens: int | None = None,
-        temperature: float | None = None,
+            self,
+            *,
+            timeout: float = DEFAULT_TIMEOUT,
+            max_tokens: int | None = None,
+            temperature: float | None = None,
     ) -> LLMClient:
         """Return a real :class:`LLMClient` wired to this fake transport."""
         config = LLMConfig(

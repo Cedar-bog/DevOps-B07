@@ -71,9 +71,10 @@ def default_runner(command: list[str], cwd: Path, timeout: float) -> CommandResu
     except subprocess.TimeoutExpired as exc:
         def decode(value):
             return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
+
         return CommandResult(
             -1, decode(exc.stdout), decode(exc.stderr) + f"\nTimeout after {timeout:g}s\n",
-            time.monotonic() - started, True,
+                                    time.monotonic() - started, True,
         )
 
 
@@ -85,8 +86,8 @@ def _invoke(runner: Runner, command: list[str], cwd: Path, timeout: float) -> Co
 
 
 def streaming_runner(
-    command: list[str], cwd: Path, timeout: float,
-    on_line: Callable[[str], None] | None = None,
+        command: list[str], cwd: Path, timeout: float,
+        on_line: Callable[[str], None] | None = None,
 ) -> CommandResult:
     """Run a command while forwarding each output line to a callback."""
     if not math.isfinite(timeout) or timeout <= 0:
@@ -180,11 +181,11 @@ def classify_failure(log: str, exit_code: int, timed_out: bool) -> str:
     if "make: not found" in lower or "make: command not found" in lower:
         return "MISSING_MAKE"
     if any(s in lower for s in ("unable to locate package",)) or re.search(
-        r"(?m)^(?:#\d+\s+[0-9.]+\s+)?E:\s", log
+            r"(?m)^(?:#\d+\s+[0-9.]+\s+)?E:\s", log
     ) or re.search(r"apt-get[^\n]*returned a non-zero code", lower):
         return "APT_ERROR"
     if any(s in lower for s in (
-        "temporary failure resolving", "i/o timeout", "connection reset", "tls handshake timeout",
+            "temporary failure resolving", "i/o timeout", "connection reset", "tls handshake timeout",
     )):
         return "NETWORK"
     return "OTHER"
@@ -213,10 +214,10 @@ def remove_image(tag: str, *, docker: str = "docker", runner: Runner | None = No
 
 
 def build_image(
-    context_dir: Path | str, *, dockerfile: str = "Dockerfile", docker: str = "docker",
-    tag: str | None = None, timeout: float = DEFAULT_BUILD_TIMEOUT, no_cache: bool = False,
-    runner: Runner | None = None, now=None,
-    on_line: Callable[[str], None] | None = None,
+        context_dir: Path | str, *, dockerfile: str = "Dockerfile", docker: str = "docker",
+        tag: str | None = None, timeout: float = DEFAULT_BUILD_TIMEOUT, no_cache: bool = False,
+        runner: Runner | None = None, now=None,
+        on_line: Callable[[str], None] | None = None,
 ) -> BuildResult:
     context = Path(context_dir).expanduser().resolve()
     if not context.is_dir() or not (context / dockerfile).is_file():

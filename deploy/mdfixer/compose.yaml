@@ -3,7 +3,7 @@ services:
     image: b07-mdfixer:${IMAGE_TAG}
     container_name: b07-mdfixer
     restart: unless-stopped
-    command: ["--host", "0.0.0.0", "--port", "8081", "--data-dir", "/data"]
+    command: [ "--host", "0.0.0.0", "--port", "8081", "--data-dir", "/data" ]
     ports:
       - "127.0.0.1:8081:8081"
     volumes:
@@ -15,7 +15,7 @@ services:
     mem_limit: 1g
     pids_limit: 256
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=5)"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=5)" ]
       interval: 10s
       timeout: 5s
       retries: 6

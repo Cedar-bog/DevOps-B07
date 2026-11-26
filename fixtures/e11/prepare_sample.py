@@ -76,7 +76,8 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps(result, ensure_ascii=False, indent=2))
     if args.manifest.is_file():
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-        if manifest.get("baseline_commit") != result["baseline_commit"] or manifest.get("target_commit") != result["target_commit"]:
+        if manifest.get("baseline_commit") != result["baseline_commit"] or manifest.get("target_commit") != result[
+            "target_commit"]:
             print("prepare_sample: commits do not match manifest", file=sys.stderr)
             return 2
     return 0

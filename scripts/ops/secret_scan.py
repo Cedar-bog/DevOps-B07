@@ -41,6 +41,7 @@ SERVICE = "draft"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "lib"))
 from proc import git as git_command, now_iso, run as run_command, tail  # noqa: E402
+
 REDACT_PREFIX = 4
 MAX_SCAN_BYTES = 2 * 1024 * 1024
 DEFAULT_TIMEOUT_S = 60.0
@@ -208,18 +209,18 @@ def _tail(text: str) -> str:
 
 
 def _run(
-    command: Sequence[str],
-    *,
-    cwd: Path,
-    timeout: float = DEFAULT_TIMEOUT_S,
+        command: Sequence[str],
+        *,
+        cwd: Path,
+        timeout: float = DEFAULT_TIMEOUT_S,
 ) -> tuple[int, str, str]:
     return run_command(command, cwd=cwd, timeout=timeout)
 
 
 def _git(
-    repo: Path,
-    *args: str,
-    timeout: float = DEFAULT_TIMEOUT_S,
+        repo: Path,
+        *args: str,
+        timeout: float = DEFAULT_TIMEOUT_S,
 ) -> tuple[int, str, str]:
     return git_command(repo, *args, timeout=timeout)
 
@@ -511,13 +512,13 @@ def _scanner_sha(repo: Path) -> str:
 
 
 def collect(
-    repo: Path,
-    *,
-    images: Sequence[str] = (),
-    docker: str = "docker",
-    history_limit: int | None = None,
-    include_history: bool = True,
-    include_image: bool = True,
+        repo: Path,
+        *,
+        images: Sequence[str] = (),
+        docker: str = "docker",
+        history_limit: int | None = None,
+        include_history: bool = True,
+        include_image: bool = True,
 ) -> tuple[dict, list[Surface]]:
     surfaces = scan_workspace(repo)
     surfaces.append(env_guard(repo))
@@ -633,7 +634,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="append",
         default=[],
         help="image to inspect via docker history; repeatable "
-        "(default: compose image e4-draft:$STUDENT_ID plus local e4-draft* tags)",
+             "(default: compose image e4-draft:$STUDENT_ID plus local e4-draft* tags)",
     )
     parser.add_argument("--docker", default="docker", help="docker executable (default: docker)")
     parser.add_argument("--no-history", action="store_true", help="skip the Git history surface")

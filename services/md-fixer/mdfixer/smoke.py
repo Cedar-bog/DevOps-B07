@@ -95,9 +95,9 @@ def _finding_present(findings: list, kind: str, target: str, dependency: str) ->
         if not isinstance(finding, dict):
             continue
         if (
-            finding.get("type") == kind
-            and finding.get("target") == target
-            and finding.get("dependency") == dependency
+                finding.get("type") == kind
+                and finding.get("target") == target
+                and finding.get("dependency") == dependency
         ):
             return True
     return False
@@ -177,9 +177,9 @@ def _check_report(checks: list[Check], report_path: Path) -> None:
 
 
 def run_smoke(
-    fixture_dir: Path | str,
-    *,
-    report: Path | str | None = None,
+        fixture_dir: Path | str,
+        *,
+        report: Path | str | None = None,
 ) -> SmokeResult:
     fixture = Path(fixture_dir).expanduser()
     report_path = Path(report).expanduser() if report else fixture / REPORT_NAME

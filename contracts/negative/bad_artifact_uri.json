@@ -1,8 +1,18 @@
 {
   "id": "bad_artifact_uri",
   "description": "MD 报告 URI 不是 artifact:// 引用，必须被拒绝。",
-  "source": { "file": "examples/repair/response.json", "pointer": "" },
-  "mutate": { "op": "set", "pointer": "/input/md_report_uri", "value": "https://example.com/report.json" },
-  "expect": { "pointer": "/input/md_report_uri", "keyword": "pattern" },
+  "source": {
+    "file": "examples/repair/response.json",
+    "pointer": ""
+  },
+  "mutate": {
+    "op": "set",
+    "pointer": "/input/md_report_uri",
+    "value": "https://example.com/report.json"
+  },
+  "expect": {
+    "pointer": "/input/md_report_uri",
+    "keyword": "pattern"
+  },
   "owner": "B07"
 }

@@ -1,13 +1,37 @@
 {
   "schema_version": "1.0",
-  "consumed_types": ["MISSING"],
-  "ignored_types": ["REDUNDANT"],
-  "required_fields": ["type", "target", "dependency", "commit", "position", "detector"],
-  "position_required_fields": ["file", "line"],
-  "position_optional_fields": ["declaration"],
-  "detector_enum": ["BUILDCHECKER", "ECHECKER", "INSTRUCTOR_ORACLE"],
+  "consumed_types": [
+    "MISSING"
+  ],
+  "ignored_types": [
+    "REDUNDANT"
+  ],
+  "required_fields": [
+    "type",
+    "target",
+    "dependency",
+    "commit",
+    "position",
+    "detector"
+  ],
+  "position_required_fields": [
+    "file",
+    "line"
+  ],
+  "position_optional_fields": [
+    "declaration"
+  ],
+  "detector_enum": [
+    "BUILDCHECKER",
+    "ECHECKER",
+    "INSTRUCTOR_ORACLE"
+  ],
   "commit_match": "findings[].commit 必须等于 input.repository.commit，不一致则拒绝该报告",
-  "a07_extra_fields": ["finding_id", "configuration_id", "evidence_uri"],
+  "a07_extra_fields": [
+    "finding_id",
+    "configuration_id",
+    "evidence_uri"
+  ],
   "examples": {
     "error_report": {
       "schema_version": "1.0",

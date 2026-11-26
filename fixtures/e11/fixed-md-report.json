@@ -1,1 +1,50 @@
-{"configuration_id":"e11-b","findings":[{"commit":"615c64f83a0a24cad61fe22be6cc29ca91e30a76","dependency":"config.h","detector":"INSTRUCTOR_ORACLE","finding_id":"MISSING-main-o-config-h","position":{"declaration":"main.o: main.c unused.h","file":"Makefile","line":14},"target":"main.o","type":"MISSING"},{"commit":"615c64f83a0a24cad61fe22be6cc29ca91e30a76","dependency":"extra.h","detector":"INSTRUCTOR_ORACLE","finding_id":"MISSING-main-o-extra-h","position":{"declaration":"main.o: main.c unused.h","file":"Makefile","line":14},"target":"main.o","type":"MISSING"},{"commit":"615c64f83a0a24cad61fe22be6cc29ca91e30a76","dependency":"unused.h","detector":"INSTRUCTOR_ORACLE","finding_id":"REDUNDANT-main-o-unused-h","position":{"declaration":"main.o: main.c unused.h","file":"Makefile","line":14},"target":"main.o","type":"REDUNDANT"}],"producer_job_id":"job-e11-b","repository":{"commit":"615c64f83a0a24cad61fe22be6cc29ca91e30a76","url":"http://b07-e11-sample:8000/repo.git"},"schema_version":"1.0"}
+{
+  "configuration_id": "e11-b",
+  "findings": [
+    {
+      "commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76",
+      "dependency": "config.h",
+      "detector": "INSTRUCTOR_ORACLE",
+      "finding_id": "MISSING-main-o-config-h",
+      "position": {
+        "declaration": "main.o: main.c unused.h",
+        "file": "Makefile",
+        "line": 14
+      },
+      "target": "main.o",
+      "type": "MISSING"
+    },
+    {
+      "commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76",
+      "dependency": "extra.h",
+      "detector": "INSTRUCTOR_ORACLE",
+      "finding_id": "MISSING-main-o-extra-h",
+      "position": {
+        "declaration": "main.o: main.c unused.h",
+        "file": "Makefile",
+        "line": 14
+      },
+      "target": "main.o",
+      "type": "MISSING"
+    },
+    {
+      "commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76",
+      "dependency": "unused.h",
+      "detector": "INSTRUCTOR_ORACLE",
+      "finding_id": "REDUNDANT-main-o-unused-h",
+      "position": {
+        "declaration": "main.o: main.c unused.h",
+        "file": "Makefile",
+        "line": 14
+      },
+      "target": "main.o",
+      "type": "REDUNDANT"
+    }
+  ],
+  "producer_job_id": "job-e11-b",
+  "repository": {
+    "commit": "615c64f83a0a24cad61fe22be6cc29ca91e30a76",
+    "url": "http://b07-e11-sample:8000/repo.git"
+  },
+  "schema_version": "1.0"
+}

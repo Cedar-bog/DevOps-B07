@@ -65,7 +65,7 @@ class DeclarationCheck:
 
 
 def advance_header(
-    header: Path | str, macro: str = "VALUE", old_value: str = "1", new_value: str = "2"
+        header: Path | str, macro: str = "VALUE", old_value: str = "1", new_value: str = "2"
 ) -> bool:
     """Replace one macro value in a header; return whether a change was made."""
     path = Path(header)
@@ -101,17 +101,17 @@ def _affected_objects(root: Path, header: str) -> set[str]:
 
 
 def run_incremental(
-    sandbox: Path | str,
-    *,
-    header: str = "config.h",
-    macro: str = "VALUE",
-    old_value: str = "1",
-    new_value: str = "2",
-    target: str = "app",
-    program: str = "app",
-    timeout: int = 120,
-    env: dict[str, str] | None = None,
-    settle_seconds: float = 1.05,
+        sandbox: Path | str,
+        *,
+        header: str = "config.h",
+        macro: str = "VALUE",
+        old_value: str = "1",
+        new_value: str = "2",
+        target: str = "app",
+        program: str = "app",
+        timeout: int = 120,
+        env: dict[str, str] | None = None,
+        settle_seconds: float = 1.05,
 ) -> IncrementalResult:
     """Modify a header without cleaning, then require a rebuild and new output."""
     root = Path(sandbox).resolve()
@@ -161,8 +161,8 @@ def run_incremental(
 
 
 def _declares(
-    document: Makefile, target: str, dependency: str,
-    dep_edges: dict[str, set[str]] | None = None,
+        document: Makefile, target: str, dependency: str,
+        dep_edges: dict[str, set[str]] | None = None,
 ) -> bool:
     if dep_edges is not None and dependency in dep_edges.get(target, set()):
         return True
@@ -207,11 +207,11 @@ def depfile_edges(root: Path | str) -> dict[str, set[str]]:
 
 
 def check_declarations(
-    makefile_text: str,
-    missing: tuple[Finding, ...],
-    redundant: tuple[tuple[str, str], ...] = (),
-    *,
-    sandbox: Path | str | None = None,
+        makefile_text: str,
+        missing: tuple[Finding, ...],
+        redundant: tuple[tuple[str, str], ...] = (),
+        *,
+        sandbox: Path | str | None = None,
 ) -> DeclarationCheck:
     try:
         document = parse_makefile(makefile_text, allow_includes=True)

@@ -89,10 +89,10 @@ def _default_runner(command: Sequence[str], cwd: Path, timeout: float) -> tuple[
 
 
 def _invoke(
-    runner: Runner,
-    command: Sequence[str],
-    cwd: Path,
-    timeout: float,
+        runner: Runner,
+        command: Sequence[str],
+        cwd: Path,
+        timeout: float,
 ) -> tuple[int, str]:
     try:
         return runner(command, cwd, timeout)
@@ -107,12 +107,12 @@ def _clean(text: str) -> str:
 
 
 def run_smoke(
-    fixture_dir: Path | str,
-    *,
-    docker: str = "docker",
-    image_tag: str | None = None,
-    timeout: float = DEFAULT_TIMEOUT,
-    runner: Runner | None = None,
+        fixture_dir: Path | str,
+        *,
+        docker: str = "docker",
+        image_tag: str | None = None,
+        timeout: float = DEFAULT_TIMEOUT,
+        runner: Runner | None = None,
 ) -> SmokeResult:
     fixture = Path(fixture_dir).expanduser()
     if not fixture.is_dir():

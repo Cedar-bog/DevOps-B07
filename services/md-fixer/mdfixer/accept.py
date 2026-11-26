@@ -35,7 +35,7 @@ def write_atomic(path: Path | str, data: bytes) -> Path:
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
-            mode="wb", dir=target.parent, prefix=f".{target.name}.", delete=False
+                mode="wb", dir=target.parent, prefix=f".{target.name}.", delete=False
         ) as handle:
             temporary = Path(handle.name)
             handle.write(data)
@@ -54,11 +54,11 @@ def write_atomic(path: Path | str, data: bytes) -> Path:
 
 
 def accept_candidate(
-    project_root: Path | str,
-    candidate_text: str,
-    *,
-    makefile: str = "Makefile",
-    expected_sha256: str | None = None,
+        project_root: Path | str,
+        candidate_text: str,
+        *,
+        makefile: str = "Makefile",
+        expected_sha256: str | None = None,
 ) -> AcceptResult:
     """Write back only when the source still matches the generated snapshot."""
     if not isinstance(candidate_text, str) or not candidate_text:

@@ -116,10 +116,10 @@ def _make_env(env: dict[str, str] | None) -> dict[str, str]:
 
 
 def run_make(
-    project_root: Path | str,
-    *args: str,
-    timeout: int = 120,
-    env: dict[str, str] | None = None,
+        project_root: Path | str,
+        *args: str,
+        timeout: int = 120,
+        env: dict[str, str] | None = None,
 ) -> CommandResult:
     root = Path(project_root).resolve()
     values = _make_env(env)
@@ -159,12 +159,12 @@ def run_make(
 
 
 def clean_build(
-    project_root: Path | str,
-    target: str = "app",
-    *,
-    clean_target: str = "clean",
-    timeout: int = 120,
-    env: dict[str, str] | None = None,
+        project_root: Path | str,
+        target: str = "app",
+        *,
+        clean_target: str = "clean",
+        timeout: int = 120,
+        env: dict[str, str] | None = None,
 ) -> BuildResult:
     clean = run_make(project_root, clean_target, timeout=timeout, env=env)
     build = (
@@ -176,12 +176,12 @@ def clean_build(
 
 
 def run_program(
-    project_root: Path | str,
-    program: str = "app",
-    expected_output: str = "1",
-    *,
-    timeout: int = 30,
-    env: dict[str, str] | None = None,
+        project_root: Path | str,
+        program: str = "app",
+        expected_output: str = "1",
+        *,
+        timeout: int = 30,
+        env: dict[str, str] | None = None,
 ) -> ProgramResult:
     root = Path(project_root).resolve()
     candidates = [root / program, root / f"{program}.exe"]

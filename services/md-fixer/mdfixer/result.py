@@ -21,13 +21,13 @@ def _sensitive(path: Path) -> bool:
 
 
 def validation_payload(
-    *,
-    accepted: bool,
-    checks: dict[str, bool],
-    source_unchanged: bool,
-    rollback: bool,
-    error: str | None = None,
-    details: dict | None = None,
+        *,
+        accepted: bool,
+        checks: dict[str, bool],
+        source_unchanged: bool,
+        rollback: bool,
+        error: str | None = None,
+        details: dict | None = None,
 ) -> dict:
     payload = {
         "accepted": bool(accepted),
@@ -49,26 +49,26 @@ def scenario_passed(scenario: str, validation: dict) -> bool:
     checks = validation.get("checks", {})
     if scenario == "accept":
         return (
-            validation.get("accepted") is True
-            and all(checks.get(name) is True for name in CHECKS)
-            and validation.get("source_unchanged") is False
-            and validation.get("rollback") is False
+                validation.get("accepted") is True
+                and all(checks.get(name) is True for name in CHECKS)
+                and validation.get("source_unchanged") is False
+                and validation.get("rollback") is False
         )
     if scenario == "reject-test":
         return (
-            validation.get("accepted") is False
-            and checks.get("build") is True
-            and checks.get("test") is False
-            and validation.get("source_unchanged") is True
-            and validation.get("rollback") is True
+                validation.get("accepted") is False
+                and checks.get("build") is True
+                and checks.get("test") is False
+                and validation.get("source_unchanged") is True
+                and validation.get("rollback") is True
         )
     if scenario == "reject-patch":
         return (
-            validation.get("accepted") is False
-            and checks.get("patch_applies") is False
-            and validation.get("source_unchanged") is True
-            and validation.get("rollback") is True
-            and bool(validation.get("error"))
+                validation.get("accepted") is False
+                and checks.get("patch_applies") is False
+                and validation.get("source_unchanged") is True
+                and validation.get("rollback") is True
+                and bool(validation.get("error"))
         )
     return False
 
@@ -113,17 +113,17 @@ def write_results_csv(path: Path | str, rows: list[dict]) -> Path:
 
 
 def write_scenario_artifacts(
-    output_dir: Path | str,
-    scenario: str,
-    *,
-    validation: dict,
-    build_log: str = "",
-    incremental_log: str = "",
-    recheck: dict | None = None,
-    commands: tuple[dict, ...] | list[dict] = (),
-    stdout_log: str = "",
-    stderr_log: str = "",
-    exit_code: int | None = None,
+        output_dir: Path | str,
+        scenario: str,
+        *,
+        validation: dict,
+        build_log: str = "",
+        incremental_log: str = "",
+        recheck: dict | None = None,
+        commands: tuple[dict, ...] | list[dict] = (),
+        stdout_log: str = "",
+        stderr_log: str = "",
+        exit_code: int | None = None,
 ) -> Path:
     target = Path(output_dir) / scenario
     target.mkdir(parents=True, exist_ok=True)
