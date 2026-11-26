@@ -414,27 +414,6 @@ def _rejected(patch: str, reason: str) -> dict[str, str]:
     return {"patch": patch, "reason": reason}
 
 
-def _validation(
-        *,
-        patch_applies: bool = False,
-        build: bool = False,
-        test: bool = False,
-        header_change: bool | None = None,
-        no_missing: bool = False,
-        redundant_preserved: bool = False,
-) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "patch_applies": patch_applies,
-        "build": build,
-        "test": test,
-        "no_missing": no_missing,
-        "redundant_preserved": redundant_preserved,
-    }
-    if header_change is not None:
-        result["header_change"] = header_change
-    return result
-
-
 def _build_payload(ok: bool, command: str, log: str) -> dict[str, Any]:
     return {"ok": ok, "command": command, "log": log}
 
