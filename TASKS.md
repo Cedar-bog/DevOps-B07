@@ -15,54 +15,54 @@
 
 ## E2 - 需求与接口契约
 
-| 编号 | 状态 | 任务                    | 负责人 | 产物                                                 |
-|------|------|-------------------------|:------:|------------------------------------------------------|
-| 001  | DONE | 统一任务模型            |  郑悫  | `contracts/task.schema.json`                         |
-| 002  | DONE | 状态与错误码约定        |  郑悫  | `contracts/conventions/status_error.json`            |
-| 003  | DONE | 产物访问样例            |  郑悫  | `contracts/conventions/artifact.json`                |
-| 004  | DONE | MD 报告消费约束         |  郑悫  | `contracts/conventions/error_report.json`            |
-| 005  | DONE | DRAFT 请求样例          |  刘雯  | `contracts/examples/draft/request.json`              |
-| 006  | DONE | DRAFT 响应样例          |  刘雯  | `contracts/examples/draft/response.json`             |
-| 007  | DONE | REPAIR 请求样例         | 姚睿哲 | `contracts/examples/repair/request.json`             |
-| 008  | DONE | REPAIR 响应样例         | 姚睿哲 | `contracts/examples/repair/response.json`            |
-| 009  | DONE | 查询任务样例            | 姚睿哲 | `contracts/examples/job_query.json`                  |
-| 010  | DONE | 失败输入和校验脚本      | 王师师 | `contracts/{negative,validate.py}`                   |
-| 011  | DONE | ADR：异步任务模型       |  郑悫  | `design/adr/B07-ADR-0001-async-job-model.md`         |
-| 012  | DONE | ADR：产物传递与可追溯性 |  郑悫  | `design/adr/B07-ADR-0002-artifact-passing.md`        |
-| 013  | DONE | AI_USAGE.md             | 王师师 | `design/AI_USAGE.md`                                 |
-| 014  | DONE | 交换契约样例            | 王师师 | `contracts/examples/{full-check,incremental-check}`  |
-| 015  | DONE | 交换决定与未决追踪      | 王师师 | `design/backlog.md`<br/>`design/adr/PAIR07-ADR-*.md` |
+| 编号 | 状态 | 任务                    | 负责人 | 产物                                                |
+|------|------|-------------------------|:------:|-----------------------------------------------------|
+| 001  | DONE | 统一任务模型            |  郑悫  | `contracts/task.schema.json`                        |
+| 002  | DONE | 状态与错误码约定        |  郑悫  | `contracts/conventions/status_error.json`           |
+| 003  | DONE | 产物访问样例            |  郑悫  | `contracts/conventions/artifact.json`               |
+| 004  | DONE | MD 报告消费约束         |  郑悫  | `contracts/conventions/error_report.json`           |
+| 005  | DONE | DRAFT 请求样例          |  刘雯  | `contracts/examples/draft/request.json`             |
+| 006  | DONE | DRAFT 响应样例          |  刘雯  | `contracts/examples/draft/response.json`            |
+| 007  | DONE | REPAIR 请求样例         | 姚睿哲 | `contracts/examples/repair/request.json`            |
+| 008  | DONE | REPAIR 响应样例         | 姚睿哲 | `contracts/examples/repair/response.json`           |
+| 009  | DONE | 查询任务样例            | 姚睿哲 | `contracts/examples/job_query.json`                 |
+| 010  | DONE | 失败输入和校验脚本      | 王师师 | `contracts/{negative,validate.py}`                  |
+| 011  | DONE | ADR：异步任务模型       |  郑悫  | `design/adr/B07-ADR-0001-async-job-model.md`        |
+| 012  | DONE | ADR：产物传递与可追溯性 |  郑悫  | `design/adr/B07-ADR-0002-artifact-passing.md`       |
+| 013  | DONE | AI_USAGE.md             | 王师师 | `design/AI_USAGE.md`                                |
+| 014  | DONE | 交换契约样例            | 王师师 | `contracts/examples/{full-check,incremental-check}` |
+| 015  | DONE | 交换决定与未决追踪      | 王师师 | `design/backlog.md` `design/adr/PAIR07-ADR-*.md`    |
 
 ---
 
 ## E3 - 并行测试基线
 
-| 编号 | 状态 | 任务                                | 负责人 | 产物                                                       |
-|------|------|-------------------------------------|:------:|------------------------------------------------------------|
-| 001  | DONE | DRAFT 样本项目与两层成功判据        |  郑悫  | `fixtures/draft/{main.c,Makefile,README.md}`               |
-| 002  | DONE | DRAFT 失败样例                      |  郑悫  | `fixtures/draft/Dockerfile.broken`                         |
-| 003  | DONE | DRAFT 参考成功                      |  郑悫  | `fixtures/draft/Dockerfile.reference`<br/>`evidence/draft` |
-| 004  | DONE | MDFixer 固定 MD 报告与 Makefile     | 王师师 | `fixtures/md-fixer`                                        |
-| 005  | DONE | MDFixer 四种声明风格与参考 Patch    | 王师师 | `fixtures/md-fixer/styles`                                 |
-| 006  | DONE | MDFixer 行为验证与无效候选拒绝/恢复 | 姚睿哲 | `evidence/md-fixer`                                        |
-| 007  | DONE | 共同信息与失败记录                  |  刘雯  | `scripts`<br/>`fixtures/README.md`                         |
+| 编号 | 状态 | 任务                                | 负责人 | 产物                                                   |
+|------|------|-------------------------------------|:------:|--------------------------------------------------------|
+| 001  | DONE | DRAFT 样本项目与两层成功判据        |  郑悫  | `fixtures/draft/{main.c,Makefile,README.md}`           |
+| 002  | DONE | DRAFT 失败样例                      |  郑悫  | `fixtures/draft/Dockerfile.broken`                     |
+| 003  | DONE | DRAFT 参考成功                      |  郑悫  | `fixtures/draft/Dockerfile.reference` `evidence/draft` |
+| 004  | DONE | MDFixer 固定 MD 报告与 Makefile     | 王师师 | `fixtures/md-fixer`                                    |
+| 005  | DONE | MDFixer 四种声明风格与参考 Patch    | 王师师 | `fixtures/md-fixer/styles`                             |
+| 006  | DONE | MDFixer 行为验证与无效候选拒绝/恢复 | 姚睿哲 | `evidence/md-fixer`                                    |
+| 007  | DONE | 共同信息与失败记录                  |  刘雯  | `scripts` `fixtures/README.md`                         |
 
 ---
 
 ## E4 - 可重复工程环境
 
-| 编号 | 状态 | 任务                   | 负责人 | 产物                                                |
-|------|------|------------------------|:------:|-----------------------------------------------------|
-| 001  | DONE | 服务骨架与命令行入口   |  郑悫  | `services/draft/draft/{cli.py,smoke.py}`            |
-| 002  | DONE | 依赖声明与锁文件       |  郑悫  | `requirements-dev.in`<br/>`requirements-dev.lock`   |
-| 003  | DONE | 环境变量样例与忽略规则 |  郑悫  | `.env.example`<br/>`.gitignore`<br/>`.dockerignore` |
-| 004  | DONE | 服务 Dockerfile        |  刘雯  | `services/draft/Dockerfile`                         |
-| 005  | DONE | Compose 运行配置       |  刘雯  | `compose.yaml`                                      |
-| 006  | DONE | 环境自检脚本           |  刘雯  | `scripts/doctor.py`                                 |
-| 007  | DONE | 密钥扫描脚本           | 姚睿哲 | `scripts/secret_scan.py`                            |
-| 008  | DONE | 一键命令 Makefile      | 姚睿哲 | `Makefile`                                          |
-| 009  | DONE | 服务单元测试           | 王师师 | `services/draft/tests/{test_cli.py,test_smoke.py}`  |
-| 010  | DONE | 运行验证与证据归档     | 王师师 | `work/<timestamp>/`                                 |
+| 编号 | 状态 | 任务                   | 负责人 | 产物                                               |
+|------|------|------------------------|:------:|----------------------------------------------------|
+| 001  | DONE | 服务骨架与命令行入口   |  郑悫  | `services/draft/draft/{cli.py,smoke.py}`           |
+| 002  | DONE | 依赖声明与锁文件       |  郑悫  | `requirements-dev.in` `requirements-dev.lock`      |
+| 003  | DONE | 环境变量样例与忽略规则 |  郑悫  | `.env.example` `.gitignore` `.dockerignore`        |
+| 004  | DONE | 服务 Dockerfile        |  刘雯  | `services/draft/Dockerfile`                        |
+| 005  | DONE | Compose 运行配置       |  刘雯  | `compose.yaml`                                     |
+| 006  | DONE | 环境自检脚本           |  刘雯  | `scripts/doctor.py`                                |
+| 007  | DONE | 密钥扫描脚本           | 姚睿哲 | `scripts/secret_scan.py`                           |
+| 008  | DONE | 一键命令 Makefile      | 姚睿哲 | `Makefile`                                         |
+| 009  | DONE | 服务单元测试           | 王师师 | `services/draft/tests/{test_cli.py,test_smoke.py}` |
+| 010  | DONE | 运行验证与证据归档     | 王师师 | `work/<timestamp>/`                                |
 
 ---
 
@@ -175,35 +175,94 @@ evidence/e8/
 
 ## E10 - MDFixer 验证
 
-| 编号 | 状态 | 任务                                                                               | 负责人 | 产物                                                                            |
-|------|------|------------------------------------------------------------------------------------|:------:|---------------------------------------------------------------------------------|
-| 001  | DONE | 独立沙箱与补丁应用：复制项目副本，执行应用检查并应用候选补丁                       |  刘雯  | `services/md-fixer/mdfixer/sandbox.py`                                          |
-| 002  | DONE | 构建与程序验证：clean 构建、运行程序、检查输出                                     |  刘雯  | `services/md-fixer/mdfixer/build.py`                                            |
-| 003  | DONE | 增量重建与重检：修改头文件后不 clean 构建，检查重建与 MISSING 消除，保留 REDUNDANT |  刘雯  | `services/md-fixer/mdfixer/recheck.py`                                          |
-| 004  | DONE | 接受与写回：全部检查通过后写回源项目并记录结果                                     |  刘雯  | `services/md-fixer/mdfixer/accept.py`                                           |
-| 005  | DONE | 拒绝与回滚：覆盖测试拒绝与补丁拒绝，确认源文件保持不变                             |  刘雯  | `services/md-fixer/mdfixer/rollback.py`                                         |
-| 006  | DONE | 验证入口与场景编排：正常接受、测试拒绝、补丁拒绝                                   |  刘雯  | `services/md-fixer/mdfixer/gate.py`                                             |
-| 007  | DONE | 端到端测试与门禁汇总：运行三类事务，汇总检查结果与退出码                           |  刘雯  | `services/md-fixer/tests/test_e2e.py`<br/>`services/md-fixer/mdfixer/result.py` |
-| 008  | DONE | 接入 CI：离线运行 E9 单元测试与 E10 端到端验证，归档结果                           |  郑悫  | `.github/workflows/e8e10-quality-gate.yml`                                      |
-| 009  | DONE | 配置 main 分支保护：将 E10 门禁设为必需检查，确认失败阻止合并、修复后恢复通过      |  郑悫  | -                                                                               |
-| 010  | DONE | 归档 E10 运行证据                                                                  |  郑悫  | `evidence/e10/<timestamp>/`                                                     |
+| 编号 | 状态 | 任务                                                                               | 负责人 | 产物                                                                        |
+|------|------|------------------------------------------------------------------------------------|:------:|-----------------------------------------------------------------------------|
+| 001  | DONE | 独立沙箱与补丁应用：复制项目副本，执行应用检查并应用候选补丁                       |  刘雯  | `services/md-fixer/mdfixer/sandbox.py`                                      |
+| 002  | DONE | 构建与程序验证：clean 构建、运行程序、检查输出                                     |  刘雯  | `services/md-fixer/mdfixer/build.py`                                        |
+| 003  | DONE | 增量重建与重检：修改头文件后不 clean 构建，检查重建与 MISSING 消除，保留 REDUNDANT |  刘雯  | `services/md-fixer/mdfixer/recheck.py`                                      |
+| 004  | DONE | 接受与写回：全部检查通过后写回源项目并记录结果                                     |  刘雯  | `services/md-fixer/mdfixer/accept.py`                                       |
+| 005  | DONE | 拒绝与回滚：覆盖测试拒绝与补丁拒绝，确认源文件保持不变                             |  刘雯  | `services/md-fixer/mdfixer/rollback.py`                                     |
+| 006  | DONE | 验证入口与场景编排：正常接受、测试拒绝、补丁拒绝                                   |  刘雯  | `services/md-fixer/mdfixer/gate.py`                                         |
+| 007  | DONE | 端到端测试与门禁汇总：运行三类事务，汇总检查结果与退出码                           |  刘雯  | `services/md-fixer/tests/test_e2e.py` `services/md-fixer/mdfixer/result.py` |
+| 008  | DONE | 接入 CI：离线运行 E9 单元测试与 E10 端到端验证，归档结果                           |  郑悫  | `.github/workflows/e8e10-quality-gate.yml`                                  |
+| 009  | DONE | 配置 main 分支保护：将 E10 门禁设为必需检查，确认失败阻止合并、修复后恢复通过      |  郑悫  | -                                                                           |
+| 010  | DONE | 归档 E10 运行证据                                                                  |  郑悫  | `evidence/e10/<timestamp>/`                                                 |
 
 ---
 
 ## E11 - 轨道内集成
 
-| 编号 | 状态 | 任务                                 | 负责人 | 产物                                                                                                    |
-|------|------|--------------------------------------|:------:|---------------------------------------------------------------------------------------------------------|
-| 001  | DONE | DRAFT 契约驱动服务与 HTTP 入口       |  郑悫  | `services/draft/draft/{service_runner.py,api.py,job_store.py}`                                          |
-| 002  | DONE | DRAFT 独立镜像、compose 与一键部署   |  郑悫  | `deploy/draft/compose.yaml`<br/>`scripts/deploy/deploy-draft.sh`                                        |
-| 003  | DONE | MDFixer 契约驱动服务与 HTTP 入口     |  郑悫  | `services/md-fixer/mdfixer/{service_runner.py,api.py,job_store.py}`                                     |
-| 004  | DONE | MDFixer 独立镜像、compose 与一键部署 |  郑悫  | `services/md-fixer/Dockerfile`<br/>`deploy/mdfixer/compose.yaml`<br/>`scripts/deploy/deploy-mdfixer.sh` |
-| 005  | DONE | 公网入口、Basic Auth 与用户管理 CLI  |  郑悫  | `scripts/admin/b07_users.py`                                                                            |
-| 006  | DONE | 服务单元与契约测试                   |  郑悫  | `services/draft/tests/test_service.py`<br/>`services/md-fixer/tests/test_service.py`                    |
-| 007  | DONE | 建立集成输入                         |  郑悫  | `fixtures/e11/`                                                                                         |
-| 008  | DONE | 集成测试脚本                         |  郑悫  | `scripts/e11/`                                                                                          |
-| 009  | DONE | 归档运行证据                         |  郑悫  | `work/e11/<timestamp>/`                                                                                 |
+| 编号 | 状态 | 任务                                 | 负责人 | 产物                                                                                            |
+|------|------|--------------------------------------|:------:|-------------------------------------------------------------------------------------------------|
+| 001  | DONE | DRAFT 契约驱动服务与 HTTP 入口       |  郑悫  | `services/draft/draft/{service_runner.py,api.py,job_store.py}`                                  |
+| 002  | DONE | DRAFT 独立镜像、compose 与一键部署   |  郑悫  | `deploy/draft/compose.yaml` `scripts/deploy/deploy-draft.sh`                                    |
+| 003  | DONE | MDFixer 契约驱动服务与 HTTP 入口     |  郑悫  | `services/md-fixer/mdfixer/{service_runner.py,api.py,job_store.py}`                             |
+| 004  | DONE | MDFixer 独立镜像、compose 与一键部署 |  郑悫  | `services/md-fixer/Dockerfile` `deploy/mdfixer/compose.yaml` `scripts/deploy/deploy-mdfixer.sh` |
+| 005  | DONE | 公网入口、Basic Auth 与用户管理 CLI  |  郑悫  | `scripts/admin/b07_users.py`                                                                    |
+| 006  | DONE | 服务单元与契约测试                   |  郑悫  | `services/draft/tests/test_service.py` `services/md-fixer/tests/test_service.py`                |
+| 007  | DONE | 建立集成输入                         |  郑悫  | `fixtures/e11/`                                                                                 |
+| 008  | DONE | 集成测试脚本                         |  郑悫  | `scripts/e11/`                                                                                  |
+| 009  | DONE | 归档运行证据                         |  郑悫  | `work/e11/<timestamp>/`                                                                         |
 
 ## E12 - 接口联调
 
 - 联调由 A07 组完成，已向其提供服务调用方式。
+
+## E13 - 交叉测试与质量门禁
+
+| 状态 | 负责人 |
+|------|:------:|
+|      |        |
+
+#### 任务
+
+- 准备真实项目样例，登记仓库 URL、完整 SHA、请求文件和预期结果
+- 测试 A07 的 BuildChecker 与 EChecker，发现问题时随 Issue 提交样例和日志
+- 接收 A07 对 DRAFT 与 MDFixer 的交叉测试，按 Issue 修复并提交关联 Issue 的 PR
+- 用同一用例复测，双方签收，汇总质量门禁结论
+
+#### 产物
+
+```
+work/e13/
+├─── exchange/        # 样例、SHA、请求与预期结果
+├─── test-a07/        # 对 A07 服务的测试结果
+├─── test-b07/        # A07 对 B07 服务的测试结果
+└─── gate/            # 复测结果、Issue/PR 记录与签收结论
+```
+
+- （如有）对本组项目的修复
+
+## E14 - 集成候选发布
+
+| 状态 | 负责人 |
+|------|:------:|
+|      |        |
+
+#### 任务
+
+- 从 E13 通过状态确定候选提交，核对 CI 与阻断缺陷
+- 固定四服务 compose、镜像 digest、健康检查与资源边界
+- 用真实项目跑五阶段端到端，核对产物哈希与证据链
+- 注入超时、坏补丁、单服务不可用，验证故障隔离与恢复
+- 整理 Release Notes、已知问题与回退步骤，在验收提交打 RC 标签
+
+#### 产物
+
+```
+work/e14/
+├─── candidate/       # 候选 SHA 与 CI 检查
+├─── deploy/          # 四服务配置、镜像与健康检查
+├─── e2e/             # 五阶段请求、结果与日志
+├─── faults/          # 故障注入与恢复记录
+├─── release/         # Release Notes、已知问题与回退步骤
+└─── final/           # RC 标签与验收归档
+```
+
+## 项目报告与汇报
+
+| 编号 | 状态 | 任务             | 负责人 | 产物                          |
+|------|------|------------------|:------:|-------------------------------|
+| 001  |      | 收集整理项目证据 |        | `work/` `evidence/`           |
+| 002  |      | 完成项目报告     |        | `DevOps 课程期末项目报告.pdf` |
+| 003  |      | 进行汇报         |        | -                             |
